@@ -15,7 +15,9 @@ interface UserCount {
   userId: string | null;
   email: string | null;
   username: string | null;
+  lastLoginAt: number | null;
   n: number;
+  logins?: number;
 }
 
 function dayExpr(col: AnyColumn) {
@@ -71,6 +73,7 @@ export async function GET(request: Request) {
       userId: usageEvents.userId,
       email: users.email,
       username: users.username,
+      lastLoginAt: users.lastLoginAt,
       n: sql<number>`count(*)`.as("n"),
     })
     .from(usageEvents)
@@ -78,10 +81,27 @@ export async function GET(request: Request) {
     .where(
       sql`${usageEvents.createdAt} >= ${since} AND ${usageEvents.kind} = 'message'`
     )
-    .groupBy(usageEvents.userId, users.email, users.username)
+    .groupBy(usageEvents.userId, users.email, users.username, users.lastLoginAt)
     .orderBy(sql`count(*) desc`)
     .limit(10)
     .all() as UserCount[];
+
+  // Count successful logins per user within the same window, then enrich.
+  const loginCounts = db
+    .select({
+      userId: loginEvents.userId,
+      n: sql<number>`count(*)`.as("n"),
+    })
+    .from(loginEvents)
+    .where(
+      sql`${loginEvents.createdAt} >= ${since} AND ${loginEvents.success} = 1`
+    )
+    .groupBy(loginEvents.userId)
+    .all() as { userId: string | null; n: number }[];
+  const loginMap = new Map(loginCounts.map((r) => [r.userId, r.n]));
+  for (const u of perUser) {
+    u.logins = loginMap.get(u.userId) ?? 0;
+  }
 
   // Merge all three series onto a shared day axis so charts can share x-ticks.
   const merged = mergeSeries({

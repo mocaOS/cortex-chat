@@ -48,6 +48,10 @@ export default function Home() {
   const [collections, setCollections] = useState<Collection[]>([]);
   const [selectedSource, setSelectedSource] = useState<Source | null>(null);
   const [logoUrl, setLogoUrl] = useState("/logo.svg");
+  const [emptyTitle, setEmptyTitle] = useState<string | undefined>(undefined);
+  const [emptyDescription, setEmptyDescription] = useState<string | undefined>(
+    undefined
+  );
   const [configReady, setConfigReady] = useState(false);
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -69,6 +73,8 @@ export default function Home() {
   useEffect(() => {
     getConfig().then((cfg) => {
       setLogoUrl(cfg.logoUrl || "/logo.svg");
+      setEmptyTitle(cfg.appTitle);
+      setEmptyDescription(cfg.appDescription);
       setConfigReady(true);
     });
     fetch("/api/auth/me")
@@ -387,6 +393,8 @@ export default function Home() {
             <MessageList
               messages={messages}
               onSourceClick={setSelectedSource}
+              emptyTitle={emptyTitle}
+              emptyDescription={emptyDescription}
             />
           </main>
 

@@ -7,6 +7,7 @@ const PUBLIC_PATHS = new Set<string>([
   "/login",
   "/api/auth/login",
   "/api/config",
+  "/api/branding/logo",
 ]);
 
 function isPublic(pathname: string): boolean {

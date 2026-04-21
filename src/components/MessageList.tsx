@@ -8,9 +8,16 @@ import MessageBubble from "./MessageBubble";
 interface Props {
   messages: ChatMessage[];
   onSourceClick: (source: Source) => void;
+  emptyTitle?: string;
+  emptyDescription?: string;
 }
 
-export default function MessageList({ messages, onSourceClick }: Props) {
+export default function MessageList({
+  messages,
+  onSourceClick,
+  emptyTitle,
+  emptyDescription,
+}: Props) {
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -38,9 +45,11 @@ export default function MessageList({ messages, onSourceClick }: Props) {
             />
           </svg>
         </div>
-        <h2 className="text-xl font-semibold mb-2">{t("emptyTitle")}</h2>
+        <h2 className="text-xl font-semibold mb-2">
+          {emptyTitle || t("emptyTitle")}
+        </h2>
         <p className="text-[var(--text-secondary)] text-sm max-w-md">
-          {t("emptyDescription")}
+          {emptyDescription || t("emptyDescription")}
         </p>
       </div>
     );

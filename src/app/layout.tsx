@@ -1,13 +1,18 @@
 import type { Metadata } from "next";
 import "./globals.css";
-
-export const metadata: Metadata = {
-  title: "Ask AI",
-  description: "AI-powered knowledge assistant",
-};
+import { getAppSettings } from "@/lib/settings";
 
 function readEnv(key: string): string | undefined {
   return process.env[key];
+}
+
+// Title and description are superadmin-editable via /admin/settings.
+export async function generateMetadata(): Promise<Metadata> {
+  const { appTitle, appDescription } = getAppSettings();
+  return {
+    title: appTitle,
+    description: appDescription,
+  };
 }
 
 // Resolve the accent server-side and inject it as an inline CSS variable so

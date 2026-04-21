@@ -1,22 +1,29 @@
 import { setLocale, type Locale } from "./i18n";
 
-let cachedConfig: {
+interface ClientConfig {
   accentColor: string;
   logoUrl: string;
   locale: string;
-} | null = null;
+  appTitle: string;
+  appDescription: string;
+}
 
-export async function getConfig() {
+let cachedConfig: ClientConfig | null = null;
+
+export async function getConfig(): Promise<ClientConfig> {
   if (cachedConfig) return cachedConfig;
 
   try {
     const res = await fetch("/api/config");
-    cachedConfig = await res.json();
+    cachedConfig = (await res.json()) as ClientConfig;
   } catch {
     cachedConfig = {
       accentColor: process.env.NEXT_PUBLIC_ACCENT_COLOR || "#ff9500",
-      logoUrl: process.env.NEXT_PUBLIC_LOGO_URL || "",
-      locale: process.env.NEXT_PUBLIC_LOCALE || "en",
+      logoUrl: "",
+      locale: "en",
+      appTitle: "Ask AI",
+      appDescription:
+        "Ask anything about your knowledge base. Switch to Deep Research for complex multi-step questions.",
     };
   }
 
@@ -26,9 +33,9 @@ export async function getConfig() {
     cachedConfig!.accentColor
   );
 
-  // Set locale
-  const locale = cachedConfig!.locale === "german" ? "de" : "en";
-  setLocale(locale as Locale);
+  // Locale is already normalized to "en" | "de" by /api/config.
+  const locale: Locale = cachedConfig!.locale === "de" ? "de" : "en";
+  setLocale(locale);
   document.documentElement.lang = locale;
 
   return cachedConfig!;

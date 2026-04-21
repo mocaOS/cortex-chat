@@ -102,6 +102,14 @@ export const usageEvents = sqliteTable("usage_events", {
   createdAt: integer("created_at").notNull().default(sql`(unixepoch() * 1000)`),
 });
 
+// Superadmin-editable runtime settings (title, description, etc.). Key-value
+// to keep future additions schema-free. Defaults live in src/lib/settings.ts.
+export const appSettings = sqliteTable("app_settings", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull(),
+  updatedAt: integer("updated_at").notNull().default(sql`(unixepoch() * 1000)`),
+});
+
 export type User = typeof users.$inferSelect;
 export type Group = typeof groups.$inferSelect;
 export type ApiKey = typeof apiKeys.$inferSelect;

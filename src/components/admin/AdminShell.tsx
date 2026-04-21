@@ -16,8 +16,7 @@ const NAV = [
   { href: "/admin/users", label: "Users" },
   { href: "/admin/groups", label: "User groups" },
   { href: "/admin/content-roles", label: "Content roles" },
-  { href: "/admin/logins", label: "Login history" },
-  { href: "/admin/analytics", label: "Analytics" },
+  { href: "/admin/settings", label: "Settings" },
 ];
 
 export default function AdminShell({ user, children }: Props) {
