@@ -29,16 +29,24 @@ export async function PATCH(request: Request, ctx: Ctx) {
 
   const row = db.select().from(users).where(eq(users.id, id)).get();
   if (!row) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  if (row.role === "superadmin") {
-    return NextResponse.json(
-      { error: "Superadmin is managed via env. Rotate SUPERADMIN_* to change." },
-      { status: 400 }
-    );
-  }
 
   const parsed = PatchBody.safeParse(await request.json().catch(() => ({})));
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+  }
+
+  const isSuperadmin = row.role === "superadmin";
+  if (
+    isSuperadmin &&
+    (parsed.data.email !== undefined || parsed.data.password !== undefined)
+  ) {
+    return NextResponse.json(
+      {
+        error:
+          "Superadmin email and password are managed via env. Rotate SUPERADMIN_* to change.",
+      },
+      { status: 400 }
+    );
   }
 
   const patch: Partial<typeof users.$inferInsert> = {

@@ -41,7 +41,7 @@ export default function Home() {
   const router = useRouter();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [mode, setMode] = useState<Mode>("deep-research");
+  const [mode, setMode] = useState<Mode>("chat");
   const [settings, setSettings] = useState<Settings>({
     streaming: true,
     collectionId: null,

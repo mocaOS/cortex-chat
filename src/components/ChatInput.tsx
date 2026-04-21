@@ -57,21 +57,6 @@ export default function ChatInput({
             }}
           >
             <button
-              onClick={() => onModeChange("deep-research")}
-              className={`text-xs px-3 py-1 rounded-full transition-all ${
-                mode === "deep-research"
-                  ? "font-medium"
-                  : "text-[var(--fg2)] hover:text-[var(--fg1)]"
-              }`}
-              style={
-                mode === "deep-research"
-                  ? { background: "var(--accent)", color: "var(--accent-fg)" }
-                  : undefined
-              }
-            >
-              {t("deepResearch")}
-            </button>
-            <button
               onClick={() => onModeChange("chat")}
               className={`text-xs px-3 py-1 rounded-full transition-all ${
                 mode === "chat"
@@ -85,6 +70,21 @@ export default function ChatInput({
               }
             >
               {t("chat")}
+            </button>
+            <button
+              onClick={() => onModeChange("deep-research")}
+              className={`text-xs px-3 py-1 rounded-full transition-all ${
+                mode === "deep-research"
+                  ? "font-medium"
+                  : "text-[var(--fg2)] hover:text-[var(--fg1)]"
+              }`}
+              style={
+                mode === "deep-research"
+                  ? { background: "var(--accent)", color: "var(--accent-fg)" }
+                  : undefined
+              }
+            >
+              {t("deepResearch")}
             </button>
           </div>
         </div>

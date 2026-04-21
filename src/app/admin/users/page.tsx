@@ -146,11 +146,7 @@ export default function AdminUsersPage() {
                 </Td>
                 <Td>
                   <div className="flex gap-2">
-                    <Button
-                      variant="ghost"
-                      onClick={() => setEditing(u)}
-                      disabled={u.role === "superadmin"}
-                    >
+                    <Button variant="ghost" onClick={() => setEditing(u)}>
                       {t("edit")}
                     </Button>
                     <Button
@@ -194,6 +190,7 @@ function UserForm({
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const isSuperadmin = user?.role === "superadmin";
   const [email, setEmail] = useState(user?.email ?? "");
   const [username, setUsername] = useState(user?.username ?? "");
   const [password, setPassword] = useState("");
@@ -206,12 +203,14 @@ function UserForm({
     setSaving(true);
     setError(null);
     try {
-      const body: Record<string, unknown> = {
-        email,
-        username,
-        groupId: groupId || null,
-      };
-      if (password) body.password = password;
+      const body: Record<string, unknown> = isSuperadmin
+        ? { groupId: groupId || null }
+        : {
+            email,
+            username,
+            groupId: groupId || null,
+          };
+      if (!isSuperadmin && password) body.password = password;
 
       // When creating, password is required.
       if (!user && !password) {
@@ -263,32 +262,37 @@ function UserForm({
       }
     >
       <form id="user-form" onSubmit={handleSubmit} className="space-y-4">
-        <Input
-          label={t("tableEmail")}
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          autoFocus
-        />
-        <Input
-          label={t("usernameOptional")}
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-        />
-        <Input
-          label={user ? t("newPasswordLeaveBlank") : t("password")}
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder={user ? "•••••••" : ""}
-          minLength={user && !password ? 0 : 8}
-          required={!user}
-        />
+        {!isSuperadmin && (
+          <>
+            <Input
+              label={t("tableEmail")}
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              autoFocus
+            />
+            <Input
+              label={t("usernameOptional")}
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+            />
+            <Input
+              label={user ? t("newPasswordLeaveBlank") : t("password")}
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder={user ? "•••••••" : ""}
+              minLength={user && !password ? 0 : 8}
+              required={!user}
+            />
+          </>
+        )}
         <Select
           label={t("tableGroup")}
           value={groupId}
           onChange={(e) => setGroupId(e.target.value)}
+          autoFocus={isSuperadmin}
         >
           <option value="">{t("noGroupOption")}</option>
           {groups.map((g) => (
