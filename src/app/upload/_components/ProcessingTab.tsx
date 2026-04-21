@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button, ErrorBanner } from "@/components/admin/ui";
 import { t } from "@/lib/i18n";
 import ConfirmModal from "./ConfirmModal";
@@ -49,6 +49,104 @@ interface BackendTask {
   [k: string]: unknown;
 }
 
+type PhaseKey = "A" | "B" | "C";
+type PhaseStatus = "idle" | "queued" | "running" | "ready" | "failed";
+
+interface PhaseState {
+  status: PhaseStatus;
+  progress?: number;
+  tasks: BackendTask[];
+}
+
+function classifyTask(task: BackendTask): PhaseKey | null {
+  const k = `${task.kind ?? ""} ${task.type ?? ""}`.toLowerCase();
+  if (!k.trim()) return null;
+  if (/communit|summari[sz]/.test(k)) return "C";
+  if (/relation|batch.?analy|cross.?doc/.test(k)) return "B";
+  if (/entity|extract|chunk|embed|ingest|process.?doc/.test(k)) return "A";
+  return null;
+}
+
+function stepStatusFrom(step?: StepInfo): PhaseStatus | null {
+  const s = (step?.status || "").toLowerCase();
+  if (!s) return null;
+  if (["running", "processing", "in_progress"].includes(s)) return "running";
+  if (["queued", "pending", "waiting"].includes(s)) return "queued";
+  if (["completed", "complete", "done", "ready", "success"].includes(s))
+    return "ready";
+  if (["failed", "error"].includes(s)) return "failed";
+  return null;
+}
+
+function computePhase(
+  key: PhaseKey,
+  step: StepInfo | undefined,
+  allTasks: BackendTask[],
+  hasOutput: boolean,
+  queuedHint: boolean
+): PhaseState {
+  const tasks = allTasks.filter((t) => classifyTask(t) === key);
+  const fromStep = stepStatusFrom(step);
+
+  let status: PhaseStatus;
+  if (tasks.length > 0 || fromStep === "running") status = "running";
+  else if (fromStep === "failed") status = "failed";
+  else if (fromStep === "queued" || queuedHint) status = "queued";
+  else if (fromStep === "ready" || hasOutput) status = "ready";
+  else status = "idle";
+
+  const taskProgress = tasks
+    .map((t) => t.progress)
+    .filter((p): p is number => typeof p === "number")[0];
+  const progress =
+    taskProgress ?? (typeof step?.progress === "number" ? step.progress : undefined);
+
+  return { status, progress, tasks };
+}
+
+function statusColors(status: PhaseStatus): {
+  bg: string;
+  fg: string;
+  border: string;
+} {
+  switch (status) {
+    case "running":
+    case "queued":
+      return {
+        bg: "color-mix(in oklch, var(--accent) 14%, transparent)",
+        fg: "var(--accent)",
+        border: "color-mix(in oklch, var(--accent) 32%, transparent)",
+      };
+    case "ready":
+      return {
+        bg: "color-mix(in oklch, var(--success) 14%, transparent)",
+        fg: "var(--success)",
+        border: "color-mix(in oklch, var(--success) 30%, transparent)",
+      };
+    case "failed":
+      return {
+        bg: "color-mix(in oklch, var(--destructive) 14%, transparent)",
+        fg: "var(--destructive)",
+        border: "color-mix(in oklch, var(--destructive) 30%, transparent)",
+      };
+    default:
+      return {
+        bg: "var(--muted)",
+        fg: "var(--fg2)",
+        border: "var(--border)",
+      };
+  }
+}
+
+function statusLabel(status: PhaseStatus): string {
+  return t(`phaseStatus${status.charAt(0).toUpperCase()}${status.slice(1)}` as
+    | "phaseStatusIdle"
+    | "phaseStatusQueued"
+    | "phaseStatusRunning"
+    | "phaseStatusReady"
+    | "phaseStatusFailed");
+}
+
 function Kpi({
   label,
   value,
@@ -82,31 +180,144 @@ function Kpi({
   );
 }
 
-function StepCard({
-  title,
-  description,
-  step,
-  children,
-}: {
-  title: string;
-  description: string;
-  step?: StepInfo;
-  children: React.ReactNode;
-}) {
-  const status = step?.status;
-  const running =
-    status === "running" ||
-    status === "processing" ||
-    status === "in_progress";
+function StatusPill({ status }: { status: PhaseStatus }) {
+  const c = statusColors(status);
+  const animated = status === "running";
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 text-[10.5px] uppercase tracking-[0.08em] px-2 py-0.5 rounded-[var(--radius-sm)] border"
+      style={{
+        background: c.bg,
+        color: c.fg,
+        borderColor: c.border,
+        fontFamily: "var(--font-mono)",
+      }}
+    >
+      <span
+        className="inline-block rounded-full"
+        style={{
+          width: 6,
+          height: 6,
+          background: "currentColor",
+          animation: animated ? "pulse-dot 1.2s ease-in-out infinite" : undefined,
+        }}
+      />
+      {statusLabel(status)}
+    </span>
+  );
+}
+
+function ProgressBar({ value }: { value: number }) {
   return (
     <div
-      className="rounded-[var(--radius-lg)] border p-5 space-y-3"
-      style={{ background: "var(--card)", borderColor: "var(--border)" }}
+      className="h-1.5 w-full rounded-full overflow-hidden"
+      style={{ background: "var(--muted)" }}
+    >
+      <div
+        style={{
+          width: `${Math.min(100, Math.max(0, value))}%`,
+          background: "var(--accent)",
+          height: "100%",
+          transition: "width 300ms ease-out",
+        }}
+      />
+    </div>
+  );
+}
+
+function PhaseTaskList({ tasks }: { tasks: BackendTask[] }) {
+  if (tasks.length === 0) return null;
+  return (
+    <div
+      className="rounded-[var(--radius)] border divide-y"
+      style={{ borderColor: "var(--border)", background: "var(--bg)" }}
+    >
+      {tasks.map((task) => (
+        <div
+          key={task.id}
+          className="flex items-center gap-3 px-3 py-2"
+        >
+          <div className="flex-1 min-w-0">
+            <div
+              className="text-[12px] truncate"
+              style={{ color: "var(--fg1)" }}
+            >
+              {task.kind || task.type || task.id}
+            </div>
+            <div
+              className="text-[10.5px] truncate"
+              style={{ color: "var(--fg2)", fontFamily: "var(--font-mono)" }}
+            >
+              {task.id}
+              {task.message ? ` · ${task.message}` : ""}
+            </div>
+          </div>
+          {typeof task.progress === "number" && (
+            <div className="w-24 shrink-0">
+              <ProgressBar value={task.progress} />
+              <div
+                className="text-[10.5px] mt-1 text-right"
+                style={{ color: "var(--fg2)", fontFamily: "var(--font-mono)" }}
+              >
+                {Math.round(task.progress)}%
+              </div>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function StepCard({
+  stepNumber,
+  title,
+  description,
+  phase,
+  footerHint,
+  children,
+}: {
+  stepNumber: 1 | 2 | 3;
+  title: string;
+  description: string;
+  phase: PhaseState;
+  footerHint?: string;
+  children: React.ReactNode;
+}) {
+  const colors = statusColors(phase.status);
+  return (
+    <div
+      className="rounded-[var(--radius-lg)] border p-5 space-y-3 flex flex-col"
+      style={{
+        background: "var(--card)",
+        borderColor:
+          phase.status === "running" || phase.status === "queued"
+            ? colors.border
+            : "var(--border)",
+      }}
     >
       <div className="flex items-start justify-between gap-3">
-        <div>
+        <div className="min-w-0">
           <div
-            className="text-[14px] font-semibold"
+            className="flex items-center gap-2 text-[10.5px] uppercase tracking-[0.08em]"
+            style={{ color: "var(--fg2)", fontFamily: "var(--font-mono)" }}
+          >
+            <span
+              className="inline-flex items-center justify-center rounded-full border"
+              style={{
+                width: 18,
+                height: 18,
+                borderColor: colors.border,
+                color: colors.fg,
+                background: colors.bg,
+              }}
+            >
+              {stepNumber}
+            </span>
+            {t("phaseStep", { n: stepNumber })}
+          </div>
+          <div
+            className="text-[14px] font-semibold mt-2"
             style={{ color: "var(--fg1)" }}
           >
             {title}
@@ -115,35 +326,23 @@ function StepCard({
             {description}
           </div>
         </div>
-        {status && (
-          <span
-            className="text-[10.5px] uppercase tracking-[0.08em] px-2 py-0.5 rounded-[var(--radius-sm)]"
-            style={{
-              background: "var(--muted)",
-              color: running ? "var(--accent)" : "var(--fg2)",
-              fontFamily: "var(--font-mono)",
-            }}
-          >
-            {status}
-          </span>
-        )}
+        <StatusPill status={phase.status} />
       </div>
-      {typeof step?.progress === "number" && (
+
+      {typeof phase.progress === "number" && <ProgressBar value={phase.progress} />}
+
+      <PhaseTaskList tasks={phase.tasks} />
+
+      <div className="flex flex-wrap gap-2 pt-1 mt-auto">{children}</div>
+
+      {footerHint && (
         <div
-          className="h-1.5 w-full rounded-full overflow-hidden"
-          style={{ background: "var(--muted)" }}
+          className="text-[11.5px]"
+          style={{ color: "var(--fg2)" }}
         >
-          <div
-            style={{
-              width: `${Math.min(100, Math.max(0, step.progress))}%`,
-              background: "var(--accent)",
-              height: "100%",
-              transition: "width 300ms ease-out",
-            }}
-          />
+          {footerHint}
         </div>
       )}
-      <div className="flex flex-wrap gap-2 pt-1">{children}</div>
     </div>
   );
 }
@@ -183,18 +382,21 @@ export default function ProcessingTab() {
     load();
   }, [load]);
 
-  // Poll while there is running work OR tab is visible. Pauses when hidden.
   const pollingRef = useRef<number | null>(null);
   useEffect(() => {
     const shouldPoll =
       tasks.length > 0 ||
       (stats?.pending_task_count ?? 0) > 0 ||
-      Object.values(graph?.steps ?? {}).some(
-        (s) =>
-          s?.status === "running" ||
-          s?.status === "processing" ||
-          s?.status === "in_progress"
-      );
+      Object.values(graph?.steps ?? {}).some((s) => {
+        const status = (s?.status || "").toLowerCase();
+        return (
+          status === "running" ||
+          status === "processing" ||
+          status === "in_progress" ||
+          status === "queued" ||
+          status === "pending"
+        );
+      });
 
     if (!shouldPoll) {
       if (pollingRef.current) {
@@ -216,6 +418,41 @@ export default function ProcessingTab() {
       }
     };
   }, [tasks.length, stats?.pending_task_count, graph?.steps, load]);
+
+  const pipeline = useMemo(() => {
+    const pending = stats?.pending_task_count ?? 0;
+    const phaseA = computePhase(
+      "A",
+      graph?.steps?.entity_extraction,
+      tasks,
+      (stats?.entity_count ?? 0) > 0,
+      pending > 0
+    );
+    const phaseB = computePhase(
+      "B",
+      graph?.steps?.relationship_analysis,
+      tasks,
+      (stats?.relationship_count ?? 0) > 0,
+      false
+    );
+    const phaseC = computePhase(
+      "C",
+      graph?.steps?.community_detection,
+      tasks,
+      (stats?.community_count ?? 0) > 0,
+      false
+    );
+    const anyRunning =
+      phaseA.status === "running" ||
+      phaseB.status === "running" ||
+      phaseC.status === "running";
+    return { phaseA, phaseB, phaseC, anyRunning };
+  }, [graph, stats, tasks]);
+
+  const unclassifiedTasks = useMemo(
+    () => tasks.filter((t) => classifyTask(t) === null),
+    [tasks]
+  );
 
   async function run(
     path: string,
@@ -242,6 +479,56 @@ export default function ProcessingTab() {
     }
   }
 
+  const { phaseA, phaseB, phaseC, anyRunning } = pipeline;
+  const pendingDocs = stats?.pending_task_count ?? 0;
+  const hasCommunities = (stats?.community_count ?? 0) > 0;
+
+  // Button-level gating. Each entry: disabled? + why (for tooltip).
+  const processPendingBlock =
+    busy === "pending"
+      ? ""
+      : pendingDocs === 0 && phaseA.status !== "running"
+      ? t("blockedNoPending")
+      : "";
+  const analyzeBlock =
+    busy === "analyze"
+      ? ""
+      : phaseA.status === "running"
+      ? t("blockedByExtraction")
+      : phaseB.status === "running"
+      ? t("blockedByRelationships")
+      : "";
+  const rebuildBlock =
+    busy === "rebuild"
+      ? ""
+      : anyRunning
+      ? t("blockedByPipelineBusy")
+      : "";
+  const detectBlock =
+    busy === "detect"
+      ? ""
+      : phaseA.status === "running"
+      ? t("blockedByExtraction")
+      : phaseB.status === "running"
+      ? t("blockedByRelationships")
+      : phaseC.status === "running"
+      ? t("blockedByCommunities")
+      : "";
+  const summarizeBlock =
+    busy === "summarize"
+      ? ""
+      : phaseC.status === "running"
+      ? t("blockedByCommunities")
+      : !hasCommunities
+      ? t("blockedNoCommunities")
+      : "";
+  const cleanupBlock =
+    busy === "cleanup"
+      ? ""
+      : anyRunning
+      ? t("blockedByPipelineBusy")
+      : "";
+
   return (
     <div className="space-y-5">
       <p className="text-[13px] max-w-3xl" style={{ color: "var(--fg2)" }}>
@@ -263,6 +550,28 @@ export default function ProcessingTab() {
         </div>
       )}
 
+      {anyRunning && (
+        <div
+          className="text-[12.5px] rounded-[var(--radius)] px-3 py-2 border flex items-center gap-2"
+          style={{
+            background: "color-mix(in oklch, var(--accent) 12%, transparent)",
+            borderColor: "color-mix(in oklch, var(--accent) 30%, transparent)",
+            color: "var(--accent)",
+          }}
+        >
+          <span
+            className="inline-block rounded-full"
+            style={{
+              width: 7,
+              height: 7,
+              background: "currentColor",
+              animation: "pulse-dot 1.4s ease-in-out infinite",
+            }}
+          />
+          {t("pipelineBusy")}
+        </div>
+      )}
+
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2.5">
         <Kpi label={t("kpiDocuments")} value={stats?.document_count} />
         <Kpi label={t("kpiChunks")} value={stats?.chunk_count} />
@@ -281,9 +590,15 @@ export default function ProcessingTab() {
 
       <div className="grid md:grid-cols-3 gap-3">
         <StepCard
+          stepNumber={1}
           title={t("stepExtractionTitle")}
           description={t("stepExtractionDescription")}
-          step={graph?.steps?.entity_extraction}
+          phase={phaseA}
+          footerHint={
+            pendingDocs > 0 && phaseA.status !== "running"
+              ? t("pendingDocsLabel", { count: pendingDocs })
+              : undefined
+          }
         >
           <Button
             onClick={() =>
@@ -294,16 +609,19 @@ export default function ProcessingTab() {
                 t("pendingQueued")
               )
             }
-            disabled={busy === "pending"}
+            disabled={busy === "pending" || !!processPendingBlock}
+            title={processPendingBlock || undefined}
           >
             {busy === "pending" ? t("processingPending") : t("processPending")}
           </Button>
         </StepCard>
 
         <StepCard
+          stepNumber={2}
           title={t("stepRelationshipsTitle")}
           description={t("stepRelationshipsDescription")}
-          step={graph?.steps?.relationship_analysis}
+          phase={phaseB}
+          footerHint={analyzeBlock || undefined}
         >
           <Button
             onClick={() =>
@@ -313,29 +631,34 @@ export default function ProcessingTab() {
                 {}
               )
             }
-            disabled={busy === "analyze"}
+            disabled={busy === "analyze" || !!analyzeBlock}
+            title={analyzeBlock || undefined}
           >
             {busy === "analyze" ? t("runningAnalyze") : t("runAnalyze")}
           </Button>
           <Button
             variant="outline"
             onClick={() => setConfirmRebuild(true)}
-            disabled={busy === "rebuild"}
+            disabled={busy === "rebuild" || !!rebuildBlock}
+            title={rebuildBlock || undefined}
           >
             {busy === "rebuild" ? t("runningAnalyze") : t("runRebuild")}
           </Button>
         </StepCard>
 
         <StepCard
+          stepNumber={3}
           title={t("stepCommunitiesTitle")}
           description={t("stepCommunitiesDescription")}
-          step={graph?.steps?.community_detection}
+          phase={phaseC}
+          footerHint={detectBlock || summarizeBlock || undefined}
         >
           <Button
             onClick={() =>
               run("/api/admin/library/graph/communities/detect", "detect", {})
             }
-            disabled={busy === "detect"}
+            disabled={busy === "detect" || !!detectBlock}
+            title={detectBlock || undefined}
           >
             {busy === "detect" ? t("detecting") : t("runDetect")}
           </Button>
@@ -347,7 +670,8 @@ export default function ProcessingTab() {
                 "summarize"
               )
             }
-            disabled={busy === "summarize"}
+            disabled={busy === "summarize" || !!summarizeBlock}
+            title={summarizeBlock || undefined}
           >
             {busy === "summarize" ? t("summarizing") : t("runSummarize")}
           </Button>
@@ -358,89 +682,28 @@ export default function ProcessingTab() {
         className="rounded-[var(--radius-lg)] border p-5 space-y-3"
         style={{ background: "var(--card)", borderColor: "var(--border)" }}
       >
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-3">
           <div
             className="text-[14px] font-semibold"
             style={{ color: "var(--fg1)" }}
           >
-            {t("runningTasks")}
+            {t("otherTasks")}
           </div>
           <Button
             variant="outline"
             onClick={() => setConfirmCleanup(true)}
-            disabled={busy === "cleanup"}
+            disabled={busy === "cleanup" || !!cleanupBlock}
+            title={cleanupBlock || undefined}
           >
             {busy === "cleanup" ? t("deleting") : t("cleanupOrphaned")}
           </Button>
         </div>
-        {tasks.length === 0 ? (
+        {unclassifiedTasks.length === 0 ? (
           <div className="text-[13px]" style={{ color: "var(--fg2)" }}>
-            {t("noRunningTasks")}
+            {anyRunning ? t("pipelineBusy") : t("noRunningTasks")}
           </div>
         ) : (
-          <div className="divide-y" style={{ borderColor: "var(--border)" }}>
-            {tasks.map((task) => (
-              <div
-                key={task.id}
-                className="flex items-center justify-between py-2 gap-3"
-              >
-                <div className="flex-1 min-w-0">
-                  <div
-                    className="text-[13px] truncate"
-                    style={{ color: "var(--fg1)" }}
-                  >
-                    {task.kind || task.type || task.id}
-                  </div>
-                  <div
-                    className="text-[11px] truncate"
-                    style={{
-                      color: "var(--fg2)",
-                      fontFamily: "var(--font-mono)",
-                    }}
-                  >
-                    {task.id}
-                    {task.message ? ` · ${task.message}` : ""}
-                  </div>
-                </div>
-                {typeof task.progress === "number" && (
-                  <div className="w-40 shrink-0">
-                    <div
-                      className="h-1.5 rounded-full overflow-hidden"
-                      style={{ background: "var(--muted)" }}
-                    >
-                      <div
-                        style={{
-                          width: `${Math.min(100, Math.max(0, task.progress))}%`,
-                          background: "var(--accent)",
-                          height: "100%",
-                          transition: "width 300ms ease-out",
-                        }}
-                      />
-                    </div>
-                    <div
-                      className="text-[10.5px] mt-1 text-right"
-                      style={{
-                        color: "var(--fg2)",
-                        fontFamily: "var(--font-mono)",
-                      }}
-                    >
-                      {Math.round(task.progress)}%
-                    </div>
-                  </div>
-                )}
-                <span
-                  className="text-[10.5px] uppercase tracking-[0.08em] px-2 py-0.5 rounded-[var(--radius-sm)]"
-                  style={{
-                    background: "var(--muted)",
-                    color: "var(--accent)",
-                    fontFamily: "var(--font-mono)",
-                  }}
-                >
-                  {task.status || "running"}
-                </span>
-              </div>
-            ))}
-          </div>
+          <PhaseTaskList tasks={unclassifiedTasks} />
         )}
       </div>
 

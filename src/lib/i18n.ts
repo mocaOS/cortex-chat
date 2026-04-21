@@ -305,6 +305,28 @@ const translations = {
       "Removes entities and communities that are no longer referenced by any document. Safe to run after deleting documents.",
     cleanupQueued: "Cleanup queued.",
 
+    // Pipeline state
+    phaseStatusIdle: "idle",
+    phaseStatusQueued: "queued",
+    phaseStatusRunning: "running",
+    phaseStatusReady: "ready",
+    phaseStatusFailed: "failed",
+    phaseStep: "Step {n}",
+    pipelineBusy: "Pipeline is busy — some actions are paused until current work finishes.",
+    pipelineIdle: "Pipeline is idle.",
+    tasksInPhase: "{count} task",
+    tasksInPhasePlural: "{count} tasks",
+    pendingDocsLabel: "{count} pending",
+    otherTasks: "Other tasks",
+    blockedByExtraction: "Wait for entity extraction to finish.",
+    blockedByRelationships: "Wait for relationship analysis to finish.",
+    blockedByCommunities: "Wait for community detection to finish.",
+    blockedByPipelineBusy: "Pipeline is busy — wait for current work to finish.",
+    blockedNoCommunities: "No communities detected yet — run Detect first.",
+    blockedNoPending: "Nothing pending.",
+    blockedDocProcessing: "Document is still processing.",
+    processingStartedHint: "Processing starts in the background. Track progress in the Processing tab.",
+
     // Collections tab
     collectionsHeading: "Collections",
     collectionsDescription:
@@ -633,6 +655,29 @@ const translations = {
     cleanupConfirmBody:
       "Entfernt Entities und Communities, auf die kein Dokument mehr verweist. Sinnvoll nach dem Löschen von Dokumenten.",
     cleanupQueued: "Aufräumen in Warteschlange.",
+
+    // Pipeline state
+    phaseStatusIdle: "leer",
+    phaseStatusQueued: "wartet",
+    phaseStatusRunning: "läuft",
+    phaseStatusReady: "bereit",
+    phaseStatusFailed: "fehlgeschlagen",
+    phaseStep: "Schritt {n}",
+    pipelineBusy: "Pipeline ist beschäftigt — einige Aktionen sind pausiert, bis der aktuelle Vorgang beendet ist.",
+    pipelineIdle: "Pipeline ist im Leerlauf.",
+    tasksInPhase: "{count} Task",
+    tasksInPhasePlural: "{count} Tasks",
+    pendingDocsLabel: "{count} ausstehend",
+    otherTasks: "Weitere Tasks",
+    blockedByExtraction: "Warte, bis die Entity-Extraktion beendet ist.",
+    blockedByRelationships: "Warte, bis die Relationen-Analyse beendet ist.",
+    blockedByCommunities: "Warte, bis die Community-Erkennung beendet ist.",
+    blockedByPipelineBusy: "Pipeline ist beschäftigt — warte, bis die aktuelle Arbeit beendet ist.",
+    blockedNoCommunities: "Noch keine Communities erkannt — starte zuerst Detect.",
+    blockedNoPending: "Nichts in der Warteschlange.",
+    blockedDocProcessing: "Dokument wird noch verarbeitet.",
+    processingStartedHint:
+      "Die Verarbeitung läuft im Hintergrund. Verfolge den Fortschritt im Tab „Verarbeitung“.",
 
     // Collections tab
     collectionsHeading: "Sammlungen",

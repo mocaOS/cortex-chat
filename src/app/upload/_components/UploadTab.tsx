@@ -142,7 +142,7 @@ export default function UploadTab() {
 
       {toast && (
         <div
-          className="text-[13px] rounded-[var(--radius)] px-3 py-2 border"
+          className="text-[13px] rounded-[var(--radius)] px-3 py-2 border space-y-1"
           style={
             toast.kind === "success"
               ? {
@@ -160,7 +160,12 @@ export default function UploadTab() {
                 }
           }
         >
-          {toast.text}
+          <div>{toast.text}</div>
+          {toast.kind === "success" && (
+            <div className="text-[11.5px] opacity-80">
+              {t("processingStartedHint")}
+            </div>
+          )}
         </div>
       )}
     </div>
