@@ -85,7 +85,8 @@ const translations = {
     collection: "Collection",
     noCollectionsAvailable: "No collections available",
     file: "File",
-    supportedFormats: "Supported: PDF, DOCX, TXT, MD.",
+    supportedFormats:
+      "Documents (PDF, DOCX, XLSX, PPTX, HTML, Markdown, LaTeX, XML), images (PNG, JPG, TIFF, BMP), audio (WAV, MP3) and subtitles (VTT).",
     uploading: "Uploading…",
     upload: "Upload",
     fileUploaded: '"{name}" uploaded.',
@@ -233,6 +234,97 @@ const translations = {
       "Applies to every user of the chat system. Reload required for already-open tabs.",
     resetTitleDescription: "Reset title & description",
     resetTitleDescriptionConfirm: "Reset title and description to defaults?",
+
+    // Upload page tabs
+    documentManagementHeading: "Document Management",
+    documentManagementDescription:
+      "Upload files, manage the document library, run the processing pipeline, and organize collections.",
+    tabUpload: "Upload",
+    tabDocuments: "Documents",
+    tabProcessing: "Processing",
+    tabCollections: "Collections",
+
+    // Documents tab
+    documentsHeading: "Documents",
+    documentsDescription:
+      "All documents in the library. Reprocess to rerun extraction after a config change; delete removes the document and cleans up orphaned entities.",
+    tableFilename: "Filename",
+    tableStatus: "Status",
+    tableSource: "Source",
+    tableCreated: "Created",
+    reprocess: "Reprocess",
+    reprocessing: "Reprocessing…",
+    processPending: "Process pending",
+    processingPending: "Starting…",
+    noDocuments: "No documents yet. Upload a file to get started.",
+    deleteDocument: "Delete document",
+    deleteDocumentWarning:
+      "This removes the document, its chunks, and any entities/communities that become orphaned. Type the filename to confirm.",
+    deleteDocumentConfirmLabel: "Filename to confirm",
+    deleting: "Deleting…",
+    reprocessQueued: "Reprocess queued.",
+    pendingQueued: "Pending queue started.",
+
+    // Processing tab
+    processingHeading: "Knowledge base processing",
+    processingDescription:
+      "Orchestrate the knowledge graph pipeline. Phase A (entity + within-doc relationships) runs automatically when a document is uploaded. Phase B (cross-document) and community detection/summarization run on demand.",
+    kpiDocuments: "Documents",
+    kpiChunks: "Chunks",
+    kpiEntities: "Entities",
+    kpiRelationships: "Relationships",
+    kpiCommunities: "Communities",
+    kpiPendingTasks: "Pending tasks",
+    stepExtractionTitle: "Phase A — Entity extraction",
+    stepExtractionDescription:
+      "Runs automatically per document after upload. Use Process pending to kick off any queued documents.",
+    stepRelationshipsTitle: "Phase B — Cross-document relationships",
+    stepRelationshipsDescription:
+      "Discovers relationships that span multiple documents. Rebuild deletes batch-analysis relationships before re-running.",
+    stepCommunitiesTitle: "Communities",
+    stepCommunitiesDescription:
+      "Detects clusters of closely-related entities and generates LLM summaries. Run detect first, then summarize.",
+    runAnalyze: "Analyze relationships",
+    runRebuild: "Rebuild relationships",
+    runningAnalyze: "Running…",
+    runDetect: "Detect communities",
+    runSummarize: "Summarize communities",
+    detecting: "Detecting…",
+    summarizing: "Summarizing…",
+    rebuildConfirmTitle: "Rebuild relationships?",
+    rebuildConfirmBody:
+      "This deletes all batch-analysis relationships and re-runs cross-document discovery from scratch. Per-document relationships are preserved.",
+    rebuild: "Rebuild",
+    runningTasks: "Running tasks",
+    noRunningTasks: "Nothing running.",
+    taskStarted: "Task started.",
+    taskProgress: "Progress",
+    cleanupOrphaned: "Cleanup orphaned entities",
+    cleanupConfirmTitle: "Cleanup orphaned entities?",
+    cleanupConfirmBody:
+      "Removes entities and communities that are no longer referenced by any document. Safe to run after deleting documents.",
+    cleanupQueued: "Cleanup queued.",
+
+    // Collections tab
+    collectionsHeading: "Collections",
+    collectionsDescription:
+      "Create and manage collections in the library backend. Deleting a collection unlinks its documents but the documents themselves are preserved.",
+    newCollection: "New collection",
+    newCollectionTitle: "New collection",
+    createCollection: "Create collection",
+    renameCollectionTitle: "Rename collection",
+    noCollectionsYet: "No collections yet.",
+    tableDocuments: "Documents",
+    rename: "Rename",
+    deleteCollectionTitle: "Delete collection",
+    deleteCollectionWarning:
+      "{count} documents will be unlinked from this collection. Documents themselves are preserved and can be reassigned. Type the collection name to confirm.",
+    deleteCollectionEmptyBody:
+      "This collection has no documents. Type the collection name to confirm.",
+    deleteCollectionConfirmLabel: "Collection name to confirm",
+    collectionCreated: "Collection created.",
+    collectionRenamed: "Collection renamed.",
+    collectionDeleted: "Collection deleted.",
   },
   de: {
     // Chat UI
@@ -320,7 +412,8 @@ const translations = {
     collection: "Sammlung",
     noCollectionsAvailable: "Keine Sammlungen verfügbar",
     file: "Datei",
-    supportedFormats: "Unterstützt: PDF, DOCX, TXT, MD.",
+    supportedFormats:
+      "Dokumente (PDF, DOCX, XLSX, PPTX, HTML, Markdown, LaTeX, XML), Bilder (PNG, JPG, TIFF, BMP), Audio (WAV, MP3) und Untertitel (VTT).",
     uploading: "Lädt hoch…",
     upload: "Hochladen",
     fileUploaded: '„{name}" hochgeladen.',
@@ -470,6 +563,97 @@ const translations = {
     resetTitleDescription: "Titel & Beschreibung zurücksetzen",
     resetTitleDescriptionConfirm:
       "Titel und Beschreibung auf Standard zurücksetzen?",
+
+    // Upload page tabs
+    documentManagementHeading: "Dokumentenverwaltung",
+    documentManagementDescription:
+      "Dateien hochladen, die Dokumenten-Library verwalten, die Verarbeitungspipeline steuern und Sammlungen organisieren.",
+    tabUpload: "Upload",
+    tabDocuments: "Dokumente",
+    tabProcessing: "Verarbeitung",
+    tabCollections: "Sammlungen",
+
+    // Documents tab
+    documentsHeading: "Dokumente",
+    documentsDescription:
+      "Alle Dokumente in der Library. Mit Reprocess kannst du die Extraktion nach einer Konfigurationsänderung erneut ausführen; Löschen entfernt das Dokument und räumt verwaiste Entities auf.",
+    tableFilename: "Dateiname",
+    tableStatus: "Status",
+    tableSource: "Quelle",
+    tableCreated: "Erstellt",
+    reprocess: "Reprocess",
+    reprocessing: "Reprocessing…",
+    processPending: "Ausstehende verarbeiten",
+    processingPending: "Starte…",
+    noDocuments: "Noch keine Dokumente. Lade eine Datei hoch.",
+    deleteDocument: "Dokument löschen",
+    deleteDocumentWarning:
+      "Das Dokument, seine Chunks und alle dadurch verwaisten Entities/Communities werden entfernt. Gib den Dateinamen zur Bestätigung ein.",
+    deleteDocumentConfirmLabel: "Dateiname zur Bestätigung",
+    deleting: "Lösche…",
+    reprocessQueued: "Reprocess in Warteschlange.",
+    pendingQueued: "Ausstehende Verarbeitung gestartet.",
+
+    // Processing tab
+    processingHeading: "Knowledge Base Verarbeitung",
+    processingDescription:
+      "Steuere die Knowledge-Graph-Pipeline. Phase A (Entities + dokumentinterne Relationen) läuft automatisch beim Upload. Phase B (dokumentübergreifend) und Community-Erkennung/-Zusammenfassung werden manuell ausgelöst.",
+    kpiDocuments: "Dokumente",
+    kpiChunks: "Chunks",
+    kpiEntities: "Entities",
+    kpiRelationships: "Relationen",
+    kpiCommunities: "Communities",
+    kpiPendingTasks: "Offene Tasks",
+    stepExtractionTitle: "Phase A — Entity-Extraktion",
+    stepExtractionDescription:
+      'Läuft automatisch pro Dokument nach dem Upload. Mit „Ausstehende verarbeiten" startest du die Warteschlange manuell.',
+    stepRelationshipsTitle: "Phase B — Dokumentübergreifende Relationen",
+    stepRelationshipsDescription:
+      "Findet Relationen über mehrere Dokumente hinweg. Rebuild löscht die bisherigen Batch-Relationen und startet neu.",
+    stepCommunitiesTitle: "Communities",
+    stepCommunitiesDescription:
+      "Erkennt Cluster eng verbundener Entities und erzeugt LLM-Zusammenfassungen. Erst Detect, dann Summarize ausführen.",
+    runAnalyze: "Relationen analysieren",
+    runRebuild: "Relationen neu aufbauen",
+    runningAnalyze: "Läuft…",
+    runDetect: "Communities erkennen",
+    runSummarize: "Communities zusammenfassen",
+    detecting: "Erkenne…",
+    summarizing: "Fasse zusammen…",
+    rebuildConfirmTitle: "Relationen neu aufbauen?",
+    rebuildConfirmBody:
+      "Dabei werden alle Batch-Relationen gelöscht und die dokumentübergreifende Analyse läuft komplett neu. Dokumentinterne Relationen bleiben erhalten.",
+    rebuild: "Neu aufbauen",
+    runningTasks: "Laufende Tasks",
+    noRunningTasks: "Nichts läuft gerade.",
+    taskStarted: "Task gestartet.",
+    taskProgress: "Fortschritt",
+    cleanupOrphaned: "Verwaiste Entities aufräumen",
+    cleanupConfirmTitle: "Verwaiste Entities aufräumen?",
+    cleanupConfirmBody:
+      "Entfernt Entities und Communities, auf die kein Dokument mehr verweist. Sinnvoll nach dem Löschen von Dokumenten.",
+    cleanupQueued: "Aufräumen in Warteschlange.",
+
+    // Collections tab
+    collectionsHeading: "Sammlungen",
+    collectionsDescription:
+      "Sammlungen im Library-Backend anlegen und verwalten. Beim Löschen einer Sammlung werden ihre Dokumente entkoppelt, aber die Dokumente selbst bleiben erhalten.",
+    newCollection: "Neue Sammlung",
+    newCollectionTitle: "Neue Sammlung",
+    createCollection: "Sammlung anlegen",
+    renameCollectionTitle: "Sammlung umbenennen",
+    noCollectionsYet: "Noch keine Sammlungen.",
+    tableDocuments: "Dokumente",
+    rename: "Umbenennen",
+    deleteCollectionTitle: "Sammlung löschen",
+    deleteCollectionWarning:
+      "{count} Dokumente werden von dieser Sammlung entkoppelt. Die Dokumente selbst bleiben erhalten und können neu zugeordnet werden. Gib den Sammlungsnamen zur Bestätigung ein.",
+    deleteCollectionEmptyBody:
+      "Diese Sammlung enthält keine Dokumente. Gib den Sammlungsnamen zur Bestätigung ein.",
+    deleteCollectionConfirmLabel: "Sammlungsname zur Bestätigung",
+    collectionCreated: "Sammlung angelegt.",
+    collectionRenamed: "Sammlung umbenannt.",
+    collectionDeleted: "Sammlung gelöscht.",
   },
 } as const;
 

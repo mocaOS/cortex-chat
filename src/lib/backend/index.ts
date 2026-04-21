@@ -72,6 +72,179 @@ export async function listBackendCollections(): Promise<BackendCollection[]> {
   return data.collections ?? [];
 }
 
+export async function createCollection(input: {
+  name: string;
+  description?: string;
+}): Promise<BackendCollection> {
+  return call<BackendCollection>("/api/collections", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function renameCollection(
+  id: string,
+  patch: { name: string; description?: string }
+): Promise<BackendCollection> {
+  return call<BackendCollection>(`/api/collections/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(patch),
+  });
+}
+
+export async function deleteCollection(id: string): Promise<void> {
+  await call(`/api/collections/${id}`, { method: "DELETE" });
+}
+
+// --- Documents --------------------------------------------------------------
+
+export interface BackendDocument {
+  id: string;
+  filename?: string;
+  source?: string;
+  collection_id?: string | null;
+  status?: string;
+  processing_progress?: number;
+  image_progress_current?: number;
+  image_progress_total?: number;
+  created_at?: string;
+  updated_at?: string;
+  [k: string]: unknown;
+}
+
+export async function listDocuments(params: {
+  limit?: number;
+  offset?: number;
+  collection_id?: string;
+  status?: string;
+} = {}): Promise<{ documents: BackendDocument[]; total?: number }> {
+  const qs = new URLSearchParams();
+  if (params.limit != null) qs.set("limit", String(params.limit));
+  if (params.offset != null) qs.set("offset", String(params.offset));
+  if (params.collection_id) qs.set("collection_id", params.collection_id);
+  if (params.status) qs.set("status", params.status);
+  const suffix = qs.toString() ? `?${qs}` : "";
+  const data = await call<
+    { documents?: BackendDocument[]; total?: number } | BackendDocument[]
+  >(`/api/documents${suffix}`);
+  if (Array.isArray(data)) return { documents: data };
+  return { documents: data.documents ?? [], total: data.total };
+}
+
+export async function reprocessDocument(id: string): Promise<unknown> {
+  return call(`/api/documents/${id}/reprocess`, { method: "POST" });
+}
+
+export async function processPendingDocuments(): Promise<unknown> {
+  return call(`/api/documents/process-pending`, { method: "POST" });
+}
+
+export async function deleteDocument(id: string): Promise<unknown> {
+  return call(`/api/documents/${id}`, { method: "DELETE" });
+}
+
+// --- Graph ------------------------------------------------------------------
+
+export interface BackendGraphStatus {
+  entity_count?: number;
+  within_document_relationship_count?: number;
+  cross_document_relationship_count?: number;
+  relationship_count?: number;
+  community_count?: number;
+  err?: number;
+  steps?: {
+    entity_extraction?: { status?: string; progress?: number; [k: string]: unknown };
+    relationship_analysis?: { status?: string; progress?: number; [k: string]: unknown };
+    community_detection?: { status?: string; progress?: number; [k: string]: unknown };
+    [k: string]: unknown;
+  };
+  [k: string]: unknown;
+}
+
+export async function getGraphStatus(
+  collectionId?: string
+): Promise<BackendGraphStatus> {
+  const suffix = collectionId ? `?collection_id=${encodeURIComponent(collectionId)}` : "";
+  return call<BackendGraphStatus>(`/api/graph/status${suffix}`);
+}
+
+export async function analyzeRelationships(input: {
+  collection_id?: string;
+  rebuild?: boolean;
+} = {}): Promise<unknown> {
+  return call(`/api/graph/relationships/analyze`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function detectCommunities(
+  input: { collection_id?: string } = {}
+): Promise<unknown> {
+  return call(`/api/graph/communities/detect`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function summarizeCommunities(): Promise<unknown> {
+  return call(`/api/graph/communities/summarize`, { method: "POST" });
+}
+
+export async function cleanupOrphanedEntities(): Promise<unknown> {
+  return call(`/api/cleanup/orphaned-entities`, { method: "POST" });
+}
+
+// --- Stats & Tasks ----------------------------------------------------------
+
+export interface BackendStats {
+  document_count?: number;
+  chunk_count?: number;
+  entity_count?: number;
+  relationship_count?: number;
+  community_count?: number;
+  pending_task_count?: number;
+  [k: string]: unknown;
+}
+
+export async function getBackendStats(): Promise<BackendStats> {
+  return call<BackendStats>(`/api/stats`);
+}
+
+export interface BackendTask {
+  id: string;
+  status?: string;
+  kind?: string;
+  type?: string;
+  progress?: number;
+  message?: string;
+  error?: string;
+  created_at?: string;
+  updated_at?: string;
+  [k: string]: unknown;
+}
+
+export async function listTasks(params: {
+  status?: string;
+  limit?: number;
+  offset?: number;
+} = {}): Promise<BackendTask[]> {
+  const qs = new URLSearchParams();
+  if (params.status) qs.set("status", params.status);
+  if (params.limit != null) qs.set("limit", String(params.limit));
+  if (params.offset != null) qs.set("offset", String(params.offset));
+  const suffix = qs.toString() ? `?${qs}` : "";
+  const data = await call<{ tasks?: BackendTask[] } | BackendTask[]>(
+    `/api/tasks${suffix}`
+  );
+  if (Array.isArray(data)) return data;
+  return data.tasks ?? [];
+}
+
+export async function getTask(id: string): Promise<BackendTask> {
+  return call<BackendTask>(`/api/tasks/${id}`);
+}
+
 // --- API Keys --------------------------------------------------------------
 
 export type BackendPermission = "read" | "manage" | "admin";

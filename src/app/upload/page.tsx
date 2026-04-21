@@ -1,58 +1,28 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { getConfig, getCachedConfig } from "@/lib/config";
 import { CurrentUser } from "@/types/auth";
-import { Button, ErrorBanner, Select } from "@/components/admin/ui";
 import { t } from "@/lib/i18n";
 import { useLocale } from "@/lib/i18n-client";
+import UploadTab from "./_components/UploadTab";
+import DocumentsTab from "./_components/DocumentsTab";
+import ProcessingTab from "./_components/ProcessingTab";
+import CollectionsTab from "./_components/CollectionsTab";
 
-interface Collection {
-  id: string;
-  name: string;
-  description?: string;
-  document_count?: number;
-}
-
-interface Toast {
-  kind: "success" | "error";
-  text: string;
-}
+type TabKey = "upload" | "documents" | "processing" | "collections";
 
 export default function UploadPage() {
   useLocale();
   const router = useRouter();
   const [me, setMe] = useState<CurrentUser | null>(null);
-  const [collections, setCollections] = useState<Collection[]>([]);
-  const [collectionId, setCollectionId] = useState<string>("");
-  const [file, setFile] = useState<File | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [toast, setToast] = useState<Toast | null>(null);
   const [logoUrl, setLogoUrl] = useState(
     () => getCachedConfig()?.logoUrl || "/logo.svg"
   );
   const [ready, setReady] = useState(false);
-
-  const loadScope = useCallback(async () => {
-    const res = await fetch("/api/me/upload-scope");
-    if (res.status === 403) {
-      setError(t("noUploadPermission"));
-      setCollections([]);
-      return;
-    }
-    const data = await res.json();
-    if (data.error) {
-      setError(data.error);
-      return;
-    }
-    setCollections(data.collections ?? []);
-    if (data.collections?.length > 0) {
-      setCollectionId(data.collections[0].id);
-    }
-  }, []);
+  const [tab, setTab] = useState<TabKey>("upload");
 
   useEffect(() => {
     getConfig().then((cfg) => setLogoUrl(cfg.logoUrl || "/logo.svg"));
@@ -66,144 +36,102 @@ export default function UploadPage() {
       })
       .then((u) => {
         if (!u) return;
-        if (!u.canUpload) {
+        const isAdmin = u.role === "admin" || u.role === "superadmin";
+        if (!u.canUpload && !isAdmin) {
           router.replace("/");
           return;
         }
         setMe(u);
-        loadScope();
+        if (!u.canUpload && isAdmin) setTab("documents");
       })
       .finally(() => setReady(true));
-  }, [router, loadScope]);
-
-  async function handleUpload(e: React.FormEvent) {
-    e.preventDefault();
-    if (!file) return;
-    setUploading(true);
-    setError(null);
-    setToast(null);
-
-    const form = new FormData();
-    form.append("file", file);
-    if (collectionId) form.append("collection_id", collectionId);
-
-    try {
-      const res = await fetch("/api/me/upload", {
-        method: "POST",
-        body: form,
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(data.error || t("uploadFailed"));
-      }
-      setToast({
-        kind: "success",
-        text: t("fileUploaded", { name: file.name }),
-      });
-      setFile(null);
-      const input = document.getElementById("upload-file") as
-        | HTMLInputElement
-        | null;
-      if (input) input.value = "";
-    } catch (err) {
-      setToast({
-        kind: "error",
-        text: err instanceof Error ? err.message : t("uploadFailed"),
-      });
-    } finally {
-      setUploading(false);
-    }
-  }
+  }, [router]);
 
   if (!ready || !me) {
-    return <div className="h-dvh bg-[var(--bg-primary)]" />;
+    return <div className="h-dvh" style={{ background: "var(--bg)" }} />;
   }
 
+  const isAdmin = me.role === "admin" || me.role === "superadmin";
+  const tabs: { key: TabKey; label: string; show: boolean }[] = [
+    { key: "upload", label: t("tabUpload"), show: me.canUpload },
+    { key: "documents", label: t("tabDocuments"), show: isAdmin },
+    { key: "processing", label: t("tabProcessing"), show: isAdmin },
+    { key: "collections", label: t("tabCollections"), show: isAdmin },
+  ];
+
   return (
-    <div className="h-dvh flex flex-col">
-      <header className="flex items-center justify-between px-4 py-3 border-b border-[var(--border)] bg-[var(--bg-secondary)]">
+    <div className="h-dvh flex flex-col" style={{ background: "var(--bg)" }}>
+      <header
+        className="flex items-center justify-between px-4 py-3 border-b"
+        style={{
+          background: "oklch(0.15 0 0 / 0.65)",
+          backdropFilter: "blur(24px)",
+          WebkitBackdropFilter: "blur(24px)",
+          borderColor: "var(--border)",
+        }}
+      >
         <Link href="/" className="flex items-center gap-3">
           <img src={logoUrl} alt="Logo" className="h-7 w-auto" />
         </Link>
         <Link
           href="/"
-          className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+          className="text-[12px] transition-colors"
+          style={{ color: "var(--fg2)" }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.color = "var(--fg1)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.color = "var(--fg2)";
+          }}
         >
           {t("backToChat")}
         </Link>
       </header>
 
       <main className="flex-1 overflow-y-auto">
-        <div className="max-w-xl mx-auto px-4 py-10 space-y-6">
-          <div>
-            <h1 className="text-xl font-semibold">
-              {t("uploadDocumentsHeading")}
+        <div className="max-w-6xl mx-auto px-6 pt-8 pb-10">
+          <div className="mb-6">
+            <h1
+              className="text-[24px] font-bold"
+              style={{ color: "var(--fg1)", letterSpacing: "-0.015em" }}
+            >
+              {t("documentManagementHeading")}
             </h1>
-            <p className="text-sm text-[var(--text-secondary)] mt-1">
-              {t("uploadDescription")}
+            <p className="text-[13px] mt-1" style={{ color: "var(--fg2)" }}>
+              {t("documentManagementDescription")}
             </p>
           </div>
-
-          <ErrorBanner message={error} />
-
-          {!error && (
-            <form
-              onSubmit={handleUpload}
-              className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl p-5 space-y-4"
-            >
-              <Select
-                label={t("collection")}
-                value={collectionId}
-                onChange={(e) => setCollectionId(e.target.value)}
-              >
-                {collections.length === 0 && (
-                  <option value="">{t("noCollectionsAvailable")}</option>
-                )}
-                {collections.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </Select>
-
-              <label className="block space-y-1.5">
-                <span className="text-xs text-[var(--text-secondary)]">
-                  {t("file")}
-                </span>
-                <input
-                  id="upload-file"
-                  type="file"
-                  onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-                  className="w-full text-sm text-[var(--text-primary)] file:mr-3 file:px-3 file:py-1.5 file:rounded-lg file:border file:border-[var(--border)] file:bg-[var(--bg-tertiary)] file:text-sm file:text-[var(--text-primary)] file:cursor-pointer"
-                  accept=".pdf,.docx,.txt,.md"
-                />
-                <span className="text-xs text-[var(--text-secondary)]">
-                  {t("supportedFormats")}
-                </span>
-              </label>
-
-              <div className="flex items-center justify-end gap-2 pt-1">
-                <Button
-                  type="submit"
-                  disabled={!file || uploading || !collectionId}
-                >
-                  {uploading ? t("uploading") : t("upload")}
-                </Button>
-              </div>
-            </form>
-          )}
-
-          {toast && (
+          {isAdmin && (
             <div
-              className={`text-sm rounded-lg px-3 py-2 border ${
-                toast.kind === "success"
-                  ? "text-emerald-300 bg-emerald-500/10 border-emerald-500/30"
-                  : "text-red-400 bg-red-500/10 border-red-500/30"
-              }`}
+              className="flex items-center gap-6 border-b mb-6"
+              style={{ borderColor: "var(--border)" }}
             >
-              {toast.text}
+              {tabs
+                .filter((x) => x.show)
+                .map((x) => {
+                  const active = tab === x.key;
+                  return (
+                    <button
+                      key={x.key}
+                      onClick={() => setTab(x.key)}
+                      className="text-[13px] py-3 transition-colors border-b-2 -mb-px"
+                      style={{
+                        color: active ? "var(--fg1)" : "var(--fg2)",
+                        borderColor: active ? "var(--accent)" : "transparent",
+                        fontWeight: active ? 500 : 400,
+                      }}
+                    >
+                      {x.label}
+                    </button>
+                  );
+                })}
             </div>
           )}
+
+          {tab === "upload" && me.canUpload && <UploadTab />}
+          {tab === "documents" && isAdmin && <DocumentsTab />}
+          {tab === "processing" && isAdmin && <ProcessingTab />}
+          {tab === "collections" && isAdmin && <CollectionsTab />}
         </div>
       </main>
     </div>
