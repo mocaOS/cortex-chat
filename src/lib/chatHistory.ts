@@ -1,62 +1,60 @@
-import { ChatSession, ChatMessage } from "@/types";
+import { ChatMessage, ChatSession } from "@/types";
 
-const STORAGE_KEY = "chat_sessions";
+const BASE = "/api/me/chats";
 
-function loadAll(): ChatSession[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
+async function http<T>(path: string, init?: RequestInit): Promise<T | null> {
+  const res = await fetch(path, {
+    ...init,
+    headers: {
+      "Content-Type": "application/json",
+      ...init?.headers,
+    },
+  });
+  if (res.status === 404) return null;
+  if (!res.ok) {
+    throw new Error(`Chat API error: ${res.status}`);
   }
+  return res.json();
 }
 
-function saveAll(sessions: ChatSession[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
+export async function listChats(): Promise<ChatSession[]> {
+  const data = await http<{ sessions: ChatSession[] }>(BASE);
+  return data?.sessions ?? [];
 }
 
-export function getSessions(): ChatSession[] {
-  return loadAll().sort((a, b) => b.updatedAt - a.updatedAt);
+export async function getChat(id: string): Promise<ChatSession | null> {
+  return http<ChatSession>(`${BASE}/${id}`);
 }
 
-export function getSession(id: string): ChatSession | undefined {
-  return loadAll().find((s) => s.id === id);
+export async function createChat(
+  id?: string,
+  title?: string
+): Promise<ChatSession> {
+  const data = await http<ChatSession>(BASE, {
+    method: "POST",
+    body: JSON.stringify({ id, title }),
+  });
+  if (!data) throw new Error("Failed to create chat");
+  return data;
 }
 
-export function createSession(id: string): ChatSession {
-  const session: ChatSession = {
-    id,
-    title: "",
-    messages: [],
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
-  };
-  const all = loadAll();
-  all.push(session);
-  saveAll(all);
-  return session;
+export function updateChatMessages(
+  id: string,
+  messages: ChatMessage[]
+): Promise<void> {
+  return http(`${BASE}/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ messages }),
+  }).then(() => undefined);
 }
 
-export function updateSessionMessages(id: string, messages: ChatMessage[]) {
-  const all = loadAll();
-  const idx = all.findIndex((s) => s.id === id);
-  if (idx === -1) return;
-  all[idx].messages = messages;
-  all[idx].updatedAt = Date.now();
-  saveAll(all);
+export function updateChatTitle(id: string, title: string): Promise<void> {
+  return http(`${BASE}/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ title }),
+  }).then(() => undefined);
 }
 
-export function updateSessionTitle(id: string, title: string) {
-  const all = loadAll();
-  const idx = all.findIndex((s) => s.id === id);
-  if (idx === -1) return;
-  all[idx].title = title;
-  all[idx].updatedAt = Date.now();
-  saveAll(all);
-}
-
-export function deleteSession(id: string) {
-  const all = loadAll().filter((s) => s.id !== id);
-  saveAll(all);
+export function deleteChat(id: string): Promise<void> {
+  return http(`${BASE}/${id}`, { method: "DELETE" }).then(() => undefined);
 }

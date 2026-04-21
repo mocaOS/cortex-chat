@@ -68,7 +68,7 @@ export interface Settings {
 export interface ChatSession {
   id: string;
   title: string;
-  messages: ChatMessage[];
+  messages?: ChatMessage[];
   createdAt: number;
   updatedAt: number;
 }

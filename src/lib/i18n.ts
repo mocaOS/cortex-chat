@@ -30,6 +30,17 @@ const translations = {
     generatingResponse: "Generating response...",
     searchingAllCollections: "Searching across all collections",
     searchingInCollection: "Searching in:",
+    email: "Email",
+    password: "Password",
+    signIn: "Sign in",
+    signingIn: "Signing in…",
+    signOut: "Sign out",
+    loginFailed: "Sign in failed",
+    profile: "Profile",
+    uploadDocuments: "Upload documents",
+    admin: "Admin",
+    noGroupAssigned:
+      "Your account has no group assigned. Ask an administrator to place you in a group to start chatting.",
   },
   de: {
     askAi: "KI fragen",
@@ -62,6 +73,17 @@ const translations = {
     generatingResponse: "Antwort wird generiert...",
     searchingAllCollections: "Suche in allen Sammlungen",
     searchingInCollection: "Suche in:",
+    email: "E-Mail",
+    password: "Passwort",
+    signIn: "Anmelden",
+    signingIn: "Melde an…",
+    signOut: "Abmelden",
+    loginFailed: "Anmeldung fehlgeschlagen",
+    profile: "Profil",
+    uploadDocuments: "Dokumente hochladen",
+    admin: "Admin",
+    noGroupAssigned:
+      "Deinem Konto ist keine Gruppe zugewiesen. Bitte einen Administrator, dich einer Gruppe hinzuzufügen, um zu chatten.",
   },
 } as const;
 

@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { ChatSession } from "@/types";
+import { CurrentUser } from "@/types/auth";
 import { t } from "@/lib/i18n";
 
 interface Props {
@@ -12,6 +14,8 @@ interface Props {
   onNewChat: () => void;
   onDeleteSession: (id: string) => void;
   logoUrl: string;
+  currentUser?: CurrentUser | null;
+  onSignOut?: () => void;
 }
 
 function timeLabel(ts: number): string {
@@ -52,6 +56,8 @@ export default function Sidebar({
   onNewChat,
   onDeleteSession,
   logoUrl,
+  currentUser,
+  onSignOut,
 }: Props) {
   const groups = groupSessions(sessions);
 
@@ -140,7 +146,86 @@ export default function Sidebar({
             </div>
           ))}
         </div>
+
+        {currentUser && (
+          <div className="border-t border-[var(--border)] px-2 py-2 space-y-0.5">
+            <SidebarNavLink
+              href="/profile"
+              label={t("profile")}
+              onNav={onClose}
+              icon={
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              }
+              rightSlot={
+                <span className="text-xs text-[var(--text-secondary)] truncate max-w-[120px]">
+                  {currentUser.username || currentUser.email}
+                </span>
+              }
+            />
+            {currentUser.canUpload && (
+              <SidebarNavLink
+                href="/upload"
+                label={t("uploadDocuments")}
+                onNav={onClose}
+                icon={
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                }
+              />
+            )}
+            {currentUser.role === "superadmin" && (
+              <SidebarNavLink
+                href="/admin"
+                label={t("admin")}
+                onNav={onClose}
+                icon={
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                }
+              />
+            )}
+            <button
+              onClick={onSignOut}
+              className="w-full flex items-center gap-2 px-2 py-2 rounded-lg text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+              <span className="flex-1 text-left">{t("signOut")}</span>
+            </button>
+          </div>
+        )}
       </div>
     </>
+  );
+}
+
+function SidebarNavLink({
+  href,
+  label,
+  icon,
+  onNav,
+  rightSlot,
+}: {
+  href: string;
+  label: string;
+  icon: React.ReactNode;
+  onNav?: () => void;
+  rightSlot?: React.ReactNode;
+}) {
+  return (
+    <Link
+      href={href}
+      onClick={onNav}
+      className="flex items-center gap-2 px-2 py-2 rounded-lg text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-colors"
+    >
+      {icon}
+      <span className="flex-1 truncate">{label}</span>
+      {rightSlot}
+    </Link>
   );
 }

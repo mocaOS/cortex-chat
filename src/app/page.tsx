@@ -1,20 +1,23 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { ChatMessage, ChatSession, Mode, Settings, Source, GraphContext, RetrievalStats } from "@/types";
+import { CurrentUser } from "@/types/auth";
 import {
   askQuestion,
   askQuestionStream,
   fetchCollections,
 } from "@/lib/api";
 import {
-  getSessions,
-  getSession,
-  createSession,
-  updateSessionMessages,
-  updateSessionTitle,
-  deleteSession,
+  listChats,
+  getChat,
+  createChat,
+  updateChatMessages,
+  updateChatTitle,
+  deleteChat,
 } from "@/lib/chatHistory";
+import { t } from "@/lib/i18n";
 
 function uid(): string {
   if (typeof crypto !== "undefined" && crypto.randomUUID) {
@@ -33,6 +36,7 @@ import SettingsPanel from "@/components/SettingsPanel";
 import Sidebar from "@/components/Sidebar";
 
 export default function Home() {
+  const router = useRouter();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [mode, setMode] = useState<Mode>("deep-research");
@@ -45,65 +49,85 @@ export default function Home() {
   const [selectedSource, setSelectedSource] = useState<Source | null>(null);
   const [logoUrl, setLogoUrl] = useState("/logo.svg");
   const [configReady, setConfigReady] = useState(false);
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const titleGeneratedRef = useRef<Set<string>>(new Set());
 
-  // Load sessions from localStorage on mount
+  const refreshSessions = useCallback(async () => {
+    try {
+      const list = await listChats();
+      setSessions(list);
+    } catch {
+      /* leave existing list; 401 handled via /me polling */
+    }
+  }, []);
+
+  // Load config, auth, collections, sessions on mount.
   useEffect(() => {
     getConfig().then((cfg) => {
       setLogoUrl(cfg.logoUrl || "/logo.svg");
       setConfigReady(true);
     });
+    fetch("/api/auth/me")
+      .then(async (res) => {
+        if (res.status === 401) {
+          router.replace("/login");
+          return null;
+        }
+        return (await res.json()) as CurrentUser;
+      })
+      .then((me) => {
+        if (me) {
+          setCurrentUser(me);
+          refreshSessions();
+        }
+      })
+      .catch(() => {});
     fetchCollections()
       .then(setCollections)
       .catch(() => {});
-    setSessions(getSessions());
-  }, []);
+  }, [router, refreshSessions]);
 
-  // Save messages to localStorage whenever they change (and session exists)
+  const handleSignOut = useCallback(async () => {
+    await fetch("/api/auth/logout", { method: "POST" });
+    router.replace("/login");
+  }, [router]);
+
+  // Persist messages to the server whenever they settle (not while streaming).
   useEffect(() => {
-    if (activeSessionId && messages.length > 0) {
-      // Only save non-streaming state
-      const hasStreaming = messages.some((m) => m.isStreaming);
-      if (!hasStreaming) {
-        updateSessionMessages(activeSessionId, messages);
-        setSessions(getSessions());
+    if (!activeSessionId || messages.length === 0) return;
+    const hasStreaming = messages.some((m) => m.isStreaming);
+    if (hasStreaming) return;
+    updateChatMessages(activeSessionId, messages)
+      .then(refreshSessions)
+      .catch(() => {});
+  }, [messages, activeSessionId, refreshSessions]);
+
+  const handleSelectSession = useCallback(
+    async (id: string) => {
+      const session = await getChat(id);
+      if (session) {
+        setActiveSessionId(id);
+        setMessages(session.messages ?? []);
+        setIsLoading(false);
       }
-    }
-  }, [messages, activeSessionId]);
-
-  const startNewSession = useCallback(() => {
-    const id = uid();
-    createSession(id);
-    setActiveSessionId(id);
-    setMessages([]);
-    setIsLoading(false);
-    setSessions(getSessions());
-    return id;
-  }, []);
-
-  const handleSelectSession = useCallback((id: string) => {
-    const session = getSession(id);
-    if (session) {
-      setActiveSessionId(id);
-      setMessages(session.messages);
-      setIsLoading(false);
-    }
-  }, []);
+    },
+    []
+  );
 
   const handleDeleteSession = useCallback(
-    (id: string) => {
-      deleteSession(id);
-      setSessions(getSessions());
+    async (id: string) => {
+      await deleteChat(id);
+      await refreshSessions();
       if (activeSessionId === id) {
         setActiveSessionId(null);
         setMessages([]);
       }
     },
-    [activeSessionId]
+    [activeSessionId, refreshSessions]
   );
 
   const handleNewChat = useCallback(() => {
@@ -119,10 +143,10 @@ export default function Home() {
       // Create session if none active
       let sessionId = activeSessionId;
       if (!sessionId) {
-        sessionId = uid();
-        createSession(sessionId);
+        const created = await createChat();
+        sessionId = created.id;
         setActiveSessionId(sessionId);
-        setSessions(getSessions());
+        refreshSessions();
       }
 
       const isFirstMessage = messages.length === 0;
@@ -147,8 +171,7 @@ export default function Home() {
       // Set title from first user message immediately
       if (isFirstMessage && sessionId && !titleGeneratedRef.current.has(sessionId)) {
         titleGeneratedRef.current.add(sessionId);
-        updateSessionTitle(sessionId, question);
-        setSessions(getSessions());
+        updateChatTitle(sessionId, question).then(refreshSessions).catch(() => {});
       }
 
       setMessages((prev) => [...prev, userMsg, assistantMsg]);
@@ -168,10 +191,10 @@ export default function Home() {
       };
 
       const finalize = (finalMessages: ChatMessage[]) => {
-        // Save to localStorage
         if (sessionId) {
-          updateSessionMessages(sessionId, finalMessages);
-          setSessions(getSessions());
+          updateChatMessages(sessionId, finalMessages)
+            .then(refreshSessions)
+            .catch(() => {});
         }
       };
 
@@ -321,7 +344,7 @@ export default function Home() {
         setIsLoading(false);
       }
     },
-    [isLoading, messages, mode, settings, activeSessionId]
+    [isLoading, messages, mode, settings, activeSessionId, refreshSessions]
   );
 
   const handleStop = useCallback(() => {
@@ -329,9 +352,11 @@ export default function Home() {
     abortRef.current = null;
   }, []);
 
-  if (!configReady) {
+  if (!configReady || !currentUser) {
     return <div className="h-dvh bg-[var(--bg-primary)]" />;
   }
+
+  const hasGroup = !!currentUser.group;
 
   return (
     <div className="flex flex-col h-dvh max-h-dvh overflow-hidden">
@@ -352,28 +377,40 @@ export default function Home() {
         }}
         onDeleteSession={handleDeleteSession}
         logoUrl={logoUrl}
+        currentUser={currentUser}
+        onSignOut={handleSignOut}
       />
 
-      <main className="flex-1 overflow-hidden relative">
-        <MessageList
-          messages={messages}
-          onSourceClick={setSelectedSource}
-        />
-      </main>
+      {hasGroup ? (
+        <>
+          <main className="flex-1 overflow-hidden relative">
+            <MessageList
+              messages={messages}
+              onSourceClick={setSelectedSource}
+            />
+          </main>
 
-      <ChatInput
-        onSend={handleSend}
-        onStop={handleStop}
-        isLoading={isLoading}
-        mode={mode}
-        onModeChange={setMode}
-        onSettingsClick={() => setShowSettings(!showSettings)}
-        collectionName={
-          settings.collectionId
-            ? collections.find((c) => c.id === settings.collectionId)?.name ?? null
-            : null
-        }
-      />
+          <ChatInput
+            onSend={handleSend}
+            onStop={handleStop}
+            isLoading={isLoading}
+            mode={mode}
+            onModeChange={setMode}
+            onSettingsClick={() => setShowSettings(!showSettings)}
+            collectionName={
+              settings.collectionId
+                ? collections.find((c) => c.id === settings.collectionId)?.name ?? null
+                : null
+            }
+          />
+        </>
+      ) : (
+        <main className="flex-1 flex items-center justify-center px-6 text-center">
+          <p className="max-w-md text-sm text-[var(--text-secondary)]">
+            {t("noGroupAssigned")}
+          </p>
+        </main>
+      )}
 
       {showSettings && (
         <SettingsPanel
