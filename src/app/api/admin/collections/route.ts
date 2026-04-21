@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
-import { requireSuperadmin } from "@/lib/auth/session";
+import { requireAdmin } from "@/lib/auth/session";
 import { listBackendCollections } from "@/lib/backend";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    await requireSuperadmin();
+    await requireAdmin();
   } catch {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }

@@ -235,7 +235,8 @@ export default function Sidebar({
                 }
               />
             )}
-            {currentUser.role === "superadmin" && (
+            {(currentUser.role === "superadmin" ||
+              currentUser.role === "admin") && (
               <SidebarNavLink
                 href="/admin"
                 label={t("admin")}

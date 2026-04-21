@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { asc, eq, gte, sql, type AnyColumn } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { loginEvents, usageEvents, users } from "@/lib/db/schema";
-import { requireSuperadmin } from "@/lib/auth/session";
+import { requireAdmin } from "@/lib/auth/session";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +27,7 @@ function dayExpr(col: AnyColumn) {
 
 export async function GET(request: Request) {
   try {
-    await requireSuperadmin();
+    await requireAdmin();
   } catch {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }

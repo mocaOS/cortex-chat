@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireSuperadmin } from "@/lib/auth/session";
+import { requireAdmin } from "@/lib/auth/session";
 import {
   isAcceptedLogoMime,
   logoExtForMime,
@@ -15,7 +15,7 @@ export const runtime = "nodejs";
 
 export async function POST(request: Request) {
   try {
-    await requireSuperadmin();
+    await requireAdmin();
   } catch {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
@@ -59,7 +59,7 @@ export async function POST(request: Request) {
 
 export async function DELETE() {
   try {
-    await requireSuperadmin();
+    await requireAdmin();
   } catch {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }

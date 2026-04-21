@@ -3,7 +3,7 @@ import { asc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/lib/db/client";
 import { apiKeys, users } from "@/lib/db/schema";
-import { requireSuperadmin } from "@/lib/auth/session";
+import { requireAdmin } from "@/lib/auth/session";
 import { encryptSecret, newId } from "@/lib/auth/crypto";
 import { createBackendKey, deleteBackendKey } from "@/lib/backend";
 
@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 // List: all users who currently have a content key assigned.
 export async function GET() {
   try {
-    await requireSuperadmin();
+    await requireAdmin();
   } catch {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
@@ -49,7 +49,7 @@ const Body = z.object({
 
 export async function POST(request: Request) {
   try {
-    await requireSuperadmin();
+    await requireAdmin();
   } catch {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }

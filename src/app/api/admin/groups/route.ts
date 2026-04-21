@@ -3,7 +3,7 @@ import { asc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/lib/db/client";
 import { apiKeys, groups, users } from "@/lib/db/schema";
-import { requireSuperadmin } from "@/lib/auth/session";
+import { requireAdmin } from "@/lib/auth/session";
 import { newId } from "@/lib/auth/crypto";
 import { encryptSecret } from "@/lib/auth/crypto";
 import { createBackendKey } from "@/lib/backend";
@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    await requireSuperadmin();
+    await requireAdmin();
   } catch {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
@@ -48,7 +48,7 @@ const Body = z.object({
 
 export async function POST(request: Request) {
   try {
-    await requireSuperadmin();
+    await requireAdmin();
   } catch {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }

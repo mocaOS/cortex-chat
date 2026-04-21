@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { apiKeys, users } from "@/lib/db/schema";
-import { requireSuperadmin } from "@/lib/auth/session";
+import { requireAdmin } from "@/lib/auth/session";
 import { deleteBackendKey } from "@/lib/backend";
 
 export const dynamic = "force-dynamic";
@@ -13,7 +13,7 @@ interface Ctx {
 
 export async function DELETE(_: Request, ctx: Ctx) {
   try {
-    await requireSuperadmin();
+    await requireAdmin();
   } catch {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }

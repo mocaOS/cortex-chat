@@ -11,7 +11,9 @@ export default async function AdminLayout({
 }) {
   const ctx = await getAuth();
   if (!ctx) redirect("/login?next=/admin");
-  if (ctx.user.role !== "superadmin") redirect("/");
+  if (ctx.user.role !== "superadmin" && ctx.user.role !== "admin") {
+    redirect("/");
+  }
 
   return (
     <AdminShell

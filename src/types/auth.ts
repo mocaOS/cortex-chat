@@ -3,7 +3,7 @@ export interface CurrentUser {
   email: string;
   username: string;
   avatarUrl: string | null;
-  role: "user" | "superadmin";
+  role: "user" | "admin" | "superadmin";
   group: { id: string; name: string; description: string } | null;
   canUpload: boolean;
 }

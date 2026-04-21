@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { requireSuperadmin } from "@/lib/auth/session";
+import { requireAdmin } from "@/lib/auth/session";
 import {
   DEFAULT_APP_DESCRIPTION,
   DEFAULT_APP_TITLE,
@@ -26,7 +26,7 @@ function serialize() {
 
 export async function GET() {
   try {
-    await requireSuperadmin();
+    await requireAdmin();
   } catch {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
@@ -49,7 +49,7 @@ const Body = z.object({
 
 export async function PATCH(request: Request) {
   try {
-    await requireSuperadmin();
+    await requireAdmin();
   } catch {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }

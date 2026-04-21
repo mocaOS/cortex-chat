@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/lib/db/client";
 import { apiKeys, groups } from "@/lib/db/schema";
-import { requireSuperadmin } from "@/lib/auth/session";
+import { requireAdmin } from "@/lib/auth/session";
 import {
   deleteBackendKey,
   updateBackendKey,
@@ -23,7 +23,7 @@ const PatchBody = z.object({
 
 export async function PATCH(request: Request, ctx: Ctx) {
   try {
-    await requireSuperadmin();
+    await requireAdmin();
   } catch {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
@@ -82,7 +82,7 @@ export async function PATCH(request: Request, ctx: Ctx) {
 
 export async function DELETE(_: Request, ctx: Ctx) {
   try {
-    await requireSuperadmin();
+    await requireAdmin();
   } catch {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }

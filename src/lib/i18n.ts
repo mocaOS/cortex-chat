@@ -156,7 +156,10 @@ const translations = {
     tableGroup: "Group",
     tableRole: "Role",
     roleSuperadmin: "superadmin",
+    roleAdmin: "admin",
     roleUser: "user",
+    roleHint:
+      "Admins can create and delete regular users and manage all admin screens, but cannot manage other admin accounts.",
     lastSeen: "Last seen {when}",
     groupNone: "None",
     deleteUserConfirm: "Delete user {email}? This also deletes their chat history.",
@@ -388,7 +391,10 @@ const translations = {
     tableGroup: "Gruppe",
     tableRole: "Rolle",
     roleSuperadmin: "superadmin",
+    roleAdmin: "admin",
     roleUser: "user",
+    roleHint:
+      "Admins können reguläre Benutzer anlegen und löschen sowie alle Admin-Screens verwalten, jedoch keine anderen Admin-Konten.",
     lastSeen: "Zuletzt gesehen {when}",
     groupNone: "Keine",
     deleteUserConfirm:

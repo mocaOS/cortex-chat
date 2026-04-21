@@ -3,15 +3,17 @@ import { asc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/lib/db/client";
 import { groups, users } from "@/lib/db/schema";
-import { requireSuperadmin } from "@/lib/auth/session";
+import { requireAdmin } from "@/lib/auth/session";
 import { newId } from "@/lib/auth/crypto";
 import { hashPassword } from "@/lib/auth/password";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  let viewerRole: "admin" | "superadmin";
   try {
-    await requireSuperadmin();
+    const { user } = await requireAdmin();
+    viewerRole = user.role as "admin" | "superadmin";
   } catch {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
@@ -33,7 +35,7 @@ export async function GET() {
     .orderBy(asc(users.email))
     .all();
 
-  return NextResponse.json({ users: rows });
+  return NextResponse.json({ users: rows, viewerRole });
 }
 
 const Body = z.object({
@@ -41,11 +43,14 @@ const Body = z.object({
   password: z.string().min(8),
   username: z.string().max(80).optional(),
   groupId: z.string().nullable().optional(),
+  role: z.enum(["user", "admin", "superadmin"]).optional(),
 });
 
 export async function POST(request: Request) {
+  let callerRole: "admin" | "superadmin";
   try {
-    await requireSuperadmin();
+    const { user } = await requireAdmin();
+    callerRole = user.role as "admin" | "superadmin";
   } catch {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
@@ -57,6 +62,24 @@ export async function POST(request: Request) {
       { status: 400 }
     );
   }
+  const requestedRole = parsed.data.role ?? "user";
+
+  if (requestedRole === "superadmin") {
+    return NextResponse.json(
+      {
+        error:
+          "Superadmin is bound to SUPERADMIN_EMAIL and cannot be created via the UI.",
+      },
+      { status: 400 }
+    );
+  }
+  if (requestedRole === "admin" && callerRole !== "superadmin") {
+    return NextResponse.json(
+      { error: "Only the superadmin can create admin accounts." },
+      { status: 403 }
+    );
+  }
+
   const email = parsed.data.email.trim().toLowerCase();
   const existing = db.select().from(users).where(eq(users.email, email)).get();
   if (existing) {
@@ -74,7 +97,7 @@ export async function POST(request: Request) {
       email,
       passwordHash,
       username: parsed.data.username ?? "",
-      role: "user",
+      role: requestedRole,
       groupId: parsed.data.groupId ?? null,
     })
     .run();
@@ -83,6 +106,7 @@ export async function POST(request: Request) {
     id,
     email,
     username: parsed.data.username ?? "",
+    role: requestedRole,
     groupId: parsed.data.groupId ?? null,
   });
 }

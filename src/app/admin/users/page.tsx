@@ -14,11 +14,14 @@ import {
 import { t } from "@/lib/i18n";
 import { useLocale } from "@/lib/i18n-client";
 
+type Role = "user" | "admin" | "superadmin";
+type ViewerRole = "admin" | "superadmin";
+
 interface UserRow {
   id: string;
   email: string;
   username: string;
-  role: "user" | "superadmin";
+  role: Role;
   groupId: string | null;
   groupName: string | null;
   contentKeyId: string | null;
@@ -35,6 +38,7 @@ export default function AdminUsersPage() {
   useLocale();
   const [users, setUsers] = useState<UserRow[]>([]);
   const [groups, setGroups] = useState<GroupRow[]>([]);
+  const [viewerRole, setViewerRole] = useState<ViewerRole>("admin");
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<UserRow | "new" | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -49,6 +53,7 @@ export default function AdminUsersPage() {
       ]);
       if (u.error) throw new Error(u.error);
       setUsers(u.users ?? []);
+      setViewerRole((u.viewerRole as ViewerRole) ?? "admin");
       setGroups(g.groups ?? []);
     } catch (err) {
       setError(err instanceof Error ? err.message : t("failedToLoad"));
@@ -72,6 +77,18 @@ export default function AdminUsersPage() {
       return;
     }
     await load();
+  }
+
+  function canDelete(u: UserRow): boolean {
+    if (u.role === "superadmin") return false;
+    if (u.role === "admin" && viewerRole !== "superadmin") return false;
+    return true;
+  }
+
+  function canEdit(u: UserRow): boolean {
+    if (u.role === "superadmin") return viewerRole === "superadmin";
+    if (u.role === "admin") return viewerRole === "superadmin";
+    return true;
   }
 
   return (
@@ -130,29 +147,21 @@ export default function AdminUsersPage() {
                   )}
                 </Td>
                 <Td>
-                  {u.role === "superadmin" ? (
-                    <span
-                      className="text-[11px] px-2 py-0.5 rounded-[var(--radius-sm)] font-medium uppercase tracking-[0.06em]"
-                      style={{
-                        background: "var(--accent)",
-                        color: "var(--accent-fg)",
-                      }}
-                    >
-                      {t("roleSuperadmin")}
-                    </span>
-                  ) : (
-                    <span style={{ color: "var(--fg2)" }}>{t("roleUser")}</span>
-                  )}
+                  <RoleBadge role={u.role} />
                 </Td>
                 <Td>
                   <div className="flex gap-2">
-                    <Button variant="ghost" onClick={() => setEditing(u)}>
+                    <Button
+                      variant="ghost"
+                      onClick={() => setEditing(u)}
+                      disabled={!canEdit(u)}
+                    >
                       {t("edit")}
                     </Button>
                     <Button
                       variant="danger"
                       onClick={() => handleDelete(u)}
-                      disabled={u.role === "superadmin"}
+                      disabled={!canDelete(u)}
                     >
                       {t("delete")}
                     </Button>
@@ -168,6 +177,7 @@ export default function AdminUsersPage() {
         <UserForm
           user={editing === "new" ? null : editing}
           groups={groups}
+          viewerRole={viewerRole}
           onClose={() => setEditing(null)}
           onSaved={async () => {
             setEditing(null);
@@ -179,14 +189,46 @@ export default function AdminUsersPage() {
   );
 }
 
+function RoleBadge({ role }: { role: Role }) {
+  if (role === "superadmin") {
+    return (
+      <span
+        className="text-[11px] px-2 py-0.5 rounded-[var(--radius-sm)] font-medium uppercase tracking-[0.06em]"
+        style={{
+          background: "var(--accent)",
+          color: "var(--accent-fg)",
+        }}
+      >
+        {t("roleSuperadmin")}
+      </span>
+    );
+  }
+  if (role === "admin") {
+    return (
+      <span
+        className="text-[11px] px-2 py-0.5 rounded-[var(--radius-sm)] font-medium uppercase tracking-[0.06em]"
+        style={{
+          border: "1px solid var(--border)",
+          color: "var(--fg1)",
+        }}
+      >
+        {t("roleAdmin")}
+      </span>
+    );
+  }
+  return <span style={{ color: "var(--fg2)" }}>{t("roleUser")}</span>;
+}
+
 function UserForm({
   user,
   groups,
+  viewerRole,
   onClose,
   onSaved,
 }: {
   user: UserRow | null;
   groups: GroupRow[];
+  viewerRole: ViewerRole;
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -195,8 +237,14 @@ function UserForm({
   const [username, setUsername] = useState(user?.username ?? "");
   const [password, setPassword] = useState("");
   const [groupId, setGroupId] = useState(user?.groupId ?? "");
+  const [role, setRole] = useState<"user" | "admin">(
+    user?.role === "admin" ? "admin" : "user"
+  );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Only the superadmin can assign the admin role, and only to non-superadmin targets.
+  const canPickRole = viewerRole === "superadmin" && !isSuperadmin;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -211,6 +259,7 @@ function UserForm({
             groupId: groupId || null,
           };
       if (!isSuperadmin && password) body.password = password;
+      if (canPickRole) body.role = role;
 
       // When creating, password is required.
       if (!user && !password) {
@@ -287,6 +336,21 @@ function UserForm({
               required={!user}
             />
           </>
+        )}
+        {canPickRole && (
+          <div className="space-y-1.5">
+            <Select
+              label={t("tableRole")}
+              value={role}
+              onChange={(e) => setRole(e.target.value as "user" | "admin")}
+            >
+              <option value="user">{t("roleUser")}</option>
+              <option value="admin">{t("roleAdmin")}</option>
+            </Select>
+            <p className="text-[11px]" style={{ color: "var(--fg2)" }}>
+              {t("roleHint")}
+            </p>
+          </div>
         )}
         <Select
           label={t("tableGroup")}

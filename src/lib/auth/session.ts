@@ -95,6 +95,14 @@ export async function requireSuperadmin(): Promise<AuthContext> {
   return ctx;
 }
 
+export async function requireAdmin(): Promise<AuthContext> {
+  const ctx = await requireAuth();
+  if (ctx.user.role !== "admin" && ctx.user.role !== "superadmin") {
+    throw new AuthError("Forbidden", 403);
+  }
+  return ctx;
+}
+
 export class AuthError extends Error {
   constructor(message: string, public status: 401 | 403) {
     super(message);

@@ -32,7 +32,7 @@ export const users = sqliteTable("users", {
   passwordHash: text("password_hash").notNull(),
   username: text("username").notNull().default(""),
   avatarPath: text("avatar_path"),
-  role: text("role", { enum: ["user", "superadmin"] })
+  role: text("role", { enum: ["user", "admin", "superadmin"] })
     .notNull()
     .default("user"),
   groupId: text("group_id").references(() => groups.id, {
