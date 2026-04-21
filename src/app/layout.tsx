@@ -5,6 +5,8 @@ import { resolveLogoUrl } from "@/lib/branding-url";
 import { setLocale as setI18nLocale } from "@/lib/i18n";
 import ConfigBootstrap from "@/components/ConfigBootstrap";
 
+export const dynamic = "force-dynamic";
+
 function readEnv(key: string): string | undefined {
   return process.env[key];
 }
