@@ -3,26 +3,30 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { getConfig } from "@/lib/config";
-import { t } from "@/lib/i18n";
+import { getConfig, getCachedConfig } from "@/lib/config";
+import { t, type TranslationKey } from "@/lib/i18n";
+import { useLocale } from "@/lib/i18n-client";
 
 interface Props {
   user: { id: string; email: string; username: string };
   children: React.ReactNode;
 }
 
-const NAV = [
-  { href: "/admin", label: "Overview" },
-  { href: "/admin/users", label: "Users" },
-  { href: "/admin/groups", label: "User groups" },
-  { href: "/admin/content-roles", label: "Content roles" },
-  { href: "/admin/settings", label: "Settings" },
+const NAV: { href: string; labelKey: TranslationKey }[] = [
+  { href: "/admin", labelKey: "adminNavOverview" },
+  { href: "/admin/users", labelKey: "adminNavUsers" },
+  { href: "/admin/groups", labelKey: "adminNavGroups" },
+  { href: "/admin/content-roles", labelKey: "adminNavContentRoles" },
+  { href: "/admin/settings", labelKey: "adminNavSettings" },
 ];
 
 export default function AdminShell({ user, children }: Props) {
+  useLocale();
   const pathname = usePathname();
   const router = useRouter();
-  const [logoUrl, setLogoUrl] = useState("/logo.svg");
+  const [logoUrl, setLogoUrl] = useState(
+    () => getCachedConfig()?.logoUrl || "/logo.svg"
+  );
 
   useEffect(() => {
     getConfig().then((cfg) => setLogoUrl(cfg.logoUrl || "/logo.svg"));
@@ -73,7 +77,7 @@ export default function AdminShell({ user, children }: Props) {
               e.currentTarget.style.color = "var(--fg2)";
             }}
           >
-            Chat →
+            {t("chatArrow")}
           </Link>
           <button
             onClick={handleSignOut}
@@ -123,7 +127,7 @@ export default function AdminShell({ user, children }: Props) {
                   if (!active) e.currentTarget.style.background = "transparent";
                 }}
               >
-                {item.label}
+                {t(item.labelKey)}
               </Link>
             );
           })}

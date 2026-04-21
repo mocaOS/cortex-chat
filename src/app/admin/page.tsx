@@ -18,6 +18,8 @@ import {
   Td,
   Th,
 } from "@/components/admin/ui";
+import { t } from "@/lib/i18n";
+import { useLocale } from "@/lib/i18n-client";
 
 interface SeriesPoint {
   day: string;
@@ -58,17 +60,14 @@ interface LoginEventRow {
   username: string | null;
 }
 
-const RANGES = [
-  { label: "Last 7 days", value: 7 },
-  { label: "Last 30 days", value: 30 },
-  { label: "Last 90 days", value: 90 },
-];
+const RANGE_VALUES = [7, 30, 90] as const;
 
 const LOGIN_PAGE = 50;
 
 type TabKey = "top-users" | "login-history";
 
 export default function AdminDashboard() {
+  useLocale();
   const [days, setDays] = useState(30);
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [counts, setCounts] = useState<{
@@ -106,7 +105,7 @@ export default function AdminDashboard() {
           .length,
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load");
+      setError(err instanceof Error ? err.message : t("failedToLoad"));
     } finally {
       setLoading(false);
     }
@@ -119,12 +118,12 @@ export default function AdminDashboard() {
         `/api/admin/login-events?limit=${LOGIN_PAGE}&offset=${off}`
       );
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to load");
+      if (!res.ok) throw new Error(data.error || t("failedToLoad"));
       setLogins(data.events);
       setLoginHasMore(data.events.length === LOGIN_PAGE);
       setLoginOffset(off);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load");
+      setError(err instanceof Error ? err.message : t("failedToLoad"));
     } finally {
       setLoginLoading(false);
     }
@@ -148,22 +147,25 @@ export default function AdminDashboard() {
             className="text-[24px] font-bold"
             style={{ color: "var(--fg1)", letterSpacing: "-0.015em" }}
           >
-            Overview
+            {t("overview")}
           </h1>
           <p className="text-[13px] mt-1" style={{ color: "var(--fg2)" }}>
-            Snapshot of system activity. Use the side nav to manage users,
-            groups, and content roles.
+            {t("overviewDescription")}
           </p>
         </div>
         <div className="w-48">
           <Select
-            label="Range"
+            label={t("range")}
             value={days}
             onChange={(e) => setDays(parseInt(e.target.value, 10))}
           >
-            {RANGES.map((r) => (
-              <option key={r.value} value={r.value}>
-                {r.label}
+            {RANGE_VALUES.map((v) => (
+              <option key={v} value={v}>
+                {v === 7
+                  ? t("last7Days")
+                  : v === 30
+                    ? t("last30Days")
+                    : t("last90Days")}
               </option>
             ))}
           </Select>
@@ -174,18 +176,18 @@ export default function AdminDashboard() {
 
       {loading || !analytics || !counts ? (
         <div className="text-[13px]" style={{ color: "var(--fg2)" }}>
-          Loading…
+          {t("loading")}
         </div>
       ) : (
         <>
           <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
-            <Kpi label="Users" value={counts.users} />
-            <Kpi label="Groups" value={counts.groups} />
-            <Kpi label="Uploaders" value={counts.uploaders} />
-            <Kpi label="Active" value={analytics.totals.activeUsers} accent />
-            <Kpi label="Logins" value={analytics.totals.logins} />
-            <Kpi label="Messages" value={analytics.totals.messages} />
-            <Kpi label="Uploads" value={analytics.totals.uploads} />
+            <Kpi label={t("kpiUsers")} value={counts.users} />
+            <Kpi label={t("kpiGroups")} value={counts.groups} />
+            <Kpi label={t("kpiUploaders")} value={counts.uploaders} />
+            <Kpi label={t("kpiActive")} value={analytics.totals.activeUsers} accent />
+            <Kpi label={t("kpiLogins")} value={analytics.totals.logins} />
+            <Kpi label={t("kpiMessages")} value={analytics.totals.messages} />
+            <Kpi label={t("kpiUploads")} value={analytics.totals.uploads} />
           </div>
 
           <section
@@ -196,7 +198,7 @@ export default function AdminDashboard() {
               className="text-[10.5px] font-medium uppercase tracking-[0.08em] mb-4"
               style={{ color: "var(--fg2)" }}
             >
-              Daily activity
+              {t("dailyActivity")}
             </div>
             <div className="h-64 w-full">
               <ResponsiveContainer width="100%" height="100%">
@@ -255,9 +257,9 @@ export default function AdminDashboard() {
               className="flex gap-4 text-[11px] pt-3"
               style={{ color: "var(--fg2)" }}
             >
-              <Legend color="var(--accent)" label="Messages" />
-              <Legend color="oklch(0.75 0 0)" label="Logins" />
-              <Legend color="oklch(0.55 0 0)" label="Uploads" />
+              <Legend color="var(--accent)" label={t("legendMessages")} />
+              <Legend color="oklch(0.75 0 0)" label={t("legendLogins")} />
+              <Legend color="oklch(0.55 0 0)" label={t("legendUploads")} />
             </div>
           </section>
 
@@ -266,8 +268,8 @@ export default function AdminDashboard() {
               active={tab}
               onChange={setTab}
               tabs={[
-                { key: "top-users", label: "Top users" },
-                { key: "login-history", label: "Login history" },
+                { key: "top-users", label: t("tabTopUsers") },
+                { key: "login-history", label: t("tabLoginHistory") },
               ]}
             />
             {tab === "top-users" ? (
@@ -373,17 +375,17 @@ function TopUsersTable({ rows }: { rows: TopUser[] }) {
     <Table>
       <thead>
         <tr>
-          <Th>User</Th>
-          <Th>Messages</Th>
-          <Th>Logins</Th>
-          <Th>Last login</Th>
+          <Th>{t("tableUser")}</Th>
+          <Th>{t("tableMessages")}</Th>
+          <Th>{t("tableLogins")}</Th>
+          <Th>{t("tableLastLogin")}</Th>
         </tr>
       </thead>
       <tbody>
         {rows.length === 0 && (
           <tr>
             <Td className="text-[var(--text-secondary)]">
-              No messages in this range.
+              {t("noMessagesInRange")}
             </Td>
             <Td>{""}</Td>
             <Td>{""}</Td>
@@ -395,7 +397,7 @@ function TopUsersTable({ rows }: { rows: TopUser[] }) {
             <Td>
               {u.email ?? (
                 <span className="text-[var(--text-secondary)]">
-                  deleted user
+                  {t("deletedUser")}
                 </span>
               )}
               {u.username && (
@@ -434,22 +436,26 @@ function LoginHistoryTable({
   return (
     <div className="space-y-3">
       {loading ? (
-        <div className="text-sm text-[var(--text-secondary)]">Loading…</div>
+        <div className="text-sm text-[var(--text-secondary)]">
+          {t("loading")}
+        </div>
       ) : (
         <Table>
           <thead>
             <tr>
-              <Th>When</Th>
-              <Th>User</Th>
-              <Th>Result</Th>
-              <Th>IP</Th>
-              <Th>User-Agent</Th>
+              <Th>{t("tableWhen")}</Th>
+              <Th>{t("tableUser")}</Th>
+              <Th>{t("tableResult")}</Th>
+              <Th>{t("tableIp")}</Th>
+              <Th>{t("tableUserAgent")}</Th>
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 && (
               <tr>
-                <Td className="text-[var(--text-secondary)]">No events.</Td>
+                <Td className="text-[var(--text-secondary)]">
+                  {t("noEvents")}
+                </Td>
                 <Td>{""}</Td>
                 <Td>{""}</Td>
                 <Td>{""}</Td>
@@ -479,14 +485,14 @@ function LoginHistoryTable({
                       className="text-[11px] font-medium uppercase tracking-[0.06em]"
                       style={{ color: "var(--success)", fontFamily: "var(--font-mono)" }}
                     >
-                      OK
+                      {t("resultOk")}
                     </span>
                   ) : (
                     <span
                       className="text-[11px] font-medium uppercase tracking-[0.06em]"
                       style={{ color: "var(--destructive)", fontFamily: "var(--font-mono)" }}
                     >
-                      FAIL
+                      {t("resultFail")}
                     </span>
                   )}
                 </Td>
@@ -509,7 +515,10 @@ function LoginHistoryTable({
         <div className="text-xs text-[var(--text-secondary)]">
           {rows.length === 0
             ? ""
-            : `Showing ${offset + 1}–${offset + rows.length}`}
+            : t("showingRange", {
+                from: offset + 1,
+                to: offset + rows.length,
+              })}
         </div>
         <div className="flex gap-2">
           <Button
@@ -517,14 +526,14 @@ function LoginHistoryTable({
             onClick={() => onPage(Math.max(0, offset - LOGIN_PAGE))}
             disabled={offset === 0 || loading}
           >
-            Newer
+            {t("newer")}
           </Button>
           <Button
             variant="ghost"
             onClick={() => onPage(offset + LOGIN_PAGE)}
             disabled={!hasMore || loading}
           >
-            Older
+            {t("olderBtn")}
           </Button>
         </div>
       </div>

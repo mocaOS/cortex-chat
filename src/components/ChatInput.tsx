@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import { Mode } from "@/types";
 import { t } from "@/lib/i18n";
+import { useLocale } from "@/lib/i18n-client";
 
 interface Props {
   onSend: (message: string) => void;
@@ -23,6 +24,7 @@ export default function ChatInput({
   onSettingsClick,
   collectionName,
 }: Props) {
+  useLocale();
   const [input, setInput] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -152,7 +154,7 @@ export default function ChatInput({
                     "color-mix(in oklch, var(--destructive) 18%, transparent)",
                   color: "var(--destructive)",
                 }}
-                title="Stop"
+                title={t("stop")}
               >
                 <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
                   <rect x="6" y="6" width="12" height="12" rx="2" />
@@ -170,7 +172,7 @@ export default function ChatInput({
                     ? "0 0 20px color-mix(in oklch, var(--accent) 35%, transparent)"
                     : "none",
                 }}
-                aria-label="Send"
+                aria-label={t("send")}
               >
                 <svg
                   className="w-4 h-4"

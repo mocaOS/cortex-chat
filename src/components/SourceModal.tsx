@@ -6,6 +6,7 @@ import remarkGfm from "remark-gfm";
 import { Source } from "@/types";
 import { fetchDocumentContent } from "@/lib/api";
 import { t } from "@/lib/i18n";
+import { useLocale } from "@/lib/i18n-client";
 
 interface Props {
   source: Source;
@@ -13,6 +14,7 @@ interface Props {
 }
 
 export default function SourceModal({ source, onClose }: Props) {
+  useLocale();
   const [fullContent, setFullContent] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -60,7 +62,7 @@ export default function SourceModal({ source, onClose }: Props) {
           <svg className="w-4 h-4 animate-spin mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" d="M12 2a10 10 0 0 1 10 10" />
           </svg>
-          Loading document…
+          {t("loadingDocument")}
         </div>
       );
     }

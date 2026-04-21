@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { getAppSettings } from "@/lib/settings";
+import { resolveLogoUrl } from "@/lib/branding-url";
+import { setLocale as setI18nLocale } from "@/lib/i18n";
+import ConfigBootstrap from "@/components/ConfigBootstrap";
 
 function readEnv(key: string): string | undefined {
   return process.env[key];
@@ -33,9 +36,27 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   const accent = resolveAccent();
+  const settings = getAppSettings();
+  const logoUrl = resolveLogoUrl(settings);
+  setI18nLocale(settings.locale);
+
+  const initialConfig = {
+    accentColor: accent,
+    logoUrl,
+    locale: settings.locale,
+    appTitle: settings.appTitle,
+    appDescription: settings.appDescription,
+  };
+
   return (
-    <html lang="en" className="dark" style={{ ["--accent" as string]: accent }}>
-      <body className="antialiased">{children}</body>
+    <html
+      lang={settings.locale}
+      className="dark"
+      style={{ ["--accent" as string]: accent }}
+    >
+      <body className="antialiased">
+        <ConfigBootstrap config={initialConfig}>{children}</ConfigBootstrap>
+      </body>
     </html>
   );
 }

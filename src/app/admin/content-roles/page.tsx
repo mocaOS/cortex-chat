@@ -10,6 +10,8 @@ import {
   Td,
   Th,
 } from "@/components/admin/ui";
+import { t } from "@/lib/i18n";
+import { useLocale } from "@/lib/i18n-client";
 
 interface RoleRow {
   userId: string;
@@ -36,6 +38,7 @@ interface Collection {
 }
 
 export default function AdminContentRolesPage() {
+  useLocale();
   const [roles, setRoles] = useState<RoleRow[]>([]);
   const [users, setUsers] = useState<Candidate[]>([]);
   const [collections, setCollections] = useState<Collection[]>([]);
@@ -57,7 +60,7 @@ export default function AdminContentRolesPage() {
       setUsers(u.users ?? []);
       setCollections(c.collections ?? []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load");
+      setError(err instanceof Error ? err.message : t("failedToLoad"));
     } finally {
       setLoading(false);
     }
@@ -68,9 +71,7 @@ export default function AdminContentRolesPage() {
   }, [load]);
 
   async function revoke(userId: string, email: string) {
-    if (
-      !confirm(`Revoke upload permission for ${email}? The backend key will be deleted.`)
-    ) {
+    if (!confirm(t("revokeRoleConfirm", { email }))) {
       return;
     }
     const res = await fetch(`/api/admin/content-roles/${userId}`, {
@@ -78,7 +79,7 @@ export default function AdminContentRolesPage() {
     });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      alert(data.error || "Failed to revoke");
+      alert(data.error || t("failedToRevoke"));
       return;
     }
     await load();
@@ -96,11 +97,10 @@ export default function AdminContentRolesPage() {
             className="text-[24px] font-bold"
             style={{ color: "var(--fg1)", letterSpacing: "-0.015em" }}
           >
-            Content roles
+            {t("contentRolesHeading")}
           </h1>
           <p className="text-[13px] mt-1" style={{ color: "var(--fg2)" }}>
-            Grant individual users permission to upload documents to selected
-            collections. Each role mints a backend key with{" "}
+            {t("contentRolesDescriptionBefore")}{" "}
             <code
               className="text-[12px] px-1.5 py-0.5 rounded-[var(--radius-sm)]"
               style={{
@@ -108,9 +108,9 @@ export default function AdminContentRolesPage() {
                 fontFamily: "var(--font-mono)",
               }}
             >
-              manage
+              {t("manage")}
             </code>{" "}
-            permission.
+            {t("contentRolesDescriptionAfter")}
           </p>
         </div>
         <Button
@@ -118,11 +118,11 @@ export default function AdminContentRolesPage() {
           disabled={eligibleUsers.length === 0}
           title={
             eligibleUsers.length === 0
-              ? "No eligible users left — all non-admin users already have a content role."
+              ? t("grantRoleDisabledHint")
               : undefined
           }
         >
-          Grant role
+          {t("grantRole")}
         </Button>
       </div>
 
@@ -130,23 +130,23 @@ export default function AdminContentRolesPage() {
 
       {loading ? (
         <div className="text-[13px]" style={{ color: "var(--fg2)" }}>
-          Loading…
+          {t("loading")}
         </div>
       ) : (
         <Table>
           <thead>
             <tr>
-              <Th>User</Th>
-              <Th>Collections</Th>
-              <Th>Granted</Th>
-              <Th>Actions</Th>
+              <Th>{t("tableUser")}</Th>
+              <Th>{t("tableCollections")}</Th>
+              <Th>{t("tableGranted")}</Th>
+              <Th>{t("actions")}</Th>
             </tr>
           </thead>
           <tbody>
             {roles.length === 0 && (
               <tr>
                 <Td className="text-[var(--text-secondary)]">
-                  No content roles granted yet.
+                  {t("noRolesYet")}
                 </Td>
                 <Td>{""}</Td>
                 <Td>{""}</Td>
@@ -166,7 +166,7 @@ export default function AdminContentRolesPage() {
                 <Td>
                   {r.collectionIds.length === 0 ? (
                     <span className="text-[var(--text-secondary)]">
-                      All collections
+                      {t("allCollectionsLabel")}
                     </span>
                   ) : (
                     <div className="flex flex-wrap gap-1">
@@ -199,7 +199,7 @@ export default function AdminContentRolesPage() {
                     variant="danger"
                     onClick={() => revoke(r.userId, r.email)}
                   >
-                    Revoke
+                    {t("revoke")}
                   </Button>
                 </Td>
               </tr>
@@ -260,11 +260,11 @@ function ContentRoleForm({
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "Save failed");
+        throw new Error(data.error || t("saveFailed"));
       }
       onSaved();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Save failed");
+      setError(err instanceof Error ? err.message : t("saveFailed"));
     } finally {
       setSaving(false);
     }
@@ -274,22 +274,22 @@ function ContentRoleForm({
     <Modal
       open
       onClose={onClose}
-      title="Grant content role"
+      title={t("grantRoleTitle")}
       wide
       footer={
         <>
           <Button variant="ghost" onClick={onClose} type="button">
-            Cancel
+            {t("cancel")}
           </Button>
           <Button type="submit" form="role-form" disabled={saving || !userId}>
-            {saving ? "Saving…" : "Grant role"}
+            {saving ? t("saving") : t("grantRole")}
           </Button>
         </>
       }
     >
       <form id="role-form" onSubmit={handleSubmit} className="space-y-4">
         <Select
-          label="User"
+          label={t("tableUser")}
           value={userId}
           onChange={(e) => setUserId(e.target.value)}
         >
@@ -306,7 +306,7 @@ function ContentRoleForm({
             className="text-[10.5px] font-medium uppercase tracking-[0.08em]"
             style={{ color: "var(--fg2)" }}
           >
-            Collections this user can upload to
+            {t("collectionsForUser")}
           </div>
           <label
             className="flex items-center gap-2 text-[13px] cursor-pointer"
@@ -317,7 +317,7 @@ function ContentRoleForm({
               checked={allCollections}
               onChange={(e) => setAllCollections(e.target.checked)}
             />
-            <span>All collections</span>
+            <span>{t("allCollectionsLabel")}</span>
           </label>
 
           <div
@@ -334,7 +334,7 @@ function ContentRoleForm({
                 className="px-3 py-4 text-[13px]"
                 style={{ color: "var(--fg2)" }}
               >
-                No collections returned from the library backend.
+                {t("noCollectionsFromBackend")}
               </div>
             ) : (
               collections.map((c) => (

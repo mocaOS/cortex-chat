@@ -3,9 +3,11 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { getConfig } from "@/lib/config";
+import { getConfig, getCachedConfig } from "@/lib/config";
 import { CurrentUser } from "@/types/auth";
 import { Button, ErrorBanner, Select } from "@/components/admin/ui";
+import { t } from "@/lib/i18n";
+import { useLocale } from "@/lib/i18n-client";
 
 interface Collection {
   id: string;
@@ -20,6 +22,7 @@ interface Toast {
 }
 
 export default function UploadPage() {
+  useLocale();
   const router = useRouter();
   const [me, setMe] = useState<CurrentUser | null>(null);
   const [collections, setCollections] = useState<Collection[]>([]);
@@ -28,13 +31,15 @@ export default function UploadPage() {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<Toast | null>(null);
-  const [logoUrl, setLogoUrl] = useState("/logo.svg");
+  const [logoUrl, setLogoUrl] = useState(
+    () => getCachedConfig()?.logoUrl || "/logo.svg"
+  );
   const [ready, setReady] = useState(false);
 
   const loadScope = useCallback(async () => {
     const res = await fetch("/api/me/upload-scope");
     if (res.status === 403) {
-      setError("You do not have upload permission.");
+      setError(t("noUploadPermission"));
       setCollections([]);
       return;
     }
@@ -89,11 +94,11 @@ export default function UploadPage() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        throw new Error(data.error || "Upload failed");
+        throw new Error(data.error || t("uploadFailed"));
       }
       setToast({
         kind: "success",
-        text: `"${file.name}" uploaded.`,
+        text: t("fileUploaded", { name: file.name }),
       });
       setFile(null);
       const input = document.getElementById("upload-file") as
@@ -103,7 +108,7 @@ export default function UploadPage() {
     } catch (err) {
       setToast({
         kind: "error",
-        text: err instanceof Error ? err.message : "Upload failed",
+        text: err instanceof Error ? err.message : t("uploadFailed"),
       });
     } finally {
       setUploading(false);
@@ -124,18 +129,18 @@ export default function UploadPage() {
           href="/"
           className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
         >
-          ← Back to chat
+          {t("backToChat")}
         </Link>
       </header>
 
       <main className="flex-1 overflow-y-auto">
         <div className="max-w-xl mx-auto px-4 py-10 space-y-6">
           <div>
-            <h1 className="text-xl font-semibold">Upload documents</h1>
+            <h1 className="text-xl font-semibold">
+              {t("uploadDocumentsHeading")}
+            </h1>
             <p className="text-sm text-[var(--text-secondary)] mt-1">
-              Pick a collection and upload a document. You&apos;ll get a
-              confirmation when the file is received. Processing happens in the
-              background and isn&apos;t shown here.
+              {t("uploadDescription")}
             </p>
           </div>
 
@@ -147,12 +152,12 @@ export default function UploadPage() {
               className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl p-5 space-y-4"
             >
               <Select
-                label="Collection"
+                label={t("collection")}
                 value={collectionId}
                 onChange={(e) => setCollectionId(e.target.value)}
               >
                 {collections.length === 0 && (
-                  <option value="">No collections available</option>
+                  <option value="">{t("noCollectionsAvailable")}</option>
                 )}
                 {collections.map((c) => (
                   <option key={c.id} value={c.id}>
@@ -163,7 +168,7 @@ export default function UploadPage() {
 
               <label className="block space-y-1.5">
                 <span className="text-xs text-[var(--text-secondary)]">
-                  File
+                  {t("file")}
                 </span>
                 <input
                   id="upload-file"
@@ -173,7 +178,7 @@ export default function UploadPage() {
                   accept=".pdf,.docx,.txt,.md"
                 />
                 <span className="text-xs text-[var(--text-secondary)]">
-                  Supported: PDF, DOCX, TXT, MD.
+                  {t("supportedFormats")}
                 </span>
               </label>
 
@@ -182,7 +187,7 @@ export default function UploadPage() {
                   type="submit"
                   disabled={!file || uploading || !collectionId}
                 >
-                  {uploading ? "Uploading…" : "Upload"}
+                  {uploading ? t("uploading") : t("upload")}
                 </Button>
               </div>
             </form>

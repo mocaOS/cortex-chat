@@ -2,6 +2,7 @@
 
 import { Settings, Collection } from "@/types";
 import { t } from "@/lib/i18n";
+import { useLocale } from "@/lib/i18n-client";
 
 interface Props {
   settings: Settings;
@@ -16,6 +17,7 @@ export default function SettingsPanel({
   collections,
   onClose,
 }: Props) {
+  useLocale();
   return (
     <div className="fixed inset-0 z-50" onClick={onClose}>
       <div
@@ -110,7 +112,7 @@ export default function SettingsPanel({
             <option value="">{t("allCollections")}</option>
             {collections.map((col) => (
               <option key={col.id} value={col.id}>
-                {col.name} ({col.document_count} {t("docs")})
+                {col.name} ({t("docsCount", { count: col.document_count ?? 0 })})
               </option>
             ))}
           </select>

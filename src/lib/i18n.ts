@@ -1,5 +1,6 @@
 const translations = {
   en: {
+    // Chat UI
     askAi: "Ask AI",
     askAnything: "Ask anything...",
     deepResearchPlaceholder: "Ask a complex question for deep research...",
@@ -11,6 +12,7 @@ const translations = {
     collectionScope: "Collection scope",
     allCollections: "All collections",
     docs: "docs",
+    docsCount: "{count} docs",
     thinking: "Thinking",
     steps: "steps",
     researchAreas: "Research areas:",
@@ -30,19 +32,207 @@ const translations = {
     generatingResponse: "Generating response...",
     searchingAllCollections: "Searching across all collections",
     searchingInCollection: "Searching in:",
+    loadingDocument: "Loading document…",
+    stop: "Stop",
+    send: "Send",
+    toggleSidebar: "Toggle sidebar",
+    close: "Close",
+    errorPrefix: "Error",
+    requestCancelled: "Request was cancelled.",
+    unknownError: "Unknown error",
+
+    // Auth / login
     email: "Email",
     password: "Password",
     signIn: "Sign in",
     signingIn: "Signing in…",
     signOut: "Sign out",
     loginFailed: "Sign in failed",
+
+    // Navigation / account
     profile: "Profile",
     uploadDocuments: "Upload documents",
     admin: "Admin",
+    backToChat: "← Back to chat",
+    chatArrow: "Chat →",
     noGroupAssigned:
       "Your account has no group assigned. Ask an administrator to place you in a group to start chatting.",
+
+    // Profile page
+    profileHeading: "Profile",
+    profileSignedInAs: "Signed in as",
+    avatar: "Avatar",
+    chooseImage: "Choose image",
+    remove: "Remove",
+    avatarHint: "PNG, JPEG, WebP or GIF. Max 2 MiB. Displayed as a square.",
+    username: "Username",
+    saved: "Saved.",
+    saving: "Saving…",
+    save: "Save",
+    saveFailed: "Save failed",
+    uploadFailed: "Upload failed",
+    removeFailed: "Remove failed",
+    currentPassword: "Current password",
+    newPasswordMin: "New password (min. 8 characters)",
+    changePassword: "Change password",
+    passwordUpdated: "Password updated. Other sessions have been signed out.",
+
+    // Upload page
+    uploadDocumentsHeading: "Upload documents",
+    uploadDescription:
+      "Pick a collection and upload a document. You'll get a confirmation when the file is received. Processing happens in the background and isn't shown here.",
+    noUploadPermission: "You do not have upload permission.",
+    collection: "Collection",
+    noCollectionsAvailable: "No collections available",
+    file: "File",
+    supportedFormats: "Supported: PDF, DOCX, TXT, MD.",
+    uploading: "Uploading…",
+    upload: "Upload",
+    fileUploaded: '"{name}" uploaded.',
+
+    // Admin navigation
+    adminNavOverview: "Overview",
+    adminNavUsers: "Users",
+    adminNavGroups: "User groups",
+    adminNavContentRoles: "Content roles",
+    adminNavSettings: "Settings",
+
+    // Admin: shared
+    loading: "Loading…",
+    failedToLoad: "Failed to load",
+    cancel: "Cancel",
+    edit: "Edit",
+    delete: "Delete",
+    actions: "Actions",
+    name: "Name",
+    description: "Description",
+    descriptionOptional: "Description (optional)",
+
+    // Admin dashboard
+    overview: "Overview",
+    overviewDescription:
+      "Snapshot of system activity. Use the side nav to manage users, groups, and content roles.",
+    range: "Range",
+    last7Days: "Last 7 days",
+    last30Days: "Last 30 days",
+    last90Days: "Last 90 days",
+    kpiUsers: "Users",
+    kpiGroups: "Groups",
+    kpiUploaders: "Uploaders",
+    kpiActive: "Active",
+    kpiLogins: "Logins",
+    kpiMessages: "Messages",
+    kpiUploads: "Uploads",
+    dailyActivity: "Daily activity",
+    legendMessages: "Messages",
+    legendLogins: "Logins",
+    legendUploads: "Uploads",
+    tabTopUsers: "Top users",
+    tabLoginHistory: "Login history",
+    tableUser: "User",
+    tableMessages: "Messages",
+    tableLogins: "Logins",
+    tableLastLogin: "Last login",
+    noMessagesInRange: "No messages in this range.",
+    deletedUser: "deleted user",
+    tableWhen: "When",
+    tableResult: "Result",
+    tableIp: "IP",
+    tableUserAgent: "User-Agent",
+    noEvents: "No events.",
+    resultOk: "OK",
+    resultFail: "FAIL",
+    showingRange: "Showing {from}–{to}",
+    newer: "Newer",
+    olderBtn: "Older",
+
+    // Admin users
+    usersHeading: "Users",
+    usersDescription:
+      "Each user signs in with their email + password and inherits the chat scope of their assigned group.",
+    newUser: "New user",
+    tableEmail: "Email",
+    tableUsername: "Username",
+    tableGroup: "Group",
+    tableRole: "Role",
+    roleSuperadmin: "superadmin",
+    roleUser: "user",
+    lastSeen: "Last seen {when}",
+    groupNone: "None",
+    deleteUserConfirm: "Delete user {email}? This also deletes their chat history.",
+    failedToDelete: "Failed to delete",
+    editUserTitle: "Edit user — {email}",
+    newUserTitle: "New user",
+    saveChanges: "Save changes",
+    createUser: "Create user",
+    usernameOptional: "Username (optional)",
+    newPasswordLeaveBlank: "New password (leave blank to keep)",
+    noGroupOption: "— No group (no chat access) —",
+    passwordRequiredForNew: "Password is required for new users.",
+
+    // Admin groups
+    groupsHeading: "User groups",
+    groupsDescription:
+      "Groups bundle users under a read-only backend key scoped to a set of collections. Each user belongs to exactly one group.",
+    newGroup: "New group",
+    tableMembers: "Members",
+    tableCollections: "Collections",
+    noGroupsYet: "No groups yet.",
+    scopedCount: "{count} scoped",
+    deleteGroupConfirm:
+      "Delete this group? The backend API key will be revoked and members will lose chat access.",
+    editGroupTitle: "Edit group — {name}",
+    newGroupTitle: "New group",
+    createGroup: "Create group",
+    collections: "Collections",
+    accessAllCollections: "Access to all collections",
+    noCollectionsFromBackend:
+      "No collections returned from the library backend.",
+    docsBadge: "{count} docs",
+
+    // Admin content roles
+    contentRolesHeading: "Content roles",
+    contentRolesDescriptionBefore:
+      "Grant individual users permission to upload documents to selected collections. Each role mints a backend key with",
+    contentRolesDescriptionAfter: "permission.",
+    manage: "manage",
+    grantRole: "Grant role",
+    grantRoleTitle: "Grant content role",
+    grantRoleDisabledHint:
+      "No eligible users left — all non-admin users already have a content role.",
+    noRolesYet: "No content roles granted yet.",
+    tableGranted: "Granted",
+    revoke: "Revoke",
+    revokeRoleConfirm:
+      "Revoke upload permission for {email}? The backend key will be deleted.",
+    failedToRevoke: "Failed to revoke",
+    allCollectionsLabel: "All collections",
+    collectionsForUser: "Collections this user can upload to",
+
+    // Admin settings
+    settingsHeading: "Settings",
+    settingsDescription:
+      "Branding and default language for the chat system. Shown in the header, login page, browser tab, meta description, and the chat landing page.",
+    logoLabel: "Logo",
+    uploadLogo: "Upload logo",
+    removeLogoConfirm:
+      "Remove the custom logo and fall back to the default?",
+    failedToRemove: "Failed to remove",
+    logoHint:
+      "SVG, PNG, JPEG, or WebP. Max 1 MiB. Wide logos render best; they appear in the header, sidebar, and on the login page.",
+    pageTitle: "Page title",
+    pageDescription: "Page description",
+    defaultLabel: "Default:",
+    defaultLanguage: "Default language",
+    langEnglish: "English",
+    langGerman: "Deutsch (du-Form)",
+    localeHint:
+      "Applies to every user of the chat system. Reload required for already-open tabs.",
+    resetTitleDescription: "Reset title & description",
+    resetTitleDescriptionConfirm: "Reset title and description to defaults?",
   },
   de: {
+    // Chat UI
     askAi: "KI fragen",
     askAnything: "Frag etwas...",
     deepResearchPlaceholder: "Stelle eine komplexe Frage für Deep Research...",
@@ -54,6 +244,7 @@ const translations = {
     collectionScope: "Sammlungsbereich",
     allCollections: "Alle Sammlungen",
     docs: "Dok.",
+    docsCount: "{count} Dok.",
     thinking: "Denkt nach",
     steps: "Schritte",
     researchAreas: "Recherchebereiche:",
@@ -73,17 +264,206 @@ const translations = {
     generatingResponse: "Antwort wird generiert...",
     searchingAllCollections: "Suche in allen Sammlungen",
     searchingInCollection: "Suche in:",
+    loadingDocument: "Dokument wird geladen…",
+    stop: "Stoppen",
+    send: "Senden",
+    toggleSidebar: "Seitenleiste umschalten",
+    close: "Schließen",
+    errorPrefix: "Fehler",
+    requestCancelled: "Anfrage wurde abgebrochen.",
+    unknownError: "Unbekannter Fehler",
+
+    // Auth / login
     email: "E-Mail",
     password: "Passwort",
     signIn: "Anmelden",
     signingIn: "Melde an…",
     signOut: "Abmelden",
     loginFailed: "Anmeldung fehlgeschlagen",
+
+    // Navigation / account
     profile: "Profil",
     uploadDocuments: "Dokumente hochladen",
     admin: "Admin",
+    backToChat: "← Zurück zum Chat",
+    chatArrow: "Chat →",
     noGroupAssigned:
       "Deinem Konto ist keine Gruppe zugewiesen. Bitte einen Administrator, dich einer Gruppe hinzuzufügen, um zu chatten.",
+
+    // Profile page
+    profileHeading: "Profil",
+    profileSignedInAs: "Angemeldet als",
+    avatar: "Avatar",
+    chooseImage: "Bild auswählen",
+    remove: "Entfernen",
+    avatarHint: "PNG, JPEG, WebP oder GIF. Max. 2 MiB. Wird quadratisch angezeigt.",
+    username: "Benutzername",
+    saved: "Gespeichert.",
+    saving: "Speichert…",
+    save: "Speichern",
+    saveFailed: "Speichern fehlgeschlagen",
+    uploadFailed: "Upload fehlgeschlagen",
+    removeFailed: "Entfernen fehlgeschlagen",
+    currentPassword: "Aktuelles Passwort",
+    newPasswordMin: "Neues Passwort (mind. 8 Zeichen)",
+    changePassword: "Passwort ändern",
+    passwordUpdated: "Passwort aktualisiert. Andere Sitzungen wurden abgemeldet.",
+
+    // Upload page
+    uploadDocumentsHeading: "Dokumente hochladen",
+    uploadDescription:
+      "Wähle eine Sammlung und lade ein Dokument hoch. Du bekommst eine Bestätigung, sobald die Datei empfangen wurde. Die Verarbeitung läuft im Hintergrund und wird hier nicht angezeigt.",
+    noUploadPermission: "Du hast keine Berechtigung zum Hochladen.",
+    collection: "Sammlung",
+    noCollectionsAvailable: "Keine Sammlungen verfügbar",
+    file: "Datei",
+    supportedFormats: "Unterstützt: PDF, DOCX, TXT, MD.",
+    uploading: "Lädt hoch…",
+    upload: "Hochladen",
+    fileUploaded: '„{name}" hochgeladen.',
+
+    // Admin navigation
+    adminNavOverview: "Übersicht",
+    adminNavUsers: "Benutzer",
+    adminNavGroups: "Benutzergruppen",
+    adminNavContentRoles: "Inhaltsrollen",
+    adminNavSettings: "Einstellungen",
+
+    // Admin: shared
+    loading: "Lädt…",
+    failedToLoad: "Laden fehlgeschlagen",
+    cancel: "Abbrechen",
+    edit: "Bearbeiten",
+    delete: "Löschen",
+    actions: "Aktionen",
+    name: "Name",
+    description: "Beschreibung",
+    descriptionOptional: "Beschreibung (optional)",
+
+    // Admin dashboard
+    overview: "Übersicht",
+    overviewDescription:
+      "Überblick über die Systemaktivität. Nutze die Seitennavigation, um Benutzer, Gruppen und Inhaltsrollen zu verwalten.",
+    range: "Zeitraum",
+    last7Days: "Letzte 7 Tage",
+    last30Days: "Letzte 30 Tage",
+    last90Days: "Letzte 90 Tage",
+    kpiUsers: "Benutzer",
+    kpiGroups: "Gruppen",
+    kpiUploaders: "Uploader",
+    kpiActive: "Aktiv",
+    kpiLogins: "Logins",
+    kpiMessages: "Nachrichten",
+    kpiUploads: "Uploads",
+    dailyActivity: "Tägliche Aktivität",
+    legendMessages: "Nachrichten",
+    legendLogins: "Logins",
+    legendUploads: "Uploads",
+    tabTopUsers: "Top-Benutzer",
+    tabLoginHistory: "Login-Verlauf",
+    tableUser: "Benutzer",
+    tableMessages: "Nachrichten",
+    tableLogins: "Logins",
+    tableLastLogin: "Letzter Login",
+    noMessagesInRange: "Keine Nachrichten in diesem Zeitraum.",
+    deletedUser: "Gelöschter Benutzer",
+    tableWhen: "Wann",
+    tableResult: "Ergebnis",
+    tableIp: "IP",
+    tableUserAgent: "User-Agent",
+    noEvents: "Keine Ereignisse.",
+    resultOk: "OK",
+    resultFail: "FAIL",
+    showingRange: "Zeige {from}–{to}",
+    newer: "Neuer",
+    olderBtn: "Älter",
+
+    // Admin users
+    usersHeading: "Benutzer",
+    usersDescription:
+      "Jeder Benutzer meldet sich mit seiner E-Mail + Passwort an und erbt den Chat-Bereich seiner zugewiesenen Gruppe.",
+    newUser: "Neuer Benutzer",
+    tableEmail: "E-Mail",
+    tableUsername: "Benutzername",
+    tableGroup: "Gruppe",
+    tableRole: "Rolle",
+    roleSuperadmin: "superadmin",
+    roleUser: "user",
+    lastSeen: "Zuletzt gesehen {when}",
+    groupNone: "Keine",
+    deleteUserConfirm:
+      "Benutzer {email} löschen? Dadurch wird auch der Chatverlauf gelöscht.",
+    failedToDelete: "Löschen fehlgeschlagen",
+    editUserTitle: "Benutzer bearbeiten — {email}",
+    newUserTitle: "Neuer Benutzer",
+    saveChanges: "Änderungen speichern",
+    createUser: "Benutzer anlegen",
+    usernameOptional: "Benutzername (optional)",
+    newPasswordLeaveBlank: "Neues Passwort (leer lassen zum Beibehalten)",
+    noGroupOption: "— Keine Gruppe (kein Chat-Zugriff) —",
+    passwordRequiredForNew: "Für neue Benutzer ist ein Passwort erforderlich.",
+
+    // Admin groups
+    groupsHeading: "Benutzergruppen",
+    groupsDescription:
+      "Gruppen bündeln Benutzer unter einem nur-Lesen Backend-Key, der auf eine Menge von Sammlungen beschränkt ist. Jeder Benutzer gehört genau einer Gruppe an.",
+    newGroup: "Neue Gruppe",
+    tableMembers: "Mitglieder",
+    tableCollections: "Sammlungen",
+    noGroupsYet: "Noch keine Gruppen.",
+    scopedCount: "{count} zugewiesen",
+    deleteGroupConfirm:
+      "Diese Gruppe löschen? Der Backend-API-Key wird widerrufen und Mitglieder verlieren den Chat-Zugang.",
+    editGroupTitle: "Gruppe bearbeiten — {name}",
+    newGroupTitle: "Neue Gruppe",
+    createGroup: "Gruppe anlegen",
+    collections: "Sammlungen",
+    accessAllCollections: "Zugriff auf alle Sammlungen",
+    noCollectionsFromBackend:
+      "Das Library-Backend hat keine Sammlungen zurückgegeben.",
+    docsBadge: "{count} Dok.",
+
+    // Admin content roles
+    contentRolesHeading: "Inhaltsrollen",
+    contentRolesDescriptionBefore:
+      "Erteile einzelnen Benutzern die Berechtigung, Dokumente in ausgewählte Sammlungen hochzuladen. Jede Rolle erstellt einen Backend-Key mit",
+    contentRolesDescriptionAfter: "Berechtigung.",
+    manage: "manage",
+    grantRole: "Rolle erteilen",
+    grantRoleTitle: "Inhaltsrolle erteilen",
+    grantRoleDisabledHint:
+      "Keine berechtigten Benutzer mehr — alle Nicht-Admin-Benutzer haben bereits eine Inhaltsrolle.",
+    noRolesYet: "Noch keine Inhaltsrollen erteilt.",
+    tableGranted: "Erteilt",
+    revoke: "Widerrufen",
+    revokeRoleConfirm:
+      "Upload-Berechtigung für {email} widerrufen? Der Backend-Key wird gelöscht.",
+    failedToRevoke: "Widerrufen fehlgeschlagen",
+    allCollectionsLabel: "Alle Sammlungen",
+    collectionsForUser: "Sammlungen, in die dieser Benutzer hochladen darf",
+
+    // Admin settings
+    settingsHeading: "Einstellungen",
+    settingsDescription:
+      "Branding und Standardsprache für das Chat-System. Wird im Header, auf der Login-Seite, im Browser-Tab, in der Meta-Beschreibung und auf der Chat-Startseite angezeigt.",
+    logoLabel: "Logo",
+    uploadLogo: "Logo hochladen",
+    removeLogoConfirm:
+      "Benutzerdefiniertes Logo entfernen und auf den Standard zurücksetzen?",
+    failedToRemove: "Entfernen fehlgeschlagen",
+    logoHint:
+      "SVG, PNG, JPEG oder WebP. Max. 1 MiB. Breite Logos werden am besten dargestellt; sie erscheinen im Header, in der Seitenleiste und auf der Login-Seite.",
+    pageTitle: "Seitentitel",
+    pageDescription: "Seitenbeschreibung",
+    defaultLabel: "Standard:",
+    defaultLanguage: "Standardsprache",
+    langEnglish: "English",
+    langGerman: "Deutsch (du-Form)",
+    localeHint:
+      "Gilt für alle Benutzer des Chat-Systems. Bereits geöffnete Tabs müssen neu geladen werden.",
+    resetTitleDescription: "Titel & Beschreibung zurücksetzen",
+    resetTitleDescriptionConfirm:
+      "Titel und Beschreibung auf Standard zurücksetzen?",
   },
 } as const;
 
@@ -91,15 +471,35 @@ export type Locale = keyof typeof translations;
 export type TranslationKey = keyof (typeof translations)["en"];
 
 let currentLocale: Locale = "en";
+const listeners = new Set<() => void>();
 
 export function setLocale(locale: Locale) {
+  if (currentLocale === locale) return;
   currentLocale = locale;
+  listeners.forEach((fn) => fn());
 }
 
 export function getLocale(): Locale {
   return currentLocale;
 }
 
-export function t(key: TranslationKey): string {
-  return translations[currentLocale][key] || translations.en[key] || key;
+export function t(
+  key: TranslationKey,
+  vars?: Record<string, string | number>
+): string {
+  const raw =
+    (translations[currentLocale] as Record<string, string>)[key] ||
+    (translations.en as Record<string, string>)[key] ||
+    key;
+  if (!vars) return raw;
+  return raw.replace(/\{(\w+)\}/g, (_, name) =>
+    name in vars ? String(vars[name]) : `{${name}}`
+  );
+}
+
+export function __subscribe(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
 }

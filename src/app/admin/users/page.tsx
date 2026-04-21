@@ -11,6 +11,8 @@ import {
   Td,
   Th,
 } from "@/components/admin/ui";
+import { t } from "@/lib/i18n";
+import { useLocale } from "@/lib/i18n-client";
 
 interface UserRow {
   id: string;
@@ -30,6 +32,7 @@ interface GroupRow {
 }
 
 export default function AdminUsersPage() {
+  useLocale();
   const [users, setUsers] = useState<UserRow[]>([]);
   const [groups, setGroups] = useState<GroupRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,7 +51,7 @@ export default function AdminUsersPage() {
       setUsers(u.users ?? []);
       setGroups(g.groups ?? []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load");
+      setError(err instanceof Error ? err.message : t("failedToLoad"));
     } finally {
       setLoading(false);
     }
@@ -59,13 +62,13 @@ export default function AdminUsersPage() {
   }, [load]);
 
   async function handleDelete(u: UserRow) {
-    if (!confirm(`Delete user ${u.email}? This also deletes their chat history.`)) {
+    if (!confirm(t("deleteUserConfirm", { email: u.email }))) {
       return;
     }
     const res = await fetch(`/api/admin/users/${u.id}`, { method: "DELETE" });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      alert(data.error || "Failed to delete");
+      alert(data.error || t("failedToDelete"));
       return;
     }
     await load();
@@ -79,31 +82,30 @@ export default function AdminUsersPage() {
             className="text-[24px] font-bold"
             style={{ color: "var(--fg1)", letterSpacing: "-0.015em" }}
           >
-            Users
+            {t("usersHeading")}
           </h1>
           <p className="text-[13px] mt-1" style={{ color: "var(--fg2)" }}>
-            Each user signs in with their email + password and inherits the
-            chat scope of their assigned group.
+            {t("usersDescription")}
           </p>
         </div>
-        <Button onClick={() => setEditing("new")}>New user</Button>
+        <Button onClick={() => setEditing("new")}>{t("newUser")}</Button>
       </div>
 
       <ErrorBanner message={error} />
 
       {loading ? (
         <div className="text-[13px]" style={{ color: "var(--fg2)" }}>
-          Loading…
+          {t("loading")}
         </div>
       ) : (
         <Table>
           <thead>
             <tr>
-              <Th>Email</Th>
-              <Th>Username</Th>
-              <Th>Group</Th>
-              <Th>Role</Th>
-              <Th>Actions</Th>
+              <Th>{t("tableEmail")}</Th>
+              <Th>{t("tableUsername")}</Th>
+              <Th>{t("tableGroup")}</Th>
+              <Th>{t("tableRole")}</Th>
+              <Th>{t("actions")}</Th>
             </tr>
           </thead>
           <tbody>
@@ -113,14 +115,18 @@ export default function AdminUsersPage() {
                   <div>{u.email}</div>
                   {u.lastLoginAt && (
                     <div className="text-xs text-[var(--text-secondary)] mt-0.5">
-                      Last seen {new Date(u.lastLoginAt).toLocaleString()}
+                      {t("lastSeen", {
+                        when: new Date(u.lastLoginAt).toLocaleString(),
+                      })}
                     </div>
                   )}
                 </Td>
                 <Td>{u.username || "—"}</Td>
                 <Td>
                   {u.groupName ?? (
-                    <span className="text-[var(--text-secondary)]">None</span>
+                    <span className="text-[var(--text-secondary)]">
+                      {t("groupNone")}
+                    </span>
                   )}
                 </Td>
                 <Td>
@@ -132,10 +138,10 @@ export default function AdminUsersPage() {
                         color: "var(--accent-fg)",
                       }}
                     >
-                      superadmin
+                      {t("roleSuperadmin")}
                     </span>
                   ) : (
-                    <span style={{ color: "var(--fg2)" }}>user</span>
+                    <span style={{ color: "var(--fg2)" }}>{t("roleUser")}</span>
                   )}
                 </Td>
                 <Td>
@@ -145,14 +151,14 @@ export default function AdminUsersPage() {
                       onClick={() => setEditing(u)}
                       disabled={u.role === "superadmin"}
                     >
-                      Edit
+                      {t("edit")}
                     </Button>
                     <Button
                       variant="danger"
                       onClick={() => handleDelete(u)}
                       disabled={u.role === "superadmin"}
                     >
-                      Delete
+                      {t("delete")}
                     </Button>
                   </div>
                 </Td>
@@ -209,7 +215,7 @@ function UserForm({
 
       // When creating, password is required.
       if (!user && !password) {
-        setError("Password is required for new users.");
+        setError(t("passwordRequiredForNew"));
         setSaving(false);
         return;
       }
@@ -224,11 +230,11 @@ function UserForm({
       );
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "Save failed");
+        throw new Error(data.error || t("saveFailed"));
       }
       onSaved();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Save failed");
+      setError(err instanceof Error ? err.message : t("saveFailed"));
     } finally {
       setSaving(false);
     }
@@ -238,21 +244,27 @@ function UserForm({
     <Modal
       open
       onClose={onClose}
-      title={user ? `Edit user — ${user.email}` : "New user"}
+      title={
+        user ? t("editUserTitle", { email: user.email }) : t("newUserTitle")
+      }
       footer={
         <>
           <Button variant="ghost" onClick={onClose} type="button">
-            Cancel
+            {t("cancel")}
           </Button>
           <Button type="submit" form="user-form" disabled={saving}>
-            {saving ? "Saving…" : user ? "Save changes" : "Create user"}
+            {saving
+              ? t("saving")
+              : user
+                ? t("saveChanges")
+                : t("createUser")}
           </Button>
         </>
       }
     >
       <form id="user-form" onSubmit={handleSubmit} className="space-y-4">
         <Input
-          label="Email"
+          label={t("tableEmail")}
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
@@ -260,12 +272,12 @@ function UserForm({
           autoFocus
         />
         <Input
-          label="Username (optional)"
+          label={t("usernameOptional")}
           value={username}
           onChange={(e) => setUsername(e.target.value)}
         />
         <Input
-          label={user ? "New password (leave blank to keep)" : "Password"}
+          label={user ? t("newPasswordLeaveBlank") : t("password")}
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
@@ -274,11 +286,11 @@ function UserForm({
           required={!user}
         />
         <Select
-          label="Group"
+          label={t("tableGroup")}
           value={groupId}
           onChange={(e) => setGroupId(e.target.value)}
         >
-          <option value="">— No group (no chat access) —</option>
+          <option value="">{t("noGroupOption")}</option>
           {groups.map((g) => (
             <option key={g.id} value={g.id}>
               {g.name}

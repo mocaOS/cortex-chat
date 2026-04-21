@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { ChatMessage, Source } from "@/types";
 import { t } from "@/lib/i18n";
+import { useLocale } from "@/lib/i18n-client";
 import MessageBubble from "./MessageBubble";
 
 interface Props {
@@ -18,6 +19,7 @@ export default function MessageList({
   emptyTitle,
   emptyDescription,
 }: Props) {
+  useLocale();
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {

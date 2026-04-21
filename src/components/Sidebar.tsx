@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ChatSession } from "@/types";
 import { CurrentUser } from "@/types/auth";
 import { t } from "@/lib/i18n";
+import { useLocale } from "@/lib/i18n-client";
 
 interface Props {
   open: boolean;
@@ -59,6 +60,7 @@ export default function Sidebar({
   currentUser,
   onSignOut,
 }: Props) {
+  useLocale();
   const groups = groupSessions(sessions);
 
   return (

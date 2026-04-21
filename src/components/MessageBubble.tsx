@@ -5,6 +5,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { ChatMessage, Source } from "@/types";
 import { t } from "@/lib/i18n";
+import { useLocale } from "@/lib/i18n-client";
 
 interface Props {
   message: ChatMessage;
@@ -40,6 +41,7 @@ const CITE_REGEX = /\u200Bcite:(\d+)\u200B/g;
 const CITE_SPLIT = /(\u200Bcite:\d+\u200B)/g;
 
 export default function MessageBubble({ message, onSourceClick }: Props) {
+  useLocale();
   const [thinkingExpanded, setThinkingExpanded] = useState(false);
   const [userCollapsed, setUserCollapsed] = useState(false);
   const thinkingScrollRef = useRef<HTMLDivElement>(null);

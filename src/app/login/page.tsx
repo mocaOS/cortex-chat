@@ -2,10 +2,12 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { getConfig } from "@/lib/config";
+import { getConfig, getCachedConfig } from "@/lib/config";
 import { t } from "@/lib/i18n";
+import { useLocale } from "@/lib/i18n-client";
 
 function LoginForm() {
+  useLocale();
   const router = useRouter();
   const params = useSearchParams();
   const next = params.get("next") || "/";
@@ -14,8 +16,10 @@ function LoginForm() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [logoUrl, setLogoUrl] = useState("/logo.svg");
-  const [ready, setReady] = useState(false);
+  const [logoUrl, setLogoUrl] = useState(
+    () => getCachedConfig()?.logoUrl || "/logo.svg"
+  );
+  const [ready, setReady] = useState(() => !!getCachedConfig());
 
   useEffect(() => {
     getConfig()

@@ -18,6 +18,7 @@ import {
   deleteChat,
 } from "@/lib/chatHistory";
 import { t } from "@/lib/i18n";
+import { useLocale } from "@/lib/i18n-client";
 
 function uid(): string {
   if (typeof crypto !== "undefined" && crypto.randomUUID) {
@@ -26,7 +27,7 @@ function uid(): string {
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
 
-import { getConfig } from "@/lib/config";
+import { getConfig, getCachedConfig } from "@/lib/config";
 import { Collection } from "@/types";
 import Header from "@/components/Header";
 import MessageList from "@/components/MessageList";
@@ -36,6 +37,7 @@ import SettingsPanel from "@/components/SettingsPanel";
 import Sidebar from "@/components/Sidebar";
 
 export default function Home() {
+  useLocale();
   const router = useRouter();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -47,12 +49,16 @@ export default function Home() {
   const [showSettings, setShowSettings] = useState(false);
   const [collections, setCollections] = useState<Collection[]>([]);
   const [selectedSource, setSelectedSource] = useState<Source | null>(null);
-  const [logoUrl, setLogoUrl] = useState("/logo.svg");
-  const [emptyTitle, setEmptyTitle] = useState<string | undefined>(undefined);
-  const [emptyDescription, setEmptyDescription] = useState<string | undefined>(
-    undefined
+  const [logoUrl, setLogoUrl] = useState(
+    () => getCachedConfig()?.logoUrl || "/logo.svg"
   );
-  const [configReady, setConfigReady] = useState(false);
+  const [emptyTitle, setEmptyTitle] = useState<string | undefined>(
+    () => getCachedConfig()?.appTitle
+  );
+  const [emptyDescription, setEmptyDescription] = useState<string | undefined>(
+    () => getCachedConfig()?.appDescription
+  );
+  const [configReady, setConfigReady] = useState(() => !!getCachedConfig());
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sessions, setSessions] = useState<ChatSession[]>([]);
@@ -286,7 +292,7 @@ export default function Home() {
                   m.id === assistantId
                     ? {
                         ...m,
-                        content: `Error: ${error}`,
+                        content: `${t("errorPrefix")}: ${error}`,
                         isStreaming: false,
                       }
                     : m
@@ -304,7 +310,7 @@ export default function Home() {
               m.id === assistantId
                 ? {
                     ...m,
-                    content: m.content || "Request was cancelled.",
+                    content: m.content || t("requestCancelled"),
                     isStreaming: false,
                   }
                 : m
@@ -338,7 +344,7 @@ export default function Home() {
               m.id === assistantId
                 ? {
                     ...m,
-                    content: `Error: ${err instanceof Error ? err.message : "Unknown error"}`,
+                    content: `${t("errorPrefix")}: ${err instanceof Error ? err.message : t("unknownError")}`,
                     isStreaming: false,
                   }
                 : m

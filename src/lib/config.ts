@@ -1,6 +1,6 @@
 import { setLocale, type Locale } from "./i18n";
 
-interface ClientConfig {
+export interface ClientConfig {
   accentColor: string;
   logoUrl: string;
   locale: string;
@@ -9,6 +9,22 @@ interface ClientConfig {
 }
 
 let cachedConfig: ClientConfig | null = null;
+
+// Seeded from the server-rendered layout so the first client paint already
+// has the correct logo, title, locale, etc. — no flash of defaults.
+export function seedConfig(cfg: ClientConfig): void {
+  cachedConfig = cfg;
+  if (typeof document !== "undefined") {
+    document.documentElement.style.setProperty("--accent", cfg.accentColor);
+    document.documentElement.lang = cfg.locale === "de" ? "de" : "en";
+  }
+  const locale: Locale = cfg.locale === "de" ? "de" : "en";
+  setLocale(locale);
+}
+
+export function getCachedConfig(): ClientConfig | null {
+  return cachedConfig;
+}
 
 export async function getConfig(): Promise<ClientConfig> {
   if (cachedConfig) return cachedConfig;
@@ -27,13 +43,11 @@ export async function getConfig(): Promise<ClientConfig> {
     };
   }
 
-  // Apply accent color as CSS variable
   document.documentElement.style.setProperty(
     "--accent",
     cachedConfig!.accentColor
   );
 
-  // Locale is already normalized to "en" | "de" by /api/config.
   const locale: Locale = cachedConfig!.locale === "de" ? "de" : "en";
   setLocale(locale);
   document.documentElement.lang = locale;

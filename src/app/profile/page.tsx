@@ -3,18 +3,23 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { getConfig } from "@/lib/config";
+import { getConfig, getCachedConfig } from "@/lib/config";
 import { CurrentUser } from "@/types/auth";
 import { Button, ErrorBanner, Input } from "@/components/admin/ui";
+import { t } from "@/lib/i18n";
+import { useLocale } from "@/lib/i18n-client";
 
 export default function ProfilePage() {
+  useLocale();
   const router = useRouter();
   const [me, setMe] = useState<CurrentUser | null>(null);
   const [username, setUsername] = useState("");
   const [avatarBust, setAvatarBust] = useState(0);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
-  const [logoUrl, setLogoUrl] = useState("/logo.svg");
+  const [logoUrl, setLogoUrl] = useState(
+    () => getCachedConfig()?.logoUrl || "/logo.svg"
+  );
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
@@ -51,12 +56,12 @@ export default function ProfilePage() {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "Save failed");
+        throw new Error(data.error || t("saveFailed"));
       }
-      setProfileMsg("Saved.");
+      setProfileMsg(t("saved"));
       await refreshMe();
     } catch (err) {
-      setProfileMsg(err instanceof Error ? err.message : "Save failed");
+      setProfileMsg(err instanceof Error ? err.message : t("saveFailed"));
     } finally {
       setSavingProfile(false);
     }
@@ -74,12 +79,12 @@ export default function ProfilePage() {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "Upload failed");
+        throw new Error(data.error || t("uploadFailed"));
       }
       await refreshMe();
       setAvatarBust(Date.now());
     } catch (err) {
-      setAvatarError(err instanceof Error ? err.message : "Upload failed");
+      setAvatarError(err instanceof Error ? err.message : t("uploadFailed"));
     } finally {
       setUploadingAvatar(false);
     }
@@ -90,11 +95,11 @@ export default function ProfilePage() {
     setAvatarError(null);
     try {
       const res = await fetch("/api/me/avatar", { method: "DELETE" });
-      if (!res.ok) throw new Error("Remove failed");
+      if (!res.ok) throw new Error(t("removeFailed"));
       await refreshMe();
       setAvatarBust(Date.now());
     } catch (err) {
-      setAvatarError(err instanceof Error ? err.message : "Remove failed");
+      setAvatarError(err instanceof Error ? err.message : t("removeFailed"));
     } finally {
       setUploadingAvatar(false);
     }
@@ -112,13 +117,13 @@ export default function ProfilePage() {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "Save failed");
+        throw new Error(data.error || t("saveFailed"));
       }
-      setPasswordMsg("Password updated. Other sessions have been signed out.");
+      setPasswordMsg(t("passwordUpdated"));
       setCurrentPassword("");
       setNewPassword("");
     } catch (err) {
-      setPasswordMsg(err instanceof Error ? err.message : "Save failed");
+      setPasswordMsg(err instanceof Error ? err.message : t("saveFailed"));
     } finally {
       setSavingPassword(false);
     }
@@ -140,22 +145,23 @@ export default function ProfilePage() {
           href="/"
           className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
         >
-          ← Back to chat
+          {t("backToChat")}
         </Link>
       </header>
 
       <main className="flex-1 overflow-y-auto">
         <div className="max-w-xl mx-auto px-4 py-10 space-y-8">
           <div>
-            <h1 className="text-xl font-semibold">Profile</h1>
+            <h1 className="text-xl font-semibold">{t("profileHeading")}</h1>
             <p className="text-sm text-[var(--text-secondary)] mt-1">
-              Signed in as <span className="text-[var(--text-primary)]">{me.email}</span>
+              {t("profileSignedInAs")}{" "}
+              <span className="text-[var(--text-primary)]">{me.email}</span>
             </p>
           </div>
 
           {/* Avatar */}
           <section className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl p-5 space-y-4">
-            <div className="text-sm font-medium">Avatar</div>
+            <div className="text-sm font-medium">{t("avatar")}</div>
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 rounded-lg bg-[var(--bg-tertiary)] overflow-hidden flex items-center justify-center text-[var(--text-secondary)]">
                 {avatarSrc ? (
@@ -184,7 +190,7 @@ export default function ProfilePage() {
                 <label
                   className={`px-3 py-2 rounded-lg text-sm bg-[var(--bg-tertiary)] text-[var(--text-primary)] hover:brightness-110 cursor-pointer ${uploadingAvatar ? "opacity-60 cursor-not-allowed" : ""}`}
                 >
-                  Choose image
+                  {t("chooseImage")}
                   <input
                     type="file"
                     className="hidden"
@@ -204,23 +210,23 @@ export default function ProfilePage() {
                     disabled={uploadingAvatar}
                     className="hover:!text-red-400"
                   >
-                    Remove
+                    {t("remove")}
                   </Button>
                 )}
               </div>
             </div>
             <ErrorBanner message={avatarError} />
             <p className="text-xs text-[var(--text-secondary)]">
-              PNG, JPEG, WebP or GIF. Max 2 MiB. Displayed as a square.
+              {t("avatarHint")}
             </p>
           </section>
 
           {/* Username */}
           <section className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl p-5 space-y-4">
-            <div className="text-sm font-medium">Profile</div>
+            <div className="text-sm font-medium">{t("profileHeading")}</div>
             <form onSubmit={handleProfileSave} className="space-y-3">
               <Input
-                label="Username"
+                label={t("username")}
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 maxLength={80}
@@ -230,7 +236,7 @@ export default function ProfilePage() {
                   {profileMsg}
                 </span>
                 <Button type="submit" disabled={savingProfile}>
-                  {savingProfile ? "Saving…" : "Save"}
+                  {savingProfile ? t("saving") : t("save")}
                 </Button>
               </div>
             </form>
@@ -238,10 +244,10 @@ export default function ProfilePage() {
 
           {/* Password */}
           <section className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl p-5 space-y-4">
-            <div className="text-sm font-medium">Password</div>
+            <div className="text-sm font-medium">{t("password")}</div>
             <form onSubmit={handlePasswordSave} className="space-y-3">
               <Input
-                label="Current password"
+                label={t("currentPassword")}
                 type="password"
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
@@ -249,7 +255,7 @@ export default function ProfilePage() {
                 required
               />
               <Input
-                label="New password (min. 8 characters)"
+                label={t("newPasswordMin")}
                 type="password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
@@ -267,7 +273,7 @@ export default function ProfilePage() {
                     savingPassword || !currentPassword || newPassword.length < 8
                   }
                 >
-                  {savingPassword ? "Saving…" : "Change password"}
+                  {savingPassword ? t("saving") : t("changePassword")}
                 </Button>
               </div>
             </form>

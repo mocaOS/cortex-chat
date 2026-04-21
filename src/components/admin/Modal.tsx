@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect } from "react";
+import { t } from "@/lib/i18n";
+import { useLocale } from "@/lib/i18n-client";
 
 export default function Modal({
   open,
@@ -17,6 +19,7 @@ export default function Modal({
   footer?: React.ReactNode;
   wide?: boolean;
 }) {
+  useLocale();
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -58,7 +61,7 @@ export default function Modal({
             onMouseLeave={(e) => {
               e.currentTarget.style.color = "var(--fg2)";
             }}
-            aria-label="Close"
+            aria-label={t("close")}
           >
             <svg
               className="w-4 h-4"

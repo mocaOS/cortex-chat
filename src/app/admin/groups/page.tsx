@@ -11,6 +11,8 @@ import {
   Textarea,
   Th,
 } from "@/components/admin/ui";
+import { t } from "@/lib/i18n";
+import { useLocale } from "@/lib/i18n-client";
 
 interface GroupRow {
   id: string;
@@ -28,6 +30,7 @@ interface Collection {
 }
 
 export default function AdminGroupsPage() {
+  useLocale();
   const [groups, setGroups] = useState<GroupRow[]>([]);
   const [collections, setCollections] = useState<Collection[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,7 +50,7 @@ export default function AdminGroupsPage() {
       setGroups(g.groups ?? []);
       setCollections(c.collections ?? []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load");
+      setError(err instanceof Error ? err.message : t("failedToLoad"));
     } finally {
       setLoading(false);
     }
@@ -58,17 +61,13 @@ export default function AdminGroupsPage() {
   }, [load]);
 
   async function handleDelete(id: string) {
-    if (
-      !confirm(
-        "Delete this group? The backend API key will be revoked and members will lose chat access."
-      )
-    ) {
+    if (!confirm(t("deleteGroupConfirm"))) {
       return;
     }
     const res = await fetch(`/api/admin/groups/${id}`, { method: "DELETE" });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      alert(data.error || "Failed to delete");
+      alert(data.error || t("failedToDelete"));
       return;
     }
     await load();
@@ -82,37 +81,36 @@ export default function AdminGroupsPage() {
             className="text-[24px] font-bold"
             style={{ color: "var(--fg1)", letterSpacing: "-0.015em" }}
           >
-            User groups
+            {t("groupsHeading")}
           </h1>
           <p className="text-[13px] mt-1" style={{ color: "var(--fg2)" }}>
-            Groups bundle users under a read-only backend key scoped to a set
-            of collections. Each user belongs to exactly one group.
+            {t("groupsDescription")}
           </p>
         </div>
-        <Button onClick={() => setEditing("new")}>New group</Button>
+        <Button onClick={() => setEditing("new")}>{t("newGroup")}</Button>
       </div>
 
       <ErrorBanner message={error} />
 
       {loading ? (
         <div className="text-[13px]" style={{ color: "var(--fg2)" }}>
-          Loading…
+          {t("loading")}
         </div>
       ) : (
         <Table>
           <thead>
             <tr>
-              <Th>Name</Th>
-              <Th>Members</Th>
-              <Th>Collections</Th>
-              <Th>Actions</Th>
+              <Th>{t("name")}</Th>
+              <Th>{t("tableMembers")}</Th>
+              <Th>{t("tableCollections")}</Th>
+              <Th>{t("actions")}</Th>
             </tr>
           </thead>
           <tbody>
             {groups.length === 0 && (
               <tr>
                 <Td className="text-[var(--text-secondary)]">
-                  No groups yet.
+                  {t("noGroupsYet")}
                 </Td>
                 <Td>{""}</Td>
                 <Td>{""}</Td>
@@ -133,22 +131,24 @@ export default function AdminGroupsPage() {
                 <Td>
                   {g.collectionIds.length === 0 ? (
                     <span className="text-[var(--text-secondary)]">
-                      All collections
+                      {t("allCollections")}
                     </span>
                   ) : (
-                    <span>{g.collectionIds.length} scoped</span>
+                    <span>
+                      {t("scopedCount", { count: g.collectionIds.length })}
+                    </span>
                   )}
                 </Td>
                 <Td>
                   <div className="flex gap-2">
                     <Button variant="ghost" onClick={() => setEditing(g)}>
-                      Edit
+                      {t("edit")}
                     </Button>
                     <Button
                       variant="danger"
                       onClick={() => handleDelete(g.id)}
                     >
-                      Delete
+                      {t("delete")}
                     </Button>
                   </div>
                 </Td>
@@ -218,11 +218,11 @@ function GroupForm({
       );
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "Save failed");
+        throw new Error(data.error || t("saveFailed"));
       }
       onSaved();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Save failed");
+      setError(err instanceof Error ? err.message : t("saveFailed"));
     } finally {
       setSaving(false);
     }
@@ -232,33 +232,39 @@ function GroupForm({
     <Modal
       open
       onClose={onClose}
-      title={group ? `Edit group — ${group.name}` : "New group"}
+      title={
+        group ? t("editGroupTitle", { name: group.name }) : t("newGroupTitle")
+      }
       wide
       footer={
         <>
           <Button variant="ghost" onClick={onClose} type="button">
-            Cancel
+            {t("cancel")}
           </Button>
           <Button
             type="submit"
             form="group-form"
             disabled={saving || !name.trim()}
           >
-            {saving ? "Saving…" : group ? "Save changes" : "Create group"}
+            {saving
+              ? t("saving")
+              : group
+                ? t("saveChanges")
+                : t("createGroup")}
           </Button>
         </>
       }
     >
       <form id="group-form" onSubmit={handleSubmit} className="space-y-4">
         <Input
-          label="Name"
+          label={t("name")}
           value={name}
           onChange={(e) => setName(e.target.value)}
           autoFocus
           required
         />
         <Textarea
-          label="Description (optional)"
+          label={t("descriptionOptional")}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           rows={2}
@@ -269,7 +275,7 @@ function GroupForm({
             className="text-[10.5px] font-medium uppercase tracking-[0.08em]"
             style={{ color: "var(--fg2)" }}
           >
-            Collections
+            {t("collections")}
           </div>
           <label
             className="flex items-center gap-2 text-[13px] cursor-pointer"
@@ -280,7 +286,7 @@ function GroupForm({
               checked={allCollections}
               onChange={(e) => setAllCollections(e.target.checked)}
             />
-            <span>Access to all collections</span>
+            <span>{t("accessAllCollections")}</span>
           </label>
 
           <div
@@ -297,7 +303,7 @@ function GroupForm({
                 className="px-3 py-4 text-[13px]"
                 style={{ color: "var(--fg2)" }}
               >
-                No collections returned from the library backend.
+                {t("noCollectionsFromBackend")}
               </div>
             ) : (
               collections.map((c) => (
@@ -335,7 +341,7 @@ function GroupForm({
                         fontFamily: "var(--font-mono)",
                       }}
                     >
-                      {c.document_count} docs
+                      {t("docsBadge", { count: c.document_count })}
                     </div>
                   )}
                 </label>
