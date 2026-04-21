@@ -11,4 +11,9 @@ services:
         NEXT_PUBLIC_LOCALE: ${NEXT_PUBLIC_LOCALE:-english}
     ports:
       - "${PORT:-3000}:3000"
+    volumes:
+      - cortex-chat-data:/app/data
     restart: unless-stopped
+
+volumes:
+  cortex-chat-data:
