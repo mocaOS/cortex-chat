@@ -62,9 +62,9 @@ export async function POST(request: Request) {
 
   const user = db.select().from(users).where(eq(users.id, userId)).get();
   if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
-  if (user.role === "superadmin") {
+  if (user.role === "superadmin" || user.role === "admin") {
     return NextResponse.json(
-      { error: "Superadmin already has full access." },
+      { error: "Admins and superadmin already have full upload access." },
       { status: 400 }
     );
   }

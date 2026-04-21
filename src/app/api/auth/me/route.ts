@@ -26,6 +26,9 @@ export async function GET() {
     group: group
       ? { id: group.id, name: group.name, description: group.description }
       : null,
-    canUpload: !!user.contentKeyId,
+    canUpload:
+      user.role === "superadmin" ||
+      user.role === "admin" ||
+      !!user.contentKeyId,
   });
 }

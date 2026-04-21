@@ -86,7 +86,7 @@ export default function AdminContentRolesPage() {
   }
 
   const eligibleUsers = users.filter(
-    (u) => u.role !== "superadmin" && !u.contentKeyId
+    (u) => u.role === "user" && !u.contentKeyId
   );
 
   return (

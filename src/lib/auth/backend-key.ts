@@ -24,6 +24,15 @@ export function getGroupChatKey(user: User): ResolvedKey | null {
 }
 
 export function getUserContentKey(user: User): ResolvedKey | null {
+  // Admin and superadmin always upload via the env admin key, scoped to all
+  // collections. This side-steps the per-user content-role flow for org-level
+  // accounts that should have blanket access.
+  if (user.role === "superadmin" || user.role === "admin") {
+    const envKey = process.env.BACKEND_ADMIN_API_KEY;
+    if (!envKey) return null;
+    return { apiKey: envKey, collectionIds: [], permission: "manage" };
+  }
+
   if (!user.contentKeyId) return null;
   const key = db
     .select()
