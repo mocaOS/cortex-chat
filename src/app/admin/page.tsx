@@ -144,8 +144,13 @@ export default function AdminDashboard() {
     <div className="max-w-5xl space-y-6">
       <div className="flex items-end justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold">Overview</h1>
-          <p className="text-sm text-[var(--text-secondary)]">
+          <h1
+            className="text-[24px] font-bold"
+            style={{ color: "var(--fg1)", letterSpacing: "-0.015em" }}
+          >
+            Overview
+          </h1>
+          <p className="text-[13px] mt-1" style={{ color: "var(--fg2)" }}>
             Snapshot of system activity. Use the side nav to manage users,
             groups, and content roles.
           </p>
@@ -168,40 +173,59 @@ export default function AdminDashboard() {
       <ErrorBanner message={error} />
 
       {loading || !analytics || !counts ? (
-        <div className="text-sm text-[var(--text-secondary)]">Loading…</div>
+        <div className="text-[13px]" style={{ color: "var(--fg2)" }}>
+          Loading…
+        </div>
       ) : (
         <>
           <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
             <Kpi label="Users" value={counts.users} />
             <Kpi label="Groups" value={counts.groups} />
             <Kpi label="Uploaders" value={counts.uploaders} />
-            <Kpi label="Active" value={analytics.totals.activeUsers} />
+            <Kpi label="Active" value={analytics.totals.activeUsers} accent />
             <Kpi label="Logins" value={analytics.totals.logins} />
             <Kpi label="Messages" value={analytics.totals.messages} />
             <Kpi label="Uploads" value={analytics.totals.uploads} />
           </div>
 
-          <section className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl p-4">
-            <div className="text-sm font-medium mb-3">Daily activity</div>
+          <section
+            className="rounded-[var(--radius-lg)] border p-5"
+            style={{ background: "var(--card)", borderColor: "var(--border)" }}
+          >
+            <div
+              className="text-[10.5px] font-medium uppercase tracking-[0.08em] mb-4"
+              style={{ color: "var(--fg2)" }}
+            >
+              Daily activity
+            </div>
             <div className="h-64 w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={analytics.series}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#2a2a2a" />
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="oklch(0.34 0 0)"
+                  />
                   <XAxis
                     dataKey="day"
-                    stroke="#a0a0a0"
+                    stroke="oklch(0.71 0 0)"
                     fontSize={11}
                     tickMargin={6}
                   />
-                  <YAxis stroke="#a0a0a0" fontSize={11} allowDecimals={false} />
+                  <YAxis
+                    stroke="oklch(0.71 0 0)"
+                    fontSize={11}
+                    allowDecimals={false}
+                  />
                   <Tooltip
                     contentStyle={{
-                      background: "#141414",
-                      border: "1px solid #2a2a2a",
+                      background: "oklch(0.27 0 0)",
+                      border: "1px solid oklch(0.34 0 0)",
                       borderRadius: 8,
-                      color: "#f5f5f5",
+                      color: "oklch(0.98 0 0)",
                       fontSize: 12,
+                      boxShadow: "0 10px 15px oklch(0 0 0 / 0.4)",
                     }}
+                    cursor={{ stroke: "oklch(0.34 0 0)" }}
                   />
                   <Line
                     type="monotone"
@@ -213,24 +237,27 @@ export default function AdminDashboard() {
                   <Line
                     type="monotone"
                     dataKey="logins"
-                    stroke="#a78bfa"
+                    stroke="oklch(0.75 0 0)"
                     strokeWidth={2}
                     dot={false}
                   />
                   <Line
                     type="monotone"
                     dataKey="uploads"
-                    stroke="#34d399"
+                    stroke="oklch(0.55 0 0)"
                     strokeWidth={2}
                     dot={false}
                   />
                 </LineChart>
               </ResponsiveContainer>
             </div>
-            <div className="flex gap-4 text-xs text-[var(--text-secondary)] pt-2">
+            <div
+              className="flex gap-4 text-[11px] pt-3"
+              style={{ color: "var(--fg2)" }}
+            >
               <Legend color="var(--accent)" label="Messages" />
-              <Legend color="#a78bfa" label="Logins" />
-              <Legend color="#34d399" label="Uploads" />
+              <Legend color="oklch(0.75 0 0)" label="Logins" />
+              <Legend color="oklch(0.55 0 0)" label="Uploads" />
             </div>
           </section>
 
@@ -261,13 +288,35 @@ export default function AdminDashboard() {
   );
 }
 
-function Kpi({ label, value }: { label: string; value: number | string }) {
+function Kpi({
+  label,
+  value,
+  accent,
+}: {
+  label: string;
+  value: number | string;
+  accent?: boolean;
+}) {
   return (
-    <div className="border border-[var(--border)] rounded-xl px-4 py-3 bg-[var(--bg-secondary)]">
-      <div className="text-xs uppercase tracking-wider text-[var(--text-secondary)]">
+    <div
+      className="rounded-[var(--radius-lg)] border px-4 py-3"
+      style={{ background: "var(--card)", borderColor: "var(--border)" }}
+    >
+      <div
+        className="text-[10.5px] font-medium uppercase tracking-[0.08em]"
+        style={{ color: "var(--fg2)" }}
+      >
         {label}
       </div>
-      <div className="text-xl font-semibold mt-0.5">{value}</div>
+      <div
+        className="text-[22px] font-bold mt-1 leading-none"
+        style={{
+          color: accent ? "var(--accent)" : "var(--fg1)",
+          letterSpacing: "-0.01em",
+        }}
+      >
+        {value}
+      </div>
     </div>
   );
 }
@@ -294,19 +343,22 @@ function Tabs<K extends string>({
   tabs: { key: K; label: string }[];
 }) {
   return (
-    <div className="flex gap-1 border-b border-[var(--border)]">
+    <div
+      className="flex gap-1 border-b"
+      style={{ borderColor: "var(--border)" }}
+    >
       {tabs.map((tab) => {
         const on = tab.key === active;
         return (
           <button
             key={tab.key}
             onClick={() => onChange(tab.key)}
-            className={`px-3 py-2 text-sm -mb-px border-b-2 transition-colors ${
-              on
-                ? "text-[var(--text-primary)]"
-                : "text-[var(--text-secondary)] border-transparent hover:text-[var(--text-primary)]"
-            }`}
-            style={on ? { borderColor: "var(--accent)" } : undefined}
+            className="px-3 py-2 text-[13px] -mb-px border-b-2 transition-colors"
+            style={{
+              color: on ? "var(--fg1)" : "var(--fg2)",
+              borderColor: on ? "var(--accent)" : "transparent",
+              fontWeight: on ? 500 : 400,
+            }}
           >
             {tab.label}
           </button>
@@ -423,9 +475,19 @@ function LoginHistoryTable({
                 </Td>
                 <Td>
                   {r.success ? (
-                    <span className="text-emerald-300 text-xs">OK</span>
+                    <span
+                      className="text-[11px] font-medium uppercase tracking-[0.06em]"
+                      style={{ color: "var(--success)", fontFamily: "var(--font-mono)" }}
+                    >
+                      OK
+                    </span>
                   ) : (
-                    <span className="text-red-400 text-xs">FAIL</span>
+                    <span
+                      className="text-[11px] font-medium uppercase tracking-[0.06em]"
+                      style={{ color: "var(--destructive)", fontFamily: "var(--font-mono)" }}
+                    >
+                      FAIL
+                    </span>
                   )}
                 </Td>
                 <Td className="text-xs text-[var(--text-secondary)]">

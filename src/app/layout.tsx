@@ -18,11 +18,12 @@ export async function generateMetadata(): Promise<Metadata> {
 // Resolve the accent server-side and inject it as an inline CSS variable so
 // the first paint of any page (notably /login) already has the correct value.
 // /api/config still overrides it client-side for cases where the env differs.
+// Default follows the MOCA design-system accent (warm yellow-green).
 function resolveAccent(): string {
   return (
     readEnv("ACCENT_COLOR") ||
     readEnv("NEXT_PUBLIC_ACCENT_COLOR") ||
-    "#ff9500"
+    "oklch(0.79 0.18 70.67)"
   );
 }
 
@@ -33,7 +34,7 @@ export default function RootLayout({
 }) {
   const accent = resolveAccent();
   return (
-    <html lang="en" style={{ ["--accent" as string]: accent }}>
+    <html lang="en" className="dark" style={{ ["--accent" as string]: accent }}>
       <body className="antialiased">{children}</body>
     </html>
   );

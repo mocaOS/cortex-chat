@@ -92,11 +92,25 @@ export default function AdminContentRolesPage() {
     <div className="max-w-5xl space-y-5">
       <div className="flex items-end justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold">Content roles</h1>
-          <p className="text-sm text-[var(--text-secondary)]">
+          <h1
+            className="text-[24px] font-bold"
+            style={{ color: "var(--fg1)", letterSpacing: "-0.015em" }}
+          >
+            Content roles
+          </h1>
+          <p className="text-[13px] mt-1" style={{ color: "var(--fg2)" }}>
             Grant individual users permission to upload documents to selected
             collections. Each role mints a backend key with{" "}
-            <code className="text-xs">manage</code> permission.
+            <code
+              className="text-[12px] px-1.5 py-0.5 rounded-[var(--radius-sm)]"
+              style={{
+                background: "var(--muted)",
+                fontFamily: "var(--font-mono)",
+              }}
+            >
+              manage
+            </code>{" "}
+            permission.
           </p>
         </div>
         <Button
@@ -115,7 +129,9 @@ export default function AdminContentRolesPage() {
       <ErrorBanner message={error} />
 
       {loading ? (
-        <div className="text-sm text-[var(--text-secondary)]">Loading…</div>
+        <div className="text-[13px]" style={{ color: "var(--fg2)" }}>
+          Loading…
+        </div>
       ) : (
         <Table>
           <thead>
@@ -159,7 +175,11 @@ export default function AdminContentRolesPage() {
                         return (
                           <span
                             key={cid}
-                            className="text-xs px-2 py-0.5 rounded bg-[var(--bg-tertiary)]"
+                            className="text-[11px] px-2 py-0.5 rounded-[var(--radius-sm)]"
+                            style={{
+                              background: "var(--muted)",
+                              color: "var(--fg1)",
+                            }}
                           >
                             {c?.name ?? cid}
                           </span>
@@ -168,12 +188,16 @@ export default function AdminContentRolesPage() {
                     </div>
                   )}
                 </Td>
-                <Td>{new Date(r.createdAt).toLocaleDateString()}</Td>
+                <Td
+                  style={{ color: "var(--fg2)", fontFamily: "var(--font-mono)" }}
+                  className="text-[12px]"
+                >
+                  {new Date(r.createdAt).toLocaleDateString()}
+                </Td>
                 <Td>
                   <Button
-                    variant="ghost"
+                    variant="danger"
                     onClick={() => revoke(r.userId, r.email)}
-                    className="hover:!text-red-400"
                   >
                     Revoke
                   </Button>
@@ -278,10 +302,16 @@ function ContentRoleForm({
         </Select>
 
         <div className="space-y-2">
-          <div className="text-xs text-[var(--text-secondary)]">
+          <div
+            className="text-[10.5px] font-medium uppercase tracking-[0.08em]"
+            style={{ color: "var(--fg2)" }}
+          >
             Collections this user can upload to
           </div>
-          <label className="flex items-center gap-2 text-sm cursor-pointer">
+          <label
+            className="flex items-center gap-2 text-[13px] cursor-pointer"
+            style={{ color: "var(--fg1)" }}
+          >
             <input
               type="checkbox"
               checked={allCollections}
@@ -291,26 +321,44 @@ function ContentRoleForm({
           </label>
 
           <div
-            className={`border border-[var(--border)] rounded-lg max-h-64 overflow-y-auto divide-y divide-[var(--border)] ${
+            className={`rounded-[var(--radius)] max-h-64 overflow-y-auto border divide-y ${
               allCollections ? "opacity-50 pointer-events-none" : ""
             }`}
+            style={{
+              borderColor: "var(--border)",
+              background: "var(--bg)",
+            }}
           >
             {collections.length === 0 ? (
-              <div className="px-3 py-4 text-sm text-[var(--text-secondary)]">
+              <div
+                className="px-3 py-4 text-[13px]"
+                style={{ color: "var(--fg2)" }}
+              >
                 No collections returned from the library backend.
               </div>
             ) : (
               collections.map((c) => (
                 <label
                   key={c.id}
-                  className="flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-[var(--bg-tertiary)]/30"
+                  className="flex items-center gap-3 px-3 py-2 cursor-pointer transition-colors"
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "var(--muted)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "transparent";
+                  }}
                 >
                   <input
                     type="checkbox"
                     checked={selected.has(c.id)}
                     onChange={() => toggle(c.id)}
                   />
-                  <div className="flex-1 text-sm">{c.name}</div>
+                  <div
+                    className="flex-1 text-[13px]"
+                    style={{ color: "var(--fg1)" }}
+                  >
+                    {c.name}
+                  </div>
                 </label>
               ))
             )}

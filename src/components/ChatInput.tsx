@@ -39,22 +39,31 @@ export default function ChatInput({
     }
   };
 
+  const canSend = !!input.trim() && !isLoading;
+
   return (
-    <div className="relative border-t border-[var(--border)] bg-[var(--bg-secondary)] px-4 py-3">
-      {/* Mode toggle - floating above, left-aligned with input */}
-      <div className="max-w-3xl mx-auto">
-        <div className="absolute -top-6">
-          <div className="flex items-center bg-[var(--bg-secondary)] rounded-lg p-0.5 border border-[var(--border)] shadow-lg">
+    <div className="px-4 pt-3 pb-5">
+      <div className="max-w-3xl mx-auto space-y-2">
+        {/* Mode toggle */}
+        <div className="flex items-center">
+          <div
+            className="inline-flex items-center rounded-full p-0.5 border"
+            style={{
+              background: "var(--card)",
+              borderColor: "var(--border)",
+              boxShadow: "var(--shadow-sm)",
+            }}
+          >
             <button
               onClick={() => onModeChange("deep-research")}
-              className={`text-xs px-3 py-1 rounded-md transition-all ${
+              className={`text-xs px-3 py-1 rounded-full transition-all ${
                 mode === "deep-research"
-                  ? "text-black font-medium"
-                  : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                  ? "font-medium"
+                  : "text-[var(--fg2)] hover:text-[var(--fg1)]"
               }`}
               style={
                 mode === "deep-research"
-                  ? { background: "var(--accent)" }
+                  ? { background: "var(--accent)", color: "var(--accent-fg)" }
                   : undefined
               }
             >
@@ -62,105 +71,159 @@ export default function ChatInput({
             </button>
             <button
               onClick={() => onModeChange("chat")}
-              className={`text-xs px-3 py-1 rounded-md transition-all ${
+              className={`text-xs px-3 py-1 rounded-full transition-all ${
                 mode === "chat"
-                  ? "text-black font-medium"
-                  : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                  ? "font-medium"
+                  : "text-[var(--fg2)] hover:text-[var(--fg1)]"
               }`}
               style={
-                mode === "chat" ? { background: "var(--accent)" } : undefined
+                mode === "chat"
+                  ? { background: "var(--accent)", color: "var(--accent-fg)" }
+                  : undefined
               }
             >
               {t("chat")}
             </button>
           </div>
         </div>
-      </div>
 
-      {/* Single row: input (with send inside) + cog */}
-      <div className="max-w-3xl mx-auto flex items-center gap-2">
-        <div className="flex-1 flex items-center bg-[var(--bg-tertiary)] rounded-xl border border-[var(--border)] pl-3 pr-1.5 h-10 focus-within:border-[var(--accent)] transition-colors">
-          <input
-            ref={inputRef}
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={
-              mode === "deep-research"
-                ? t("deepResearchPlaceholder")
-                : t("askAnything")
-            }
-            className="flex-1 bg-transparent outline-none text-sm text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] mr-2"
-          />
-          {isLoading ? (
-            <button
-              onClick={onStop}
-              className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors"
-              title="Stop"
+        {/* Glass composer row */}
+        <div className="flex items-center gap-2">
+          <div
+            className="flex-1 flex items-center gap-1 rounded-[14px] pl-3 pr-1.5 h-11 border transition-colors focus-within:border-[var(--ring)]"
+            style={{
+              background: "oklch(0.15 0 0 / 0.75)",
+              backdropFilter: "blur(24px)",
+              WebkitBackdropFilter: "blur(24px)",
+              borderColor: "var(--border)",
+              boxShadow: "var(--shadow-xl)",
+            }}
+          >
+            <svg
+              className="w-4 h-4 text-[var(--fg2)] flex-shrink-0"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
             >
-              <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
-                <rect x="6" y="6" width="12" height="12" rx="2" />
-              </svg>
-            </button>
-          ) : (
-            <button
-              onClick={handleSubmit}
-              disabled={!input.trim()}
-              className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center transition-colors disabled:opacity-30"
-              style={{
-                background: input.trim() ? "var(--accent)" : "var(--border)",
-                color: input.trim() ? "#000" : "var(--text-secondary)",
-              }}
+              <path d="M21 15a2 2 0 0 1 -2 2h-14l-4 4v-16a2 2 0 0 1 2 -2h16a2 2 0 0 1 2 2z" />
+            </svg>
+
+            <input
+              ref={inputRef}
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={
+                mode === "deep-research"
+                  ? t("deepResearchPlaceholder")
+                  : t("askAnything")
+              }
+              className="flex-1 bg-transparent outline-none text-sm text-[var(--fg1)] placeholder:text-[var(--fg3)] px-2"
+            />
+
+            <span
+              className="hidden sm:inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] text-[var(--fg2)] whitespace-nowrap"
+              style={{ background: "var(--muted)" }}
+              title={
+                collectionName
+                  ? `${t("searchingInCollection")} ${collectionName}`
+                  : t("searchingAllCollections")
+              }
             >
-              <svg
-                className="w-3.5 h-3.5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2.5}
+              <span
+                className="w-1.5 h-1.5 rounded-full"
+                style={{ background: "var(--accent)" }}
+              />
+              <span className="truncate max-w-[120px]">
+                {collectionName || t("allCollections")}
+              </span>
+            </span>
+
+            {isLoading ? (
+              <button
+                onClick={onStop}
+                className="flex-shrink-0 w-8 h-8 rounded-[var(--radius-md)] flex items-center justify-center transition-colors"
+                style={{
+                  background:
+                    "color-mix(in oklch, var(--destructive) 18%, transparent)",
+                  color: "var(--destructive)",
+                }}
+                title="Stop"
               >
-                <path
+                <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+                  <rect x="6" y="6" width="12" height="12" rx="2" />
+                </svg>
+              </button>
+            ) : (
+              <button
+                onClick={handleSubmit}
+                disabled={!canSend}
+                className="flex-shrink-0 w-8 h-8 rounded-[var(--radius-md)] flex items-center justify-center transition-all disabled:opacity-30 active:scale-[0.96]"
+                style={{
+                  background: canSend ? "var(--accent)" : "var(--muted)",
+                  color: canSend ? "var(--accent-fg)" : "var(--fg3)",
+                  boxShadow: canSend
+                    ? "0 0 20px color-mix(in oklch, var(--accent) 35%, transparent)"
+                    : "none",
+                }}
+                aria-label="Send"
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2.2}
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  d="M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18"
-                />
-              </svg>
-            </button>
-          )}
+                >
+                  <path d="M22 2 11 13" />
+                  <path d="M22 2l-7 20-4-9-9-4 20-7z" />
+                </svg>
+              </button>
+            )}
+          </div>
+
+          <button
+            onClick={onSettingsClick}
+            className="flex-shrink-0 w-10 h-10 rounded-[var(--radius)] flex items-center justify-center text-[var(--fg2)] hover:text-[var(--fg1)] hover:bg-[var(--muted)] transition-colors"
+            title={t("settings")}
+          >
+            <svg
+              className="w-[18px] h-[18px]"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={1.75}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="12" cy="12" r="3" />
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06 .06a2 2 0 0 1 -2.83 2.83l-.06 -.06a1.65 1.65 0 0 0 -1.82 -.33 1.65 1.65 0 0 0 -1 1.51V21a2 2 0 0 1 -4 0v-.09a1.65 1.65 0 0 0 -1 -1.51 1.65 1.65 0 0 0 -1.82 .33l-.06 .06a2 2 0 0 1 -2.83 -2.83l.06 -.06a1.65 1.65 0 0 0 .33 -1.82 1.65 1.65 0 0 0 -1.51 -1H3a2 2 0 0 1 0 -4h.09a1.65 1.65 0 0 0 1.51 -1 1.65 1.65 0 0 0 -.33 -1.82l-.06 -.06a2 2 0 0 1 2.83 -2.83l.06 .06a1.65 1.65 0 0 0 1.82 .33H9a1.65 1.65 0 0 0 1 -1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82 -.33l.06 -.06a2 2 0 0 1 2.83 2.83l-.06 .06a1.65 1.65 0 0 0 -.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0 -1.51 1z" />
+            </svg>
+          </button>
         </div>
 
-        <button
-          onClick={onSettingsClick}
-          className="flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-colors"
-          title={t("settings")}
+        {/* Scope caption (mobile) + mono caption */}
+        <p
+          className="text-[11px] flex items-center gap-1.5 px-1"
+          style={{ fontFamily: "var(--font-mono)", color: "oklch(0.42 0 0)" }}
         >
           <svg
-            className="w-[18px] h-[18px]"
+            className="w-3 h-3 flex-shrink-0"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
-            strokeWidth={1.75}
+            strokeWidth={2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 010 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 010-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28z"
-            />
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-            />
-          </svg>
-        </button>
-      </div>
-
-      {/* Scope indicator */}
-      <div className="max-w-3xl mx-auto mt-1.5">
-        <p className="text-[11px] text-[var(--text-secondary)] flex items-center gap-1">
-          <svg className="w-3 h-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+            <circle cx="11" cy="11" r="8" />
+            <path d="M21 21l-4.35-4.35" />
           </svg>
           {collectionName
             ? `${t("searchingInCollection")} ${collectionName}`

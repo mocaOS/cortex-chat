@@ -26,29 +26,34 @@ export default function MessageList({
 
   if (messages.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-full text-center px-4">
+      <div className="flex flex-col items-center justify-center h-full text-center px-6">
         <div
-          className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4"
-          style={{ background: "var(--accent)" }}
+          className="w-12 h-12 rounded-[12px] flex items-center justify-center mb-4"
+          style={{
+            background:
+              "color-mix(in oklch, var(--accent) 15%, transparent)",
+            color: "var(--accent)",
+          }}
         >
           <svg
-            className="w-7 h-7 text-black"
+            className="w-6 h-6"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
             strokeWidth={2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-            />
+            <path d="M12 3l1.9 5.8L20 10l-5.8 1.9L12 18l-1.9-5.8L4 10l6.1-1.2L12 3z" />
           </svg>
         </div>
-        <h2 className="text-xl font-semibold mb-2">
+        <h2
+          className="text-[22px] font-bold mb-1.5"
+          style={{ color: "var(--fg1)", letterSpacing: "-0.015em" }}
+        >
           {emptyTitle || t("emptyTitle")}
         </h2>
-        <p className="text-[var(--text-secondary)] text-sm max-w-md">
+        <p className="text-[13px] max-w-md" style={{ color: "var(--fg2)" }}>
           {emptyDescription || t("emptyDescription")}
         </p>
       </div>
@@ -56,8 +61,8 @@ export default function MessageList({
   }
 
   return (
-    <div className="h-full overflow-y-auto px-4 py-4">
-      <div className="max-w-3xl mx-auto space-y-4 pb-12">
+    <div className="h-full overflow-y-auto px-4 py-6">
+      <div className="max-w-3xl mx-auto space-y-4 pb-8">
         {messages.map((msg) => (
           <MessageBubble
             key={msg.id}

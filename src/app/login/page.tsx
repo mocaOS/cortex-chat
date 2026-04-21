@@ -48,21 +48,49 @@ function LoginForm() {
   }
 
   if (!ready) {
-    return <div className="h-dvh bg-[var(--bg-primary)]" />;
+    return <div className="h-dvh" style={{ background: "var(--bg)" }} />;
   }
 
   return (
-    <div className="h-dvh flex items-center justify-center px-4 bg-[var(--bg-primary)]">
+    <div
+      className="h-dvh flex items-center justify-center px-4 relative overflow-hidden"
+      style={{ background: "var(--bg)" }}
+    >
+      {/* Soft accent glow at 15% — MOCA hero signature */}
+      <div
+        className="absolute pointer-events-none"
+        style={{
+          top: "20%",
+          left: "50%",
+          transform: "translateX(-50%)",
+          width: "720px",
+          height: "480px",
+          background:
+            "radial-gradient(circle, color-mix(in oklch, var(--accent) 15%, transparent) 0%, transparent 60%)",
+          filter: "blur(40px)",
+        }}
+      />
+
       <form
         onSubmit={onSubmit}
-        className="w-full max-w-sm bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl p-6 space-y-5"
+        className="w-full max-w-sm rounded-[var(--radius-xl)] p-7 space-y-5 relative border"
+        style={{
+          background: "oklch(0.17 0 0 / 0.75)",
+          backdropFilter: "blur(24px)",
+          WebkitBackdropFilter: "blur(24px)",
+          borderColor: "var(--border)",
+          boxShadow: "var(--shadow-xl)",
+        }}
       >
-        <div className="flex items-center justify-center pb-2">
-          <img src={logoUrl} alt="Logo" className="h-10 w-auto" />
+        <div className="flex items-center justify-center pb-1">
+          <img src={logoUrl} alt="Logo" className="h-9 w-auto" />
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-sm text-[var(--text-secondary)]">
+          <label
+            className="text-[10.5px] font-medium uppercase tracking-[0.08em]"
+            style={{ color: "var(--fg2)" }}
+          >
             {t("email")}
           </label>
           <input
@@ -72,12 +100,26 @@ function LoginForm() {
             required
             autoComplete="email"
             autoFocus
-            className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--accent)] transition-colors"
+            className="w-full rounded-[var(--radius)] px-3 py-2.5 text-[13px] outline-none border transition-colors"
+            style={{
+              background: "var(--bg)",
+              borderColor: "var(--input)",
+              color: "var(--fg1)",
+            }}
+            onFocus={(e) => {
+              e.currentTarget.style.borderColor = "var(--ring)";
+            }}
+            onBlur={(e) => {
+              e.currentTarget.style.borderColor = "var(--input)";
+            }}
           />
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-sm text-[var(--text-secondary)]">
+          <label
+            className="text-[10.5px] font-medium uppercase tracking-[0.08em]"
+            style={{ color: "var(--fg2)" }}
+          >
             {t("password")}
           </label>
           <input
@@ -86,19 +128,40 @@ function LoginForm() {
             onChange={(e) => setPassword(e.target.value)}
             required
             autoComplete="current-password"
-            className="w-full bg-[var(--bg-tertiary)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--accent)] transition-colors"
+            className="w-full rounded-[var(--radius)] px-3 py-2.5 text-[13px] outline-none border transition-colors"
+            style={{
+              background: "var(--bg)",
+              borderColor: "var(--input)",
+              color: "var(--fg1)",
+            }}
+            onFocus={(e) => {
+              e.currentTarget.style.borderColor = "var(--ring)";
+            }}
+            onBlur={(e) => {
+              e.currentTarget.style.borderColor = "var(--input)";
+            }}
           />
         </div>
 
         {error && (
-          <div className="text-sm text-red-400 text-center">{error}</div>
+          <div
+            className="text-[12.5px] text-center"
+            style={{ color: "var(--destructive)" }}
+          >
+            {error}
+          </div>
         )}
 
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-2 rounded-lg text-sm font-medium text-black disabled:opacity-60 transition-opacity"
-          style={{ background: "var(--accent)" }}
+          className="w-full py-2.5 rounded-[var(--radius)] text-[13px] font-medium disabled:opacity-60 transition-all active:scale-[0.98]"
+          style={{
+            background: "var(--accent)",
+            color: "var(--accent-fg)",
+            boxShadow:
+              "0 0 20px color-mix(in oklch, var(--accent) 30%, transparent)",
+          }}
         >
           {loading ? t("signingIn") : t("signIn")}
         </button>
@@ -109,7 +172,7 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div className="h-dvh bg-[var(--bg-primary)]" />}>
+    <Suspense fallback={<div className="h-dvh" style={{ background: "var(--bg)" }} />}>
       <LoginForm />
     </Suspense>
   );

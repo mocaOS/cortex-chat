@@ -144,8 +144,13 @@ export default function AdminSettingsPage() {
   return (
     <div className="max-w-2xl space-y-6">
       <div>
-        <h1 className="text-xl font-semibold">Settings</h1>
-        <p className="text-sm text-[var(--text-secondary)]">
+        <h1
+          className="text-[24px] font-bold"
+          style={{ color: "var(--fg1)", letterSpacing: "-0.015em" }}
+        >
+          Settings
+        </h1>
+        <p className="text-[13px] mt-1" style={{ color: "var(--fg2)" }}>
           Branding and default language for the chat system. Shown in the
           header, login page, browser tab, meta description, and the chat
           landing page.
@@ -155,14 +160,30 @@ export default function AdminSettingsPage() {
       <ErrorBanner message={error} />
 
       {loading || !defaults || !settings ? (
-        <div className="text-sm text-[var(--text-secondary)]">Loading…</div>
+        <div className="text-[13px]" style={{ color: "var(--fg2)" }}>
+          Loading…
+        </div>
       ) : (
         <>
           {/* Logo */}
-          <section className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl p-5 space-y-4">
-            <div className="text-sm font-medium">Logo</div>
+          <section
+            className="rounded-[var(--radius-lg)] border p-5 space-y-4"
+            style={{ background: "var(--card)", borderColor: "var(--border)" }}
+          >
+            <div
+              className="text-[10.5px] font-medium uppercase tracking-[0.08em]"
+              style={{ color: "var(--fg2)" }}
+            >
+              Logo
+            </div>
             <div className="flex items-center gap-4">
-              <div className="h-16 w-40 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border)] flex items-center justify-center overflow-hidden px-3">
+              <div
+                className="h-16 w-40 rounded-[var(--radius)] border flex items-center justify-center overflow-hidden px-3"
+                style={{
+                  background: "var(--bg)",
+                  borderColor: "var(--border)",
+                }}
+              >
                 <img
                   src={displayLogo}
                   alt="Logo preview"
@@ -171,7 +192,8 @@ export default function AdminSettingsPage() {
               </div>
               <div className="flex gap-2">
                 <label
-                  className={`px-3 py-2 rounded-lg text-sm bg-[var(--bg-tertiary)] text-[var(--text-primary)] hover:brightness-110 cursor-pointer ${logoBusy ? "opacity-60 cursor-not-allowed" : ""}`}
+                  className={`inline-flex items-center px-3.5 py-2 rounded-[var(--radius)] text-[13px] font-medium cursor-pointer transition-all active:scale-[0.98] ${logoBusy ? "opacity-60 cursor-not-allowed" : ""}`}
+                  style={{ background: "var(--muted)", color: "var(--fg1)" }}
                 >
                   Upload logo
                   <input
@@ -188,10 +210,9 @@ export default function AdminSettingsPage() {
                 </label>
                 {settings.hasCustomLogo && (
                   <Button
-                    variant="ghost"
+                    variant="danger"
                     onClick={removeLogo}
                     disabled={logoBusy}
-                    className="hover:!text-red-400"
                   >
                     Remove
                   </Button>
@@ -199,7 +220,7 @@ export default function AdminSettingsPage() {
               </div>
             </div>
             <ErrorBanner message={logoError} />
-            <p className="text-xs text-[var(--text-secondary)]">
+            <p className="text-[11.5px]" style={{ color: "var(--fg2)" }}>
               SVG, PNG, JPEG, or WebP. Max 1 MiB. Wide logos render best; they
               appear in the header, sidebar, and on the login page.
             </p>
@@ -208,7 +229,8 @@ export default function AdminSettingsPage() {
           {/* Text + locale */}
           <form
             onSubmit={handleSubmit}
-            className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl p-5 space-y-4"
+            className="rounded-[var(--radius-lg)] border p-5 space-y-4"
+            style={{ background: "var(--card)", borderColor: "var(--border)" }}
           >
             <Input
               label="Page title"
@@ -217,8 +239,14 @@ export default function AdminSettingsPage() {
               maxLength={120}
               placeholder={defaults.appTitle}
             />
-            <p className="text-xs text-[var(--text-secondary)] -mt-2">
-              Default: <span className="font-mono">{defaults.appTitle}</span>
+            <p
+              className="text-[11.5px] -mt-2"
+              style={{ color: "var(--fg2)" }}
+            >
+              Default:{" "}
+              <span style={{ fontFamily: "var(--font-mono)", color: "var(--fg1)" }}>
+                {defaults.appTitle}
+              </span>
             </p>
 
             <Textarea
@@ -229,9 +257,14 @@ export default function AdminSettingsPage() {
               rows={3}
               placeholder={defaults.appDescription}
             />
-            <p className="text-xs text-[var(--text-secondary)] -mt-2">
+            <p
+              className="text-[11.5px] -mt-2"
+              style={{ color: "var(--fg2)" }}
+            >
               Default:{" "}
-              <span className="font-mono">{defaults.appDescription}</span>
+              <span style={{ fontFamily: "var(--font-mono)", color: "var(--fg1)" }}>
+                {defaults.appDescription}
+              </span>
             </p>
 
             <Select
@@ -242,23 +275,28 @@ export default function AdminSettingsPage() {
               <option value="en">English</option>
               <option value="de">Deutsch (du-Form)</option>
             </Select>
-            <p className="text-xs text-[var(--text-secondary)] -mt-2">
+            <p
+              className="text-[11.5px] -mt-2"
+              style={{ color: "var(--fg2)" }}
+            >
               Applies to every user of the chat system. Reload required for
               already-open tabs.
             </p>
 
             <div className="flex items-center justify-between gap-3 pt-2">
               <Button
-                variant="ghost"
+                variant="danger"
                 type="button"
                 onClick={resetText}
                 disabled={saving}
-                className="hover:!text-red-400"
               >
                 Reset title &amp; description
               </Button>
               <div className="flex items-center gap-3">
-                <span className="text-sm text-[var(--text-secondary)]">
+                <span
+                  className="text-[12.5px]"
+                  style={{ color: "var(--fg2)" }}
+                >
                   {msg}
                 </span>
                 <Button type="submit" disabled={saving}>

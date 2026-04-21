@@ -34,29 +34,57 @@ export default function AdminShell({ user, children }: Props) {
   }
 
   return (
-    <div className="h-dvh flex flex-col">
-      <header className="flex items-center justify-between px-4 py-3 border-b border-[var(--border)] bg-[var(--bg-secondary)]">
+    <div className="h-dvh flex flex-col" style={{ background: "var(--bg)" }}>
+      <header
+        className="flex items-center justify-between px-5 h-14 border-b"
+        style={{
+          background: "oklch(0.15 0 0 / 0.65)",
+          backdropFilter: "blur(24px)",
+          WebkitBackdropFilter: "blur(24px)",
+          borderColor: "var(--border)",
+        }}
+      >
         <div className="flex items-center gap-3">
           <Link href="/" className="flex items-center gap-2">
-            <img src={logoUrl} alt="Logo" className="h-7 w-auto" />
+            <img src={logoUrl} alt="Logo" className="h-6 w-auto" />
           </Link>
-          <span className="text-xs uppercase tracking-wider text-[var(--text-secondary)]">
+          <span
+            className="text-[10.5px] font-medium uppercase tracking-[0.08em]"
+            style={{ color: "var(--fg3)" }}
+          >
             {t("admin")}
           </span>
         </div>
-        <div className="flex items-center gap-3">
-          <span className="text-xs text-[var(--text-secondary)] truncate max-w-[200px]">
+        <div className="flex items-center gap-4">
+          <span
+            className="text-[11px] truncate max-w-[200px]"
+            style={{ color: "var(--fg2)", fontFamily: "var(--font-mono)" }}
+          >
             {user.username || user.email}
           </span>
           <Link
             href="/"
-            className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+            className="text-[12.5px] transition-colors"
+            style={{ color: "var(--fg2)" }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = "var(--fg1)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = "var(--fg2)";
+            }}
           >
             Chat →
           </Link>
           <button
             onClick={handleSignOut}
-            className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+            className="text-[12.5px] transition-colors"
+            style={{ color: "var(--fg2)" }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = "var(--fg1)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = "var(--fg2)";
+            }}
           >
             {t("signOut")}
           </button>
@@ -64,7 +92,15 @@ export default function AdminShell({ user, children }: Props) {
       </header>
 
       <div className="flex-1 flex overflow-hidden">
-        <nav className="w-52 shrink-0 border-r border-[var(--border)] bg-[var(--bg-secondary)] py-4 px-2 overflow-y-auto">
+        <nav
+          className="w-52 shrink-0 border-r py-4 px-2 overflow-y-auto"
+          style={{
+            background: "oklch(0.17 0 0 / 0.85)",
+            backdropFilter: "blur(24px)",
+            WebkitBackdropFilter: "blur(24px)",
+            borderColor: "var(--border)",
+          }}
+        >
           {NAV.map((item) => {
             const active =
               item.href === "/admin"
@@ -74,11 +110,18 @@ export default function AdminShell({ user, children }: Props) {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`block px-3 py-2 rounded-lg text-sm mb-1 transition-colors ${
-                  active
-                    ? "bg-[var(--bg-tertiary)] text-[var(--text-primary)]"
-                    : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]/50"
-                }`}
+                className="block px-3 py-2 rounded-[var(--radius)] text-[13px] mb-1 transition-colors"
+                style={{
+                  background: active ? "var(--accent)" : "transparent",
+                  color: active ? "var(--accent-fg)" : "var(--fg1)",
+                  fontWeight: active ? 500 : 400,
+                }}
+                onMouseEnter={(e) => {
+                  if (!active) e.currentTarget.style.background = "var(--muted)";
+                }}
+                onMouseLeave={(e) => {
+                  if (!active) e.currentTarget.style.background = "transparent";
+                }}
               >
                 {item.label}
               </Link>
@@ -86,7 +129,7 @@ export default function AdminShell({ user, children }: Props) {
           })}
         </nav>
 
-        <main className="flex-1 overflow-y-auto p-6">{children}</main>
+        <main className="flex-1 overflow-y-auto p-6 md:p-8">{children}</main>
       </div>
     </div>
   );

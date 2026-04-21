@@ -66,26 +66,36 @@ export default function Sidebar({
       {/* Backdrop */}
       {open && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 transition-opacity"
+          className="fixed inset-0 z-40 transition-opacity"
+          style={{ background: "oklch(0 0 0 / 0.55)" }}
           onClick={onClose}
         />
       )}
 
-      {/* Sidebar panel */}
+      {/* Sidebar panel — glass per MOCA sidebar pattern */}
       <div
-        className={`fixed top-0 left-0 h-full w-72 bg-[var(--bg-secondary)] z-50 flex flex-col transition-transform duration-200 ease-out ${
+        className={`fixed top-0 left-0 h-full w-72 z-50 flex flex-col transition-transform duration-200 ease-out border-r ${
           open ? "translate-x-0" : "-translate-x-full"
         }`}
+        style={{
+          background: "oklch(0.17 0 0 / 0.85)",
+          backdropFilter: "blur(24px)",
+          WebkitBackdropFilter: "blur(24px)",
+          borderColor: "var(--border)",
+        }}
       >
         {/* Header with logo and close */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border)]">
-          <img src={logoUrl} alt="Logo" className="h-7 w-auto" />
+        <div
+          className="flex items-center justify-between px-4 h-14 border-b"
+          style={{ borderColor: "var(--border)" }}
+        >
+          <img src={logoUrl} alt="Logo" className="h-6 w-auto" />
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-colors cursor-pointer"
+            className="w-8 h-8 rounded-[var(--radius)] flex items-center justify-center text-[var(--fg2)] hover:text-[var(--fg1)] hover:bg-[var(--muted)] transition-colors cursor-pointer"
           >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
@@ -97,10 +107,22 @@ export default function Sidebar({
               onNewChat();
               onClose();
             }}
-            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg border border-[var(--border)] text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--text-secondary)] transition-colors"
+            className="w-full flex items-center gap-2 px-3 py-2 rounded-[var(--radius)] border text-sm transition-colors"
+            style={{
+              borderColor: "var(--border)",
+              color: "var(--fg1)",
+              background: "transparent",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "var(--muted)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "transparent";
+            }}
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 5v14" />
+              <path d="M5 12h14" />
             </svg>
             {t("newChat")}
           </button>
@@ -109,57 +131,90 @@ export default function Sidebar({
         {/* Session list */}
         <div className="flex-1 overflow-y-auto px-2 pb-3">
           {groups.map((group) => (
-            <div key={group.label} className="mb-2">
-              <div className="px-2 py-1.5 text-xs font-medium text-[var(--text-secondary)] uppercase tracking-wider">
+            <div key={group.label} className="mb-3">
+              <div
+                className="px-2.5 py-1.5 text-[10.5px] font-medium uppercase tracking-[0.08em]"
+                style={{ color: "var(--fg3)" }}
+              >
                 {group.label}
               </div>
-              {group.sessions.map((session) => (
-                <div
-                  key={session.id}
-                  className={`group flex items-center rounded-lg px-2 py-2 cursor-pointer transition-colors ${
-                    session.id === activeSessionId
-                      ? "bg-[var(--bg-tertiary)]"
-                      : "hover:bg-[var(--bg-tertiary)]/50"
-                  }`}
-                  onClick={() => {
-                    onSelectSession(session.id);
-                    onClose();
-                  }}
-                >
-                  <span className="flex-1 text-sm text-[var(--text-primary)] truncate">
-                    {session.title || t("untitledChat")}
-                  </span>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onDeleteSession(session.id);
+              {group.sessions.map((session) => {
+                const active = session.id === activeSessionId;
+                return (
+                  <div
+                    key={session.id}
+                    className="group flex items-center rounded-[var(--radius)] px-2.5 py-2 cursor-pointer transition-colors"
+                    style={{
+                      background: active ? "var(--muted)" : "transparent",
                     }}
-                    className="opacity-0 group-hover:opacity-100 w-6 h-6 flex-shrink-0 flex items-center justify-center rounded text-[var(--text-secondary)] hover:text-red-400 transition-all"
-                    title={t("deleteChat")}
+                    onMouseEnter={(e) => {
+                      if (!active) e.currentTarget.style.background = "oklch(1 0 0 / 0.04)";
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!active) e.currentTarget.style.background = "transparent";
+                    }}
+                    onClick={() => {
+                      onSelectSession(session.id);
+                      onClose();
+                    }}
                   >
-                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                  </button>
-                </div>
-              ))}
+                    <span
+                      className="flex-1 text-[13px] truncate"
+                      style={{ color: active ? "var(--fg1)" : "var(--fg1)" }}
+                    >
+                      {session.title || t("untitledChat")}
+                    </span>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDeleteSession(session.id);
+                      }}
+                      className="opacity-0 group-hover:opacity-100 w-6 h-6 flex-shrink-0 flex items-center justify-center rounded transition-all"
+                      style={{ color: "var(--fg3)" }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.color = "var(--destructive)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.color = "var(--fg3)";
+                      }}
+                      title={t("deleteChat")}
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M3 6h18" />
+                        <path d="M8 6V4a2 2 0 0 1 2 -2h4a2 2 0 0 1 2 2v2" />
+                        <path d="M19 6l-1 14a2 2 0 0 1 -2 2H8a2 2 0 0 1 -2 -2L5 6" />
+                      </svg>
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           ))}
         </div>
 
         {currentUser && (
-          <div className="border-t border-[var(--border)] px-2 py-2 space-y-0.5">
+          <div
+            className="border-t px-2 py-2 space-y-0.5"
+            style={{ borderColor: "var(--border)" }}
+          >
             <SidebarNavLink
               href="/profile"
               label={t("profile")}
               onNav={onClose}
               icon={
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="8" r="4" />
+                  <path d="M5 21v-1a7 7 0 0 1 14 0v1" />
                 </svg>
               }
               rightSlot={
-                <span className="text-xs text-[var(--text-secondary)] truncate max-w-[120px]">
+                <span
+                  className="text-[11px] truncate max-w-[120px]"
+                  style={{
+                    color: "var(--fg2)",
+                    fontFamily: "var(--font-mono)",
+                  }}
+                >
                   {currentUser.username || currentUser.email}
                 </span>
               }
@@ -170,8 +225,10 @@ export default function Sidebar({
                 label={t("uploadDocuments")}
                 onNav={onClose}
                 icon={
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1 -2 2H5a2 2 0 0 1 -2 -2v-4" />
+                    <path d="M17 8l-5 -5l-5 5" />
+                    <path d="M12 3v12" />
                   </svg>
                 }
               />
@@ -182,18 +239,30 @@ export default function Sidebar({
                 label={t("admin")}
                 onNav={onClose}
                 icon={
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2" />
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
                   </svg>
                 }
               />
             )}
             <button
               onClick={onSignOut}
-              className="w-full flex items-center gap-2 px-2 py-2 rounded-lg text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-colors"
+              className="w-full flex items-center gap-2 px-2.5 py-2 rounded-[var(--radius)] text-sm transition-colors"
+              style={{ color: "var(--fg2)" }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = "var(--fg1)";
+                e.currentTarget.style.background = "var(--muted)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = "var(--fg2)";
+                e.currentTarget.style.background = "transparent";
+              }}
             >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 21H5a2 2 0 0 1 -2 -2V5a2 2 0 0 1 2 -2h4" />
+                <path d="M16 17l5 -5l-5 -5" />
+                <path d="M21 12H9" />
               </svg>
               <span className="flex-1 text-left">{t("signOut")}</span>
             </button>
@@ -221,7 +290,14 @@ function SidebarNavLink({
     <Link
       href={href}
       onClick={onNav}
-      className="flex items-center gap-2 px-2 py-2 rounded-lg text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-colors"
+      className="flex items-center gap-2 px-2.5 py-2 rounded-[var(--radius)] text-sm transition-colors"
+      style={{ color: "var(--fg1)" }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.background = "var(--muted)";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.background = "transparent";
+      }}
     >
       {icon}
       <span className="flex-1 truncate">{label}</span>

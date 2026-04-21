@@ -75,8 +75,13 @@ export default function AdminUsersPage() {
     <div className="max-w-5xl space-y-5">
       <div className="flex items-end justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold">Users</h1>
-          <p className="text-sm text-[var(--text-secondary)]">
+          <h1
+            className="text-[24px] font-bold"
+            style={{ color: "var(--fg1)", letterSpacing: "-0.015em" }}
+          >
+            Users
+          </h1>
+          <p className="text-[13px] mt-1" style={{ color: "var(--fg2)" }}>
             Each user signs in with their email + password and inherits the
             chat scope of their assigned group.
           </p>
@@ -87,7 +92,9 @@ export default function AdminUsersPage() {
       <ErrorBanner message={error} />
 
       {loading ? (
-        <div className="text-sm text-[var(--text-secondary)]">Loading…</div>
+        <div className="text-[13px]" style={{ color: "var(--fg2)" }}>
+          Loading…
+        </div>
       ) : (
         <Table>
           <thead>
@@ -119,13 +126,16 @@ export default function AdminUsersPage() {
                 <Td>
                   {u.role === "superadmin" ? (
                     <span
-                      className="text-xs px-2 py-0.5 rounded"
-                      style={{ background: "var(--accent)", color: "#000" }}
+                      className="text-[11px] px-2 py-0.5 rounded-[var(--radius-sm)] font-medium uppercase tracking-[0.06em]"
+                      style={{
+                        background: "var(--accent)",
+                        color: "var(--accent-fg)",
+                      }}
                     >
                       superadmin
                     </span>
                   ) : (
-                    "user"
+                    <span style={{ color: "var(--fg2)" }}>user</span>
                   )}
                 </Td>
                 <Td>
@@ -138,10 +148,9 @@ export default function AdminUsersPage() {
                       Edit
                     </Button>
                     <Button
-                      variant="ghost"
+                      variant="danger"
                       onClick={() => handleDelete(u)}
                       disabled={u.role === "superadmin"}
-                      className="hover:!text-red-400"
                     >
                       Delete
                     </Button>
