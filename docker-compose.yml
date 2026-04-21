@@ -1,0 +1,14 @@
+services:
+  library-frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+        NEXT_PUBLIC_API_KEY: ${NEXT_PUBLIC_API_KEY:-}
+        NEXT_PUBLIC_ACCENT_COLOR: ${NEXT_PUBLIC_ACCENT_COLOR:-"#ff9500"}
+        NEXT_PUBLIC_LOGO_URL: ${NEXT_PUBLIC_LOGO_URL:-}
+        NEXT_PUBLIC_LOCALE: ${NEXT_PUBLIC_LOCALE:-english}
+    ports:
+      - "${PORT:-3000}:3000"
+    restart: unless-stopped
