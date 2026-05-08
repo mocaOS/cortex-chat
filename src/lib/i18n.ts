@@ -90,6 +90,7 @@ const translations = {
     uploading: "Uploading…",
     upload: "Upload",
     fileUploaded: '"{name}" uploaded.',
+    fileTooLarge: "File is too large. Maximum size is {max}.",
 
     // Admin navigation
     adminNavOverview: "Overview",
@@ -439,6 +440,7 @@ const translations = {
     uploading: "Lädt hoch…",
     upload: "Hochladen",
     fileUploaded: '„{name}" hochgeladen.',
+    fileTooLarge: "Die Datei ist zu groß. Maximalgröße ist {max}.",
 
     // Admin navigation
     adminNavOverview: "Übersicht",

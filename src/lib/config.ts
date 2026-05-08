@@ -1,4 +1,5 @@
 import { setLocale, type Locale } from "./i18n";
+import { MAX_UPLOAD_BYTES } from "./upload-limits";
 
 export interface ClientConfig {
   accentColor: string;
@@ -6,6 +7,7 @@ export interface ClientConfig {
   locale: string;
   appTitle: string;
   appDescription: string;
+  maxUploadBytes: number;
 }
 
 let cachedConfig: ClientConfig | null = null;
@@ -40,6 +42,7 @@ export async function getConfig(): Promise<ClientConfig> {
       appTitle: "Ask AI",
       appDescription:
         "Ask anything about your knowledge base. Switch to Deep Research for complex multi-step questions.",
+      maxUploadBytes: MAX_UPLOAD_BYTES,
     };
   }
 

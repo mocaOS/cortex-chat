@@ -3,6 +3,7 @@ import "./globals.css";
 import { getAppSettings } from "@/lib/settings";
 import { resolveLogoUrl } from "@/lib/branding-url";
 import { setLocale as setI18nLocale } from "@/lib/i18n";
+import { MAX_UPLOAD_BYTES } from "@/lib/upload-limits";
 import ConfigBootstrap from "@/components/ConfigBootstrap";
 
 export const dynamic = "force-dynamic";
@@ -48,6 +49,7 @@ export default function RootLayout({
     locale: settings.locale,
     appTitle: settings.appTitle,
     appDescription: settings.appDescription,
+    maxUploadBytes: MAX_UPLOAD_BYTES,
   };
 
   return (

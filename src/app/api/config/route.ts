@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAppSettings } from "@/lib/settings";
 import { resolveLogoUrl } from "@/lib/branding-url";
+import { MAX_UPLOAD_BYTES } from "@/lib/upload-limits";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,7 @@ export function GET() {
     locale: settings.locale,
     appTitle: settings.appTitle,
     appDescription: settings.appDescription,
+    maxUploadBytes: MAX_UPLOAD_BYTES,
   });
 }
 

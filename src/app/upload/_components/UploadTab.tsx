@@ -3,6 +3,11 @@
 import { useCallback, useEffect, useState } from "react";
 import { Button, ErrorBanner, Select } from "@/components/admin/ui";
 import { t } from "@/lib/i18n";
+import { getConfig } from "@/lib/config";
+
+function formatMaxBytes(bytes: number): string {
+  return `${Math.round(bytes / (1024 * 1024))} MB`;
+}
 
 interface Collection {
   id: string;
@@ -52,6 +57,16 @@ export default function UploadTab() {
     setUploading(true);
     setError(null);
     setToast(null);
+
+    const cfg = await getConfig();
+    if (file.size > cfg.maxUploadBytes) {
+      setToast({
+        kind: "error",
+        text: t("fileTooLarge", { max: formatMaxBytes(cfg.maxUploadBytes) }),
+      });
+      setUploading(false);
+      return;
+    }
 
     const form = new FormData();
     form.append("file", file);

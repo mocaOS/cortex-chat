@@ -4,6 +4,7 @@ import { usageEvents } from "@/lib/db/schema";
 import { requireAuth } from "@/lib/auth/session";
 import { getUserContentKey } from "@/lib/auth/backend-key";
 import { newId } from "@/lib/auth/crypto";
+import { MAX_UPLOAD_BYTES, MAX_UPLOAD_LABEL } from "@/lib/upload-limits";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -28,9 +29,13 @@ export async function POST(request: Request) {
   let inForm: FormData;
   try {
     inForm = await request.formData();
-  } catch {
+  } catch (err) {
+    console.error("[upload] formData parse failed:", err);
     return NextResponse.json(
-      { error: "Expected multipart/form-data." },
+      {
+        error:
+          "Could not read upload. The file may be too large or the request was truncated.",
+      },
       { status: 400 }
     );
   }
@@ -39,6 +44,13 @@ export async function POST(request: Request) {
 
   if (!(file instanceof File)) {
     return NextResponse.json({ error: "Missing file." }, { status: 400 });
+  }
+
+  if (file.size > MAX_UPLOAD_BYTES) {
+    return NextResponse.json(
+      { error: `File is too large. Maximum size is ${MAX_UPLOAD_LABEL}.` },
+      { status: 413 }
+    );
   }
 
   // If the user's key is scoped, enforce the scope.
