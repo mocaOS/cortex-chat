@@ -13,9 +13,15 @@ import { useLocale } from "@/lib/i18n-client";
 
 type Locale = "en" | "de";
 
+interface AnalyticsVariable {
+  token: string;
+  description: string;
+}
+
 interface Settings {
   appTitle: string;
   appDescription: string;
+  cortexAnalyticsTemplate: string;
   locale: Locale;
   hasCustomLogo: boolean;
   logoUrl: string;
@@ -24,6 +30,7 @@ interface Settings {
 interface Defaults {
   appTitle: string;
   appDescription: string;
+  cortexAnalyticsTemplate: string;
   locale: Locale;
 }
 
@@ -31,8 +38,12 @@ export default function AdminSettingsPage() {
   useLocale();
   const [defaults, setDefaults] = useState<Defaults | null>(null);
   const [settings, setSettings] = useState<Settings | null>(null);
+  const [analyticsVariables, setAnalyticsVariables] = useState<
+    AnalyticsVariable[]
+  >([]);
   const [appTitle, setAppTitle] = useState("");
   const [appDescription, setAppDescription] = useState("");
+  const [cortexAnalyticsTemplate, setCortexAnalyticsTemplate] = useState("");
   const [locale, setLocaleState] = useState<Locale>("en");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -40,6 +51,7 @@ export default function AdminSettingsPage() {
   const [logoError, setLogoError] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showVariables, setShowVariables] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -50,8 +62,10 @@ export default function AdminSettingsPage() {
       if (!res.ok) throw new Error(data.error || t("failedToLoad"));
       setDefaults(data.defaults);
       setSettings(data.settings);
+      setAnalyticsVariables(data.cortexAnalyticsVariables ?? []);
       setAppTitle(data.settings.appTitle);
       setAppDescription(data.settings.appDescription);
+      setCortexAnalyticsTemplate(data.settings.cortexAnalyticsTemplate ?? "");
       setLocaleState(data.settings.locale);
     } catch (err) {
       setError(err instanceof Error ? err.message : t("failedToLoad"));
@@ -65,7 +79,12 @@ export default function AdminSettingsPage() {
   }, [load]);
 
   async function savePatch(
-    patch: Partial<{ appTitle: string; appDescription: string; locale: Locale }>
+    patch: Partial<{
+      appTitle: string;
+      appDescription: string;
+      cortexAnalyticsTemplate: string;
+      locale: Locale;
+    }>
   ) {
     setSaving(true);
     setMsg(null);
@@ -81,6 +100,7 @@ export default function AdminSettingsPage() {
       setSettings(data.settings);
       setAppTitle(data.settings.appTitle);
       setAppDescription(data.settings.appDescription);
+      setCortexAnalyticsTemplate(data.settings.cortexAnalyticsTemplate ?? "");
       setLocaleState(data.settings.locale);
       setI18nLocale(data.settings.locale);
       setMsg(t("saved"));
@@ -93,7 +113,12 @@ export default function AdminSettingsPage() {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    savePatch({ appTitle, appDescription, locale });
+    savePatch({
+      appTitle,
+      appDescription,
+      cortexAnalyticsTemplate,
+      locale,
+    });
   }
 
   function resetText() {
@@ -280,6 +305,116 @@ export default function AdminSettingsPage() {
               style={{ color: "var(--fg2)" }}
             >
               {t("localeHint")}
+            </p>
+
+            <div
+              className="pt-2 mt-2 border-t"
+              style={{ borderColor: "var(--border)" }}
+            />
+
+            <div className="block space-y-1.5">
+              <div className="flex items-center gap-1.5">
+                <span
+                  className="text-[10.5px] font-medium uppercase tracking-[0.08em]"
+                  style={{ color: "var(--fg2)" }}
+                >
+                  {t("cortexAnalyticsLabel")}
+                </span>
+                <div className="relative">
+                  <button
+                    type="button"
+                    aria-label={t("cortexAnalyticsVariablesHeading")}
+                    onMouseEnter={() => setShowVariables(true)}
+                    onMouseLeave={() => setShowVariables(false)}
+                    onFocus={() => setShowVariables(true)}
+                    onBlur={() => setShowVariables(false)}
+                    className="inline-flex items-center justify-center rounded-full transition-colors"
+                    style={{ color: "var(--fg2)" }}
+                  >
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth={1.75}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <circle cx="12" cy="12" r="10" />
+                      <path d="M12 16v-4" />
+                      <path d="M12 8h.01" />
+                    </svg>
+                  </button>
+                  {showVariables && analyticsVariables.length > 0 && (
+                    <div
+                      role="tooltip"
+                      className="absolute z-10 left-5 top-0 min-w-[260px] rounded-[var(--radius-sm)] border p-3 shadow-lg"
+                      style={{
+                        background: "var(--card)",
+                        borderColor: "var(--border)",
+                      }}
+                    >
+                      <div
+                        className="text-[10.5px] font-medium uppercase tracking-[0.08em] mb-2"
+                        style={{ color: "var(--fg2)" }}
+                      >
+                        {t("cortexAnalyticsVariablesHeading")}
+                      </div>
+                      <ul className="space-y-1.5">
+                        {analyticsVariables.map((v) => (
+                          <li
+                            key={v.token}
+                            className="flex flex-col gap-0.5"
+                          >
+                            <span
+                              className="text-[11.5px]"
+                              style={{
+                                fontFamily: "var(--font-mono)",
+                                color: "var(--fg1)",
+                              }}
+                            >
+                              {v.token}
+                            </span>
+                            <span
+                              className="text-[11.5px]"
+                              style={{ color: "var(--fg2)" }}
+                            >
+                              {v.description}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <textarea
+                value={cortexAnalyticsTemplate}
+                onChange={(e) => setCortexAnalyticsTemplate(e.target.value)}
+                maxLength={4000}
+                rows={6}
+                placeholder={t("cortexAnalyticsPlaceholder")}
+                className="w-full rounded-[var(--radius)] px-3 py-2 text-[12.5px] outline-none border transition-colors disabled:opacity-60 placeholder:text-[var(--fg3)]"
+                style={{
+                  background: "var(--bg)",
+                  borderColor: "var(--input)",
+                  color: "var(--fg1)",
+                  fontFamily: "var(--font-mono)",
+                }}
+                onFocus={(e) => {
+                  e.currentTarget.style.borderColor = "var(--ring)";
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.borderColor = "var(--input)";
+                }}
+              />
+            </div>
+            <p
+              className="text-[11.5px] -mt-2"
+              style={{ color: "var(--fg2)" }}
+            >
+              {t("cortexAnalyticsHint")}
             </p>
 
             <div className="flex items-center justify-between gap-3 pt-2">

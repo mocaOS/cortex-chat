@@ -7,11 +7,21 @@ export const DEFAULT_APP_TITLE = "Ask AI";
 export const DEFAULT_APP_DESCRIPTION =
   "Ask anything about your knowledge base. Switch to Deep Research for complex multi-step questions.";
 export const DEFAULT_LOCALE: Locale = "en";
+export const DEFAULT_CORTEX_ANALYTICS_TEMPLATE = "";
+
+export const CORTEX_ANALYTICS_VARIABLES = [
+  { token: "$userEmail", description: "Logged-in user's email address" },
+  { token: "$userName", description: "Logged-in user's username" },
+] as const;
 
 export type Locale = "en" | "de";
 
 // Keys stored in the app_settings KV table.
-const TEXT_KEYS = ["appTitle", "appDescription"] as const;
+const TEXT_KEYS = [
+  "appTitle",
+  "appDescription",
+  "cortexAnalyticsTemplate",
+] as const;
 const LOCALE_KEY = "locale";
 const LOGO_KEY = "logoFile";
 const LOGO_UPDATED_KEY = "logoUpdatedAt";
@@ -25,6 +35,7 @@ export type AppSettingsKey =
 export interface AppSettings {
   appTitle: string;
   appDescription: string;
+  cortexAnalyticsTemplate: string;
   locale: Locale;
   logoFile: string | null;
   logoUpdatedAt: number | null;
@@ -42,6 +53,8 @@ export function getAppSettings(): AppSettings {
   return {
     appTitle: map.get("appTitle") || DEFAULT_APP_TITLE,
     appDescription: map.get("appDescription") || DEFAULT_APP_DESCRIPTION,
+    cortexAnalyticsTemplate:
+      map.get("cortexAnalyticsTemplate") || DEFAULT_CORTEX_ANALYTICS_TEMPLATE,
     locale: normalizeLocale(map.get(LOCALE_KEY)),
     logoFile: map.get(LOGO_KEY) || null,
     logoUpdatedAt: logoUpdatedRaw ? parseInt(logoUpdatedRaw, 10) : null,
@@ -49,7 +62,12 @@ export function getAppSettings(): AppSettings {
 }
 
 export function setTextSettings(
-  patch: Partial<Pick<AppSettings, "appTitle" | "appDescription">>
+  patch: Partial<
+    Pick<
+      AppSettings,
+      "appTitle" | "appDescription" | "cortexAnalyticsTemplate"
+    >
+  >
 ) {
   const now = Date.now();
   db.transaction((tx) => {

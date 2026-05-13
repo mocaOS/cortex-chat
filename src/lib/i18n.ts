@@ -235,6 +235,12 @@ const translations = {
       "Applies to every user of the chat system. Reload required for already-open tabs.",
     resetTitleDescription: "Reset title & description",
     resetTitleDescriptionConfirm: "Reset title and description to defaults?",
+    cortexAnalyticsLabel: "Cortex chat analytics",
+    cortexAnalyticsHint:
+      "Injected as the first entry of every backend conversation. Not visible in the chat UI. Use the variables on the right.",
+    cortexAnalyticsPlaceholder:
+      "<cortexchatanalytics>\nThis conversation was held by $userEmail\n</cortexchatanalytics>",
+    cortexAnalyticsVariablesHeading: "Available variables",
 
     // Upload page tabs
     documentManagementHeading: "Document Management",
@@ -587,6 +593,12 @@ const translations = {
     resetTitleDescription: "Titel & Beschreibung zurücksetzen",
     resetTitleDescriptionConfirm:
       "Titel und Beschreibung auf Standard zurücksetzen?",
+    cortexAnalyticsLabel: "Cortex Chat Analytics",
+    cortexAnalyticsHint:
+      "Wird als erster Eintrag jeder Backend-Konversation eingefügt. Wird nicht im Chat-UI angezeigt. Nutze die Variablen rechts.",
+    cortexAnalyticsPlaceholder:
+      "<cortexchatanalytics>\nDiese Konversation wurde geführt von $userEmail\n</cortexchatanalytics>",
+    cortexAnalyticsVariablesHeading: "Verfügbare Variablen",
 
     // Upload page tabs
     documentManagementHeading: "Dokumentenverwaltung",

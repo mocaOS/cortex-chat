@@ -17,6 +17,7 @@ Next.js 16 multi-tenant chat suite for a RAG-based AI knowledge assistant (libra
 - Server-side chat history, synced across devices per user
 - Auto-generated chat titles via LLM after first response
 - Configurable accent color, logo, locale via `/api/config` endpoint
+- Admin-defined `<cortexchatanalytics>` context block, injected server-side into every backend request for consumption by agent skills
 - Login history + usage analytics for the superadmin
 
 ## Auth & Users
@@ -42,6 +43,17 @@ Three kinds of key in play:
 ## Upload flow — "no extraction in UI"
 
 `POST /api/upload` on the library-backend triggers extraction automatically; there is no flag to skip it. We honor the "never start extraction" UX requirement by **confirming upload as soon as the HTTP response lands** (typically the upstream's initial 202 / 200) and **never surfacing extraction progress** in this UI. Extraction still runs asynchronously in the backend; it's simply not this app's concern.
+
+## Cortex chat analytics
+
+Admin-editable context block injected into every backend request, server-side, for backend agent skills to read (e.g. forwarding chat summaries to a CRM with the user's identity attached).
+
+- **Storage:** `app_settings` table, key `cortexAnalyticsTemplate`. Edited from `/admin/settings`. Empty default — no injection unless an admin opts in.
+- **Variables:** declared in `CORTEX_ANALYTICS_VARIABLES` (`src/lib/settings.ts`). v1 = `$userEmail`, `$userName`. Adding a new variable means extending that constant and the substitution map in `renderCortexAnalytics` — the admin info-icon popover reads from the API response, so the UI hint stays in sync automatically.
+- **Substitution:** `renderCortexAnalytics(template, user)` in `src/lib/cortex-analytics.ts`. `$userName` falls back to `email` when `username` is blank. Returns `null` for an empty template so the caller can skip injection cleanly.
+- **Injection:** `injectCortexAnalytics(bodyText, rendered)` prepends `{role:"user", content: rendered}` to `conversation_history` before the `/api/ask/stream` proxy forwards upstream. Fails open on malformed JSON — never block a chat because of a bad admin template.
+- **Invisibility:** the block never reaches the browser (proxy mutates the body server-side only) and is never written to `chat_messages`. Re-applied per request, so admin edits take effect immediately for in-flight sessions.
+- **Truncation caveat:** the library-backend caps `conversation_history` (env `MAX_CONVERSATION_HISTORY=6`). Re-injecting at position 0 every turn keeps the block present in the *current* request — which is what skills see — even after older turns fall off.
 
 ## Collection Scoping (user-facing)
 

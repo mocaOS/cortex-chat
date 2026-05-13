@@ -2,8 +2,10 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth/session";
 import {
+  CORTEX_ANALYTICS_VARIABLES,
   DEFAULT_APP_DESCRIPTION,
   DEFAULT_APP_TITLE,
+  DEFAULT_CORTEX_ANALYTICS_TEMPLATE,
   DEFAULT_LOCALE,
   getAppSettings,
   setLocale,
@@ -18,6 +20,7 @@ function serialize() {
   return {
     appTitle: s.appTitle,
     appDescription: s.appDescription,
+    cortexAnalyticsTemplate: s.cortexAnalyticsTemplate,
     locale: s.locale,
     hasCustomLogo: s.logoFile !== null,
     logoUrl: resolveLogoUrl(s),
@@ -35,8 +38,10 @@ export async function GET() {
     defaults: {
       appTitle: DEFAULT_APP_TITLE,
       appDescription: DEFAULT_APP_DESCRIPTION,
+      cortexAnalyticsTemplate: DEFAULT_CORTEX_ANALYTICS_TEMPLATE,
       locale: DEFAULT_LOCALE,
     },
+    cortexAnalyticsVariables: CORTEX_ANALYTICS_VARIABLES,
   });
 }
 
@@ -44,6 +49,7 @@ const Body = z.object({
   // Empty string resets to default; null/undefined leaves it unchanged.
   appTitle: z.string().max(120).optional(),
   appDescription: z.string().max(500).optional(),
+  cortexAnalyticsTemplate: z.string().max(4000).optional(),
   locale: z.enum(["en", "de"]).optional(),
 });
 

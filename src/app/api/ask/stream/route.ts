@@ -4,6 +4,11 @@ import { getGroupChatKey } from "@/lib/auth/backend-key";
 import { db } from "@/lib/db/client";
 import { usageEvents } from "@/lib/db/schema";
 import { newId } from "@/lib/auth/crypto";
+import { getAppSettings } from "@/lib/settings";
+import {
+  injectCortexAnalytics,
+  renderCortexAnalytics,
+} from "@/lib/cortex-analytics";
 
 export const dynamic = "force-dynamic";
 
@@ -51,6 +56,12 @@ export async function POST(request: Request) {
     })
     .run();
 
+  const rendered = renderCortexAnalytics(
+    getAppSettings().cortexAnalyticsTemplate,
+    ctx.user
+  );
+  const upstreamBody = injectCortexAnalytics(body, rendered);
+
   try {
     const upstream = await fetch(`${apiUrl}/api/ask/stream`, {
       method: "POST",
@@ -59,7 +70,7 @@ export async function POST(request: Request) {
         "X-API-Key": resolved.apiKey,
         "Accept-Encoding": "identity",
       },
-      body,
+      body: upstreamBody,
     });
 
     if (!upstream.ok) {
