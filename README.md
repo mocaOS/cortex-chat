@@ -34,7 +34,7 @@ This frontend connects to any MOCA Library instance via its REST API using a rea
 
 - Node.js 18+
 - A running MOCA Library instance
-- A read-only API key (`moca_ro_...`) generated from your Library instance
+- An **admin-tier** API key (`moca_admin_...`) from your Library instance — used server-side to mint per-group / per-user keys
 
 ### Installation
 
@@ -50,15 +50,31 @@ Copy the example environment file and fill in your values:
 cp .env.example .env.local
 ```
 
+#### Server-side (runtime — never inlined into the browser bundle)
+
 | Variable | Description | Default |
 |---|---|---|
-| `NEXT_PUBLIC_API_URL` | URL of your MOCA Library backend | `http://localhost:8000` |
-| `NEXT_PUBLIC_API_KEY` | Read-only API key (`moca_ro_...`) | — |
-| `NEXT_PUBLIC_ACCENT_COLOR` | Theme accent color (**must be quoted**) | `"#ff9500"` |
-| `NEXT_PUBLIC_LOGO_URL` | Custom logo URL (leave empty for default) | — |
-| `NEXT_PUBLIC_LOCALE` | UI language: `english` or `german` | `english` |
+| `BACKEND_ADMIN_API_KEY` | Admin-tier library-backend key. Used to mint per-group/per-user keys and list collections in the admin UI. | — |
+| `SUPERADMIN_EMAIL` | Bootstraps the `superadmin` user on every server start. | — |
+| `SUPERADMIN_PASSWORD` | Re-hashed (argon2id) on every boot, so rotating means editing env + restart. | — |
+| `APP_ENCRYPTION_KEY` | 32 random bytes, base64-encoded (`openssl rand -base64 32`). Encrypts library-backend keys at rest in SQLite (AES-256-GCM). | — |
+| `LIBRARY_API_URL` | Server-side alias for the backend URL. Falls back to `NEXT_PUBLIC_API_URL`. | — |
+| `DATABASE_PATH` | SQLite file path. Avatars live alongside it under `<dirname>/avatars/`. | `./data/cortex-chat.db` |
+| `LOGO_URL` | Server-side fallback logo URL (used when no logo is uploaded in `/admin/settings` and `NEXT_PUBLIC_LOGO_URL` is unset). | — |
 
-> **Note:** Hex color values must be quoted in `.env` files (e.g. `"#ff9500"`) because `#` is otherwise treated as a comment by the dotenv parser.
+#### Build-time (inlined into the browser bundle by Next.js)
+
+| Variable | Description | Default |
+|---|---|---|
+| `NEXT_PUBLIC_API_URL` | URL of your MOCA Library backend. | `http://localhost:8000` |
+| `NEXT_PUBLIC_ACCENT_COLOR` | Theme accent color (**must be quoted**). | `"#ff9500"` |
+| `NEXT_PUBLIC_LOGO_URL` | Optional logo URL fallback. Prefer uploading a logo in `/admin/settings`. | — |
+
+> **Security note:** Never prefix `BACKEND_ADMIN_API_KEY`, `APP_ENCRYPTION_KEY`, or `SUPERADMIN_*` with `NEXT_PUBLIC_` — those would be baked into the client bundle.
+>
+> **Runtime branding:** Logo, page title, description, and default language are managed at runtime by the superadmin at `/admin/settings` and stored in SQLite — no env vars required for those.
+>
+> **Hex colors:** Hex values must be quoted in `.env` files (e.g. `"#ff9500"`) because `#` is otherwise treated as a comment by the dotenv parser.
 
 ### Development
 
@@ -77,19 +93,23 @@ npm start
 
 The project ships with a multi-stage Dockerfile and Docker Compose file for production deployment.
 
-> **Important:** `NEXT_PUBLIC_*` variables are inlined at **build time** by Next.js. You must pass them as build args (not runtime env vars).
+> **Important:** `NEXT_PUBLIC_*` variables are inlined at **build time** by Next.js — pass them as build args. Server-side secrets (`BACKEND_ADMIN_API_KEY`, `APP_ENCRYPTION_KEY`, `SUPERADMIN_*`) are read at **runtime** — pass them via the container environment, never as build args.
 
 ### Docker (standalone)
 
 ```bash
 docker build \
   --build-arg NEXT_PUBLIC_API_URL=https://your-library-instance.com \
-  --build-arg NEXT_PUBLIC_API_KEY=moca_ro_your-key \
   --build-arg NEXT_PUBLIC_ACCENT_COLOR='"#ff9500"' \
-  --build-arg NEXT_PUBLIC_LOCALE=english \
   -t library-frontend .
 
-docker run -p 3000:3000 library-frontend
+docker run -p 3000:3000 \
+  -e BACKEND_ADMIN_API_KEY=moca_admin_your-admin-key \
+  -e SUPERADMIN_EMAIL=admin@example.com \
+  -e SUPERADMIN_PASSWORD=change-me \
+  -e APP_ENCRYPTION_KEY="$(openssl rand -base64 32)" \
+  -v cortex-chat-data:/app/data \
+  library-frontend
 ```
 
 ### Docker Compose
@@ -97,11 +117,17 @@ docker run -p 3000:3000 library-frontend
 1. Create a `.env` file (or copy from `.env.example`):
 
 ```bash
+# Build-time
 NEXT_PUBLIC_API_URL=https://your-library-instance.com
-NEXT_PUBLIC_API_KEY=moca_ro_your-key
 NEXT_PUBLIC_ACCENT_COLOR="#ff9500"
 NEXT_PUBLIC_LOGO_URL=
-NEXT_PUBLIC_LOCALE=english
+
+# Runtime — server-side secrets
+BACKEND_ADMIN_API_KEY=moca_admin_your-admin-key
+SUPERADMIN_EMAIL=admin@example.com
+SUPERADMIN_PASSWORD=change-me
+APP_ENCRYPTION_KEY=base64-32-bytes-here
+
 PORT=3000
 ```
 
@@ -115,24 +141,26 @@ docker compose up -d --build
 
 1. Create a new **Docker Compose** resource in Coolify
 2. Point it to this repository
-3. Set the following **build-time variables** in Coolify's environment settings (mark them as build-time, not runtime):
+3. Set the variables in Coolify's environment settings, marking each correctly:
 
-| Variable | Value |
-|---|---|
-| `NEXT_PUBLIC_API_URL` | URL of your MOCA Library backend |
-| `NEXT_PUBLIC_API_KEY` | Your read-only API key |
-| `NEXT_PUBLIC_ACCENT_COLOR` | `"#ff9500"` (or your brand color) |
-| `NEXT_PUBLIC_LOGO_URL` | URL to your logo (optional) |
-| `NEXT_PUBLIC_LOCALE` | `english` or `german` |
+| Variable | Scope | Value |
+|---|---|---|
+| `NEXT_PUBLIC_API_URL` | build-time | URL of your MOCA Library backend |
+| `NEXT_PUBLIC_ACCENT_COLOR` | build-time | `"#ff9500"` (or your brand color) |
+| `NEXT_PUBLIC_LOGO_URL` | build-time | URL to your logo (optional) |
+| `BACKEND_ADMIN_API_KEY` | runtime | Your admin-tier library-backend key |
+| `SUPERADMIN_EMAIL` | runtime | Bootstrap email for the superadmin |
+| `SUPERADMIN_PASSWORD` | runtime | Bootstrap password for the superadmin |
+| `APP_ENCRYPTION_KEY` | runtime | 32 random bytes, base64-encoded |
 
 4. Set the port to `3000`
 5. Deploy — Coolify will build the image using the Dockerfile and start the container
 
-> **Tip:** If using Coolify's Dockerfile deployment type instead of Docker Compose, it works the same way — just set the build args in Coolify's UI and point to the `Dockerfile`.
+> **Tip:** If using Coolify's Dockerfile deployment type instead of Docker Compose, it works the same way — just set the build args + runtime env in Coolify's UI and point to the `Dockerfile`.
 
 ### Other Platforms (Railway, Render, Fly.io, etc.)
 
-Any platform that supports Dockerfile-based builds will work. Set the `NEXT_PUBLIC_*` variables as **build-time** environment variables in your platform's dashboard. The container exposes port `3000`.
+Any platform that supports Dockerfile-based builds will work. Set the `NEXT_PUBLIC_*` variables as **build-time** args and the server-side secrets as **runtime** environment variables. The container exposes port `3000` and persists state under `/app/data` — mount a volume there.
 
 ## How It Works
 
