@@ -3,13 +3,11 @@ import "server-only";
 // Thin wrappers over the Cortex backend admin API. All requests use the
 // master admin-tier key from env (BACKEND_ADMIN_API_KEY) — never a user key.
 
-function baseUrl(): string {
-  return (
-    process.env.NEXT_PUBLIC_API_URL ||
-    process.env.CORTEX_API_URL ||
-    process.env.LIBRARY_API_URL ||
-    "http://localhost:8000"
-  );
+// Single source of truth for the Cortex backend URL. CORTEX_API_URL is the
+// canonical name; deprecated aliases (NEXT_PUBLIC_API_URL, LIBRARY_API_URL)
+// are mirrored onto it at boot in src/instrumentation.ts.
+export function getBackendUrl(): string {
+  return process.env.CORTEX_API_URL || "http://localhost:8000";
 }
 
 function adminKey(): string {
@@ -26,7 +24,7 @@ async function call<T>(
   path: string,
   init?: RequestInit
 ): Promise<T> {
-  const res = await fetch(`${baseUrl()}${path}`, {
+  const res = await fetch(`${getBackendUrl()}${path}`, {
     ...init,
     headers: {
       "Content-Type": "application/json",

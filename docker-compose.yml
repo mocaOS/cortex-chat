@@ -3,21 +3,21 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
-        NEXT_PUBLIC_ACCENT_COLOR: ${NEXT_PUBLIC_ACCENT_COLOR:-"#ff9500"}
-        NEXT_PUBLIC_LOGO_URL: ${NEXT_PUBLIC_LOGO_URL:-}
     environment:
       BACKEND_ADMIN_API_KEY: ${BACKEND_ADMIN_API_KEY}
       SUPERADMIN_EMAIL: ${SUPERADMIN_EMAIL}
       SUPERADMIN_PASSWORD: ${SUPERADMIN_PASSWORD}
       APP_ENCRYPTION_KEY: ${APP_ENCRYPTION_KEY}
-      CORTEX_API_URL: ${CORTEX_API_URL:-}
-      # Deprecated: pass through for older deployments — the app copies its
-      # value into CORTEX_API_URL on boot if the new var is unset.
-      LIBRARY_API_URL: ${LIBRARY_API_URL:-}
+      CORTEX_API_URL: ${CORTEX_API_URL:-http://localhost:8000}
       DATABASE_PATH: ${DATABASE_PATH:-}
-      LOGO_URL: ${LOGO_URL:-}
+      # Deprecated: pass through for older deployments — the app copies these
+      # values into CORTEX_API_URL on boot if the new var is unset.
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-}
+      LIBRARY_API_URL: ${LIBRARY_API_URL:-}
+      # Deprecated: legacy branding env vars. Copied into app_settings on first
+      # boot, then the env can be removed. Configure branding via /admin/settings.
+      ACCENT_COLOR: ${ACCENT_COLOR:-}
+      NEXT_PUBLIC_ACCENT_COLOR: ${NEXT_PUBLIC_ACCENT_COLOR:-}
     ports:
       - "${PORT:-3000}:3000"
     volumes:

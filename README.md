@@ -34,7 +34,7 @@ Cortex Chat connects to any Cortex instance via its REST API and mints scoped pe
 - **Cortex chat analytics** — admins define a `<cortexchatanalytics>` block in `/admin/settings` that is injected server-side into every backend request (after `$userEmail` / `$userName` substitution). Invisible in the chat UI; readable by backend agent skills for use cases like routing chat summaries to external systems
 
 ### Branding & UX
-- **Customizable branding** — accent color and logo configurable via env (build-time) or at runtime in `/admin/settings` (logo, title, description, locale)
+- **Runtime branding** — accent color, logo, page title, description, and default language are edited by the superadmin at `/admin/settings` and stored in SQLite. No env vars, no rebuilds.
 - **Cortex design system** (a MOCA-derived spec) — dark-first, monochrome OKLCh + one accent, glass on chrome / opaque cards
 - **Multilingual** — English and German, selectable per-deployment
 - **Responsive** — comfortable on both mobile and desktop
@@ -61,33 +61,22 @@ Copy the example environment file and fill in your values:
 cp .env.example .env.local
 ```
 
-#### Server-side (runtime — never inlined into the browser bundle)
+All configuration is server-side, read at runtime. The browser bundle contains zero secrets and zero deploy-specific values.
 
 | Variable | Description | Default |
 |---|---|---|
+| `CORTEX_API_URL` | URL of your Cortex backend. The browser never calls the backend directly — all traffic goes through this app's server-side proxy. | `http://localhost:8000` |
 | `BACKEND_ADMIN_API_KEY` | Admin-tier Cortex backend key. Used to mint per-group/per-user keys and list collections in the admin UI. | — |
 | `SUPERADMIN_EMAIL` | Bootstraps the `superadmin` user on every server start. | — |
 | `SUPERADMIN_PASSWORD` | Re-hashed (argon2id) on every boot, so rotating means editing env + restart. | — |
 | `APP_ENCRYPTION_KEY` | 32 random bytes, base64-encoded (`openssl rand -base64 32`). Encrypts Cortex backend keys at rest in SQLite (AES-256-GCM). | — |
-| `CORTEX_API_URL` | Server-side alias for the backend URL. Used as fallback when `NEXT_PUBLIC_API_URL` is unset. | — |
 | `DATABASE_PATH` | SQLite file path. Avatars live alongside it under `<dirname>/avatars/`. | `./data/cortex-chat.db` |
-| `LOGO_URL` | Server-side fallback logo URL (used when no logo is uploaded in `/admin/settings` and `NEXT_PUBLIC_LOGO_URL` is unset). | — |
 
-#### Build-time (inlined into the browser bundle by Next.js)
-
-| Variable | Description | Default |
-|---|---|---|
-| `NEXT_PUBLIC_API_URL` | URL of your Cortex backend. | `http://localhost:8000` |
-| `NEXT_PUBLIC_ACCENT_COLOR` | Theme accent color fallback (**must be quoted**). Server-side `ACCENT_COLOR` takes precedence at runtime. | `"#ff9500"` |
-| `NEXT_PUBLIC_LOGO_URL` | Optional logo URL fallback. Prefer uploading a logo in `/admin/settings`. | — |
-
-> **Server-side overrides for branding:** `ACCENT_COLOR` and `LOGO_URL` (no `NEXT_PUBLIC_` prefix) are read at runtime by `/api/config` and take precedence over the build-time `NEXT_PUBLIC_*` values. Use these when you want to change branding without rebuilding the container.
-
+> **Branding is DB-backed.** Accent color, logo, page title, description, and default language are managed at runtime by the superadmin at `/admin/settings` and stored in SQLite. Changing branding never requires a rebuild or a restart.
+>
 > **Security note:** Never prefix `BACKEND_ADMIN_API_KEY`, `APP_ENCRYPTION_KEY`, or `SUPERADMIN_*` with `NEXT_PUBLIC_` — those would be baked into the client bundle.
 >
-> **Runtime branding:** Logo, page title, description, and default language are managed at runtime by the superadmin at `/admin/settings` and stored in SQLite — no env vars required for those.
->
-> **Hex colors:** Hex values must be quoted in `.env` files (e.g. `"#ff9500"`) because `#` is otherwise treated as a comment by the dotenv parser.
+> **Fail-fast validation:** On boot the app validates that `BACKEND_ADMIN_API_KEY`, `APP_ENCRYPTION_KEY` (32-byte base64), `SUPERADMIN_EMAIL`, and `SUPERADMIN_PASSWORD` are present and well-formed. Misconfigured deploys exit with a single error listing every issue.
 
 ### Development
 
@@ -104,19 +93,15 @@ npm start
 
 ## Docker Deployment
 
-The project ships with a multi-stage Dockerfile and Docker Compose file for production deployment.
-
-> **Important:** `NEXT_PUBLIC_*` variables are inlined at **build time** by Next.js — pass them as build args. Server-side secrets (`BACKEND_ADMIN_API_KEY`, `APP_ENCRYPTION_KEY`, `SUPERADMIN_*`) are read at **runtime** — pass them via the container environment, never as build args.
+The project ships with a multi-stage Dockerfile and Docker Compose file for production deployment. There are no build-time env vars — every deploy-specific value is runtime, so the same image can serve any tenant.
 
 ### Docker (standalone)
 
 ```bash
-docker build \
-  --build-arg NEXT_PUBLIC_API_URL=https://your-cortex-instance.com \
-  --build-arg NEXT_PUBLIC_ACCENT_COLOR='"#ff9500"' \
-  -t cortex-chat .
+docker build -t cortex-chat .
 
 docker run -p 3000:3000 \
+  -e CORTEX_API_URL=https://your-cortex-instance.com \
   -e BACKEND_ADMIN_API_KEY=moca_admin_your-admin-key \
   -e SUPERADMIN_EMAIL=admin@example.com \
   -e SUPERADMIN_PASSWORD=change-me \
@@ -125,17 +110,14 @@ docker run -p 3000:3000 \
   cortex-chat
 ```
 
+After first boot, log in as the superadmin and customize branding (accent, logo, title, language) at `/admin/settings`.
+
 ### Docker Compose
 
 1. Create a `.env` file (or copy from `.env.example`):
 
 ```bash
-# Build-time
-NEXT_PUBLIC_API_URL=https://your-cortex-instance.com
-NEXT_PUBLIC_ACCENT_COLOR="#ff9500"
-NEXT_PUBLIC_LOGO_URL=
-
-# Runtime — server-side secrets
+CORTEX_API_URL=https://your-cortex-instance.com
 BACKEND_ADMIN_API_KEY=moca_admin_your-admin-key
 SUPERADMIN_EMAIL=admin@example.com
 SUPERADMIN_PASSWORD=change-me
@@ -154,26 +136,22 @@ docker compose up -d --build
 
 1. Create a new **Docker Compose** resource in Coolify
 2. Point it to this repository
-3. Set the variables in Coolify's environment settings, marking each correctly:
+3. Set the variables in Coolify's environment settings (all runtime):
 
-| Variable | Scope | Value |
-|---|---|---|
-| `NEXT_PUBLIC_API_URL` | build-time | URL of your Cortex backend |
-| `NEXT_PUBLIC_ACCENT_COLOR` | build-time | `"#ff9500"` (or your brand color) |
-| `NEXT_PUBLIC_LOGO_URL` | build-time | URL to your logo (optional) |
-| `BACKEND_ADMIN_API_KEY` | runtime | Your admin-tier Cortex backend key |
-| `SUPERADMIN_EMAIL` | runtime | Bootstrap email for the superadmin |
-| `SUPERADMIN_PASSWORD` | runtime | Bootstrap password for the superadmin |
-| `APP_ENCRYPTION_KEY` | runtime | 32 random bytes, base64-encoded |
+| Variable | Value |
+|---|---|
+| `CORTEX_API_URL` | URL of your Cortex backend |
+| `BACKEND_ADMIN_API_KEY` | Your admin-tier Cortex backend key |
+| `SUPERADMIN_EMAIL` | Bootstrap email for the superadmin |
+| `SUPERADMIN_PASSWORD` | Bootstrap password for the superadmin |
+| `APP_ENCRYPTION_KEY` | 32 random bytes, base64-encoded |
 
 4. Set the port to `3000`
-5. Deploy — Coolify will build the image using the Dockerfile and start the container
-
-> **Tip:** If using Coolify's Dockerfile deployment type instead of Docker Compose, it works the same way — just set the build args + runtime env in Coolify's UI and point to the `Dockerfile`.
+5. Deploy — Coolify builds the image and starts the container. Branding is configured in `/admin/settings` after first login.
 
 ### Other Platforms (Railway, Render, Fly.io, etc.)
 
-Any platform that supports Dockerfile-based builds will work. Set the `NEXT_PUBLIC_*` variables as **build-time** args and the server-side secrets as **runtime** environment variables. The container exposes port `3000` and persists state under `/app/data` — mount a volume there.
+Any platform that supports Dockerfile-based builds will work. Set the variables above as **runtime** environment variables (no build args). The container exposes port `3000` and persists state under `/app/data` — mount a volume there.
 
 ## How It Works
 
@@ -187,7 +165,7 @@ Any platform that supports Dockerfile-based builds will work. Set the `NEXT_PUBL
 
 ### Runtime Configuration
 
-Branding (accent color, logo) and locale are loaded at runtime via an internal `/api/config` endpoint to avoid compile-time inlining by the Next.js bundler. The page renders a blank screen until config resolves, preventing any flash of default values.
+All branding (accent color, logo, page title, description, default language) lives in the `app_settings` SQLite table and is edited by the superadmin at `/admin/settings`. The server SSRs the values into the initial HTML (no flash of defaults), and `/api/config` returns them at runtime for client-side reactivity.
 
 ### Authentication & key model
 
@@ -213,7 +191,7 @@ Roles live in `users.role`. Three values, each gating what's reachable in the UI
 | Group chat key | `read`, scoped to a set of collections | `api_keys.encrypted_value` (AES-256-GCM with `APP_ENCRYPTION_KEY`), referenced by `groups.chat_key_id` | Every `/api/ask*` and `/api/proxy/*` call by a user in that group | The app, when an admin creates a group — calls the Cortex backend with the env admin key to mint a `read` key, then encrypts + stores the response |
 | User content key | `manage`, scoped to a set of collections | `api_keys.encrypted_value`, referenced by `users.content_key_id` | `/api/me/upload` — only `user`-role accounts granted a content role have one | The app, when an admin grants the user a content role — same minting flow, but `manage` scope |
 
-So every key in `api_keys` was minted by the env admin key against **one specific Cortex backend instance**. Re-pointing `NEXT_PUBLIC_API_URL` at a different backend invalidates them all (see "Switching backends" below).
+So every key in `api_keys` was minted by the env admin key against **one specific Cortex backend instance**. Re-pointing `CORTEX_API_URL` at a different backend invalidates them all (see "Switching backends" below).
 
 #### Sessions
 
@@ -225,7 +203,7 @@ Users sign in with email + password (argon2id). Sessions are DB-backed (`session
 
 #### Switching backends
 
-Group chat keys are minted *against a specific backend instance* — they live in that backend's own key store. If you re-point `NEXT_PUBLIC_API_URL` at a different backend, every key in your `api_keys` table is unknown to the new backend, and every chat call returns `401`. There is currently no in-UI "rotate key" action on an existing group. To recover:
+Group chat keys are minted *against a specific backend instance* — they live in that backend's own key store. If you re-point `CORTEX_API_URL` at a different backend, every key in your `api_keys` table is unknown to the new backend, and every chat call returns `401`. There is currently no in-UI "rotate key" action on an existing group. To recover:
 
 1. **Recreate the group.** At `/admin`, create a new group (this mints a fresh chat key against the now-current backend). Reassign users to the new group via the user editor. Delete the old group. Per-user chat history survives because it's keyed by user, not group.
 2. **Or, in dev, wipe the DB.** `rm data/cortex-chat.db` and restart — the superadmin is re-bootstrapped from env automatically. You'll lose users, groups, and chat history, but it's the fastest reset.

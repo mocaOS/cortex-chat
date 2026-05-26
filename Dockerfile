@@ -13,19 +13,10 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Build-time env vars (NEXT_PUBLIC_* are inlined at build time by Next.js).
-# Server-side secrets (BACKEND_ADMIN_API_KEY, APP_ENCRYPTION_KEY, SUPERADMIN_*)
-# are read at runtime — pass them via the container environment, not as ARGs.
-ARG NEXT_PUBLIC_API_URL=http://localhost:8000
-ARG NEXT_PUBLIC_ACCENT_COLOR="#ff9500"
-ARG NEXT_PUBLIC_LOGO_URL=
-ARG NEXT_PUBLIC_LOCALE=english
-
-ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
-ENV NEXT_PUBLIC_ACCENT_COLOR=$NEXT_PUBLIC_ACCENT_COLOR
-ENV NEXT_PUBLIC_LOGO_URL=$NEXT_PUBLIC_LOGO_URL
-ENV NEXT_PUBLIC_LOCALE=$NEXT_PUBLIC_LOCALE
-
+# No build-time env vars: branding (accent, logo, title, locale) is managed at
+# runtime in the DB via /admin/settings. Server-side config (CORTEX_API_URL,
+# BACKEND_ADMIN_API_KEY, APP_ENCRYPTION_KEY, SUPERADMIN_*) is read at runtime
+# from the container environment.
 RUN npm run build
 
 # --- Stage 3: Production runner ---

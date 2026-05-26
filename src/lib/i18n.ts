@@ -225,6 +225,9 @@ const translations = {
     failedToRemove: "Failed to remove",
     logoHint:
       "SVG, PNG, JPEG, or WebP. Max 1 MiB. Wide logos render best; they appear in the header, sidebar, and on the login page.",
+    accentColorLabel: "Accent color",
+    accentColorHint:
+      "Used for primary buttons, links, citation badges, and active states. Hex (e.g. #cba236) or any CSS color function such as oklch().",
     pageTitle: "Page title",
     pageDescription: "Page description",
     defaultLabel: "Default:",
@@ -582,6 +585,9 @@ const translations = {
     failedToRemove: "Entfernen fehlgeschlagen",
     logoHint:
       "SVG, PNG, JPEG oder WebP. Max. 1 MiB. Breite Logos werden am besten dargestellt; sie erscheinen im Header, in der Seitenleiste und auf der Login-Seite.",
+    accentColorLabel: "Akzentfarbe",
+    accentColorHint:
+      "Wird für Primärbuttons, Links, Quellen-Badges und aktive Zustände verwendet. Hex (z. B. #cba236) oder beliebige CSS-Farbfunktion wie oklch().",
     pageTitle: "Seitentitel",
     pageDescription: "Seitenbeschreibung",
     defaultLabel: "Standard:",

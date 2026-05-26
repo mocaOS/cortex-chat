@@ -3,6 +3,7 @@ import { db } from "@/lib/db/client";
 import { usageEvents } from "@/lib/db/schema";
 import { requireAuth } from "@/lib/auth/session";
 import { getUserContentKey } from "@/lib/auth/backend-key";
+import { getBackendUrl } from "@/lib/backend";
 import { newId } from "@/lib/auth/crypto";
 import { MAX_UPLOAD_BYTES, MAX_UPLOAD_LABEL } from "@/lib/upload-limits";
 
@@ -10,10 +11,6 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 // Allow larger request bodies for uploads.
 export const maxDuration = 120;
-
-function readEnv(key: string): string | undefined {
-  return process.env[key];
-}
 
 export async function POST(request: Request) {
   const { user } = await requireAuth();
@@ -65,7 +62,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const apiUrl = readEnv("NEXT_PUBLIC_API_URL") || "http://localhost:8000";
+  const apiUrl = getBackendUrl();
   const outForm = new FormData();
   outForm.append("file", file, file.name);
   if (collectionId) outForm.append("collection_id", collectionId);

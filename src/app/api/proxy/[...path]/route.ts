@@ -1,15 +1,12 @@
 import { NextResponse } from "next/server";
 import { getAuth } from "@/lib/auth/session";
 import { getGroupChatKey } from "@/lib/auth/backend-key";
+import { getBackendUrl } from "@/lib/backend";
 import { db } from "@/lib/db/client";
 import { usageEvents } from "@/lib/db/schema";
 import { newId } from "@/lib/auth/crypto";
 
 export const dynamic = "force-dynamic";
-
-function readEnv(key: string): string | undefined {
-  return process.env[key];
-}
 
 async function proxyRequest(request: Request, method: string) {
   const ctx = await getAuth();
@@ -17,7 +14,7 @@ async function proxyRequest(request: Request, method: string) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const apiUrl = readEnv("NEXT_PUBLIC_API_URL") || "http://localhost:8000";
+  const apiUrl = getBackendUrl();
   const url = new URL(request.url);
   const upstreamPath = url.pathname.replace(/^\/api\/proxy/, "");
   const upstream = `${apiUrl}${upstreamPath}${url.search}`;

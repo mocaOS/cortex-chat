@@ -22,6 +22,7 @@ interface Settings {
   appTitle: string;
   appDescription: string;
   cortexAnalyticsTemplate: string;
+  accentColor: string;
   locale: Locale;
   hasCustomLogo: boolean;
   logoUrl: string;
@@ -31,6 +32,7 @@ interface Defaults {
   appTitle: string;
   appDescription: string;
   cortexAnalyticsTemplate: string;
+  accentColor: string;
   locale: Locale;
 }
 
@@ -44,6 +46,7 @@ export default function AdminSettingsPage() {
   const [appTitle, setAppTitle] = useState("");
   const [appDescription, setAppDescription] = useState("");
   const [cortexAnalyticsTemplate, setCortexAnalyticsTemplate] = useState("");
+  const [accentColor, setAccentColor] = useState("");
   const [locale, setLocaleState] = useState<Locale>("en");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -66,6 +69,7 @@ export default function AdminSettingsPage() {
       setAppTitle(data.settings.appTitle);
       setAppDescription(data.settings.appDescription);
       setCortexAnalyticsTemplate(data.settings.cortexAnalyticsTemplate ?? "");
+      setAccentColor(data.settings.accentColor ?? "");
       setLocaleState(data.settings.locale);
     } catch (err) {
       setError(err instanceof Error ? err.message : t("failedToLoad"));
@@ -83,6 +87,7 @@ export default function AdminSettingsPage() {
       appTitle: string;
       appDescription: string;
       cortexAnalyticsTemplate: string;
+      accentColor: string;
       locale: Locale;
     }>
   ) {
@@ -101,8 +106,15 @@ export default function AdminSettingsPage() {
       setAppTitle(data.settings.appTitle);
       setAppDescription(data.settings.appDescription);
       setCortexAnalyticsTemplate(data.settings.cortexAnalyticsTemplate ?? "");
+      setAccentColor(data.settings.accentColor ?? "");
       setLocaleState(data.settings.locale);
       setI18nLocale(data.settings.locale);
+      if (data.settings.accentColor) {
+        document.documentElement.style.setProperty(
+          "--accent",
+          data.settings.accentColor
+        );
+      }
       setMsg(t("saved"));
     } catch (err) {
       setError(err instanceof Error ? err.message : t("saveFailed"));
@@ -117,6 +129,7 @@ export default function AdminSettingsPage() {
       appTitle,
       appDescription,
       cortexAnalyticsTemplate,
+      accentColor,
       locale,
     });
   }
@@ -257,6 +270,71 @@ export default function AdminSettingsPage() {
             className="rounded-[var(--radius-lg)] border p-5 space-y-4"
             style={{ background: "var(--card)", borderColor: "var(--border)" }}
           >
+            <div className="block space-y-1.5">
+              <label
+                className="text-[10.5px] font-medium uppercase tracking-[0.08em]"
+                style={{ color: "var(--fg2)" }}
+              >
+                {t("accentColorLabel")}
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={
+                    /^#[0-9a-fA-F]{6}$/.test(accentColor)
+                      ? accentColor
+                      : "#cba236"
+                  }
+                  onChange={(e) => setAccentColor(e.target.value)}
+                  className="h-9 w-12 rounded-[var(--radius)] cursor-pointer border bg-transparent p-0"
+                  style={{ borderColor: "var(--input)" }}
+                  aria-label={t("accentColorLabel")}
+                />
+                <input
+                  type="text"
+                  value={accentColor}
+                  onChange={(e) => setAccentColor(e.target.value)}
+                  maxLength={100}
+                  placeholder={defaults.accentColor}
+                  className="flex-1 rounded-[var(--radius)] px-3 py-2 text-[12.5px] outline-none border"
+                  style={{
+                    background: "var(--bg)",
+                    borderColor: "var(--input)",
+                    color: "var(--fg1)",
+                    fontFamily: "var(--font-mono)",
+                  }}
+                />
+                <div
+                  className="h-9 w-9 rounded-full border"
+                  style={{
+                    background: accentColor || defaults.accentColor,
+                    borderColor: "var(--border)",
+                  }}
+                  aria-hidden="true"
+                />
+              </div>
+              <p
+                className="text-[11.5px]"
+                style={{ color: "var(--fg2)" }}
+              >
+                {t("accentColorHint")}
+              </p>
+              <p
+                className="text-[11.5px] -mt-1"
+                style={{ color: "var(--fg2)" }}
+              >
+                {t("defaultLabel")}{" "}
+                <span style={{ fontFamily: "var(--font-mono)", color: "var(--fg1)" }}>
+                  {defaults.accentColor}
+                </span>
+              </p>
+            </div>
+
+            <div
+              className="pt-2 mt-2 border-t"
+              style={{ borderColor: "var(--border)" }}
+            />
+
             <Input
               label={t("pageTitle")}
               value={appTitle}

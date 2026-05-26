@@ -8,6 +8,9 @@ export const DEFAULT_APP_DESCRIPTION =
   "Ask anything about your knowledge base. Switch to Deep Research for complex multi-step questions.";
 export const DEFAULT_LOCALE: Locale = "en";
 export const DEFAULT_CORTEX_ANALYTICS_TEMPLATE = "";
+// MOCA design-system accent (warm yellow-green). Single source of truth —
+// duplicated nowhere except the hardcoded client-side fetch-failure fallback.
+export const DEFAULT_ACCENT_COLOR = "oklch(0.79 0.18 70.67)";
 
 export const CORTEX_ANALYTICS_VARIABLES = [
   { token: "$userEmail", description: "Logged-in user's email address" },
@@ -21,6 +24,7 @@ const TEXT_KEYS = [
   "appTitle",
   "appDescription",
   "cortexAnalyticsTemplate",
+  "accentColor",
 ] as const;
 const LOCALE_KEY = "locale";
 const LOGO_KEY = "logoFile";
@@ -36,6 +40,7 @@ export interface AppSettings {
   appTitle: string;
   appDescription: string;
   cortexAnalyticsTemplate: string;
+  accentColor: string;
   locale: Locale;
   logoFile: string | null;
   logoUpdatedAt: number | null;
@@ -55,6 +60,7 @@ export function getAppSettings(): AppSettings {
     appDescription: map.get("appDescription") || DEFAULT_APP_DESCRIPTION,
     cortexAnalyticsTemplate:
       map.get("cortexAnalyticsTemplate") || DEFAULT_CORTEX_ANALYTICS_TEMPLATE,
+    accentColor: map.get("accentColor") || DEFAULT_ACCENT_COLOR,
     locale: normalizeLocale(map.get(LOCALE_KEY)),
     logoFile: map.get(LOGO_KEY) || null,
     logoUpdatedAt: logoUpdatedRaw ? parseInt(logoUpdatedRaw, 10) : null,
@@ -65,7 +71,10 @@ export function setTextSettings(
   patch: Partial<
     Pick<
       AppSettings,
-      "appTitle" | "appDescription" | "cortexAnalyticsTemplate"
+      | "appTitle"
+      | "appDescription"
+      | "cortexAnalyticsTemplate"
+      | "accentColor"
     >
   >
 ) {

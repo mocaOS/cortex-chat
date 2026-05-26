@@ -35,8 +35,10 @@ export async function getConfig(): Promise<ClientConfig> {
     const res = await fetch("/api/config");
     cachedConfig = (await res.json()) as ClientConfig;
   } catch {
+    // Cosmetic fallback if /api/config itself is unreachable — at that point
+    // the app is broken anyway (no auth, no chats); accent value is a stub.
     cachedConfig = {
-      accentColor: process.env.NEXT_PUBLIC_ACCENT_COLOR || "#ff9500",
+      accentColor: "oklch(0.79 0.18 70.67)",
       logoUrl: "",
       locale: "en",
       appTitle: "Ask AI",

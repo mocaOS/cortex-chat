@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAuth } from "@/lib/auth/session";
 import { getGroupChatKey } from "@/lib/auth/backend-key";
+import { getBackendUrl } from "@/lib/backend";
 import { db } from "@/lib/db/client";
 import { usageEvents } from "@/lib/db/schema";
 import { newId } from "@/lib/auth/crypto";
@@ -11,10 +12,6 @@ import {
 } from "@/lib/cortex-analytics";
 
 export const dynamic = "force-dynamic";
-
-function readEnv(key: string): string | undefined {
-  return process.env[key];
-}
 
 /**
  * SSE streaming proxy with per-user key injection.
@@ -39,7 +36,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const apiUrl = readEnv("NEXT_PUBLIC_API_URL") || "http://localhost:8000";
+  const apiUrl = getBackendUrl();
   const body = await request.text();
 
   let collectionId: string | null = null;
