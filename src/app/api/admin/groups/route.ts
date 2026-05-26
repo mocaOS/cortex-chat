@@ -79,7 +79,7 @@ export async function POST(request: Request) {
       {
         error:
           err instanceof Error
-            ? `Library backend rejected key creation: ${err.message}`
+            ? `Cortex rejected key creation: ${err.message}`
             : "Backend error",
       },
       { status: 502 }

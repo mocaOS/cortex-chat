@@ -1,5 +1,5 @@
 services:
-  library-frontend:
+  cortex-chat:
     build:
       context: .
       dockerfile: Dockerfile
@@ -12,6 +12,9 @@ services:
       SUPERADMIN_EMAIL: ${SUPERADMIN_EMAIL}
       SUPERADMIN_PASSWORD: ${SUPERADMIN_PASSWORD}
       APP_ENCRYPTION_KEY: ${APP_ENCRYPTION_KEY}
+      CORTEX_API_URL: ${CORTEX_API_URL:-}
+      # Deprecated: pass through for older deployments — the app copies its
+      # value into CORTEX_API_URL on boot if the new var is unset.
       LIBRARY_API_URL: ${LIBRARY_API_URL:-}
       DATABASE_PATH: ${DATABASE_PATH:-}
       LOGO_URL: ${LOGO_URL:-}

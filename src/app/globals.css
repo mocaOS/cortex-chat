@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /*
- * MOCA Library design system — adapted for cortex-chat.
+ * Cortex design system (derived from the MOCA design language).
  *
  * Monochrome OKLCh surfaces + a single chromatic accent. Accent stays runtime-
  * overridable (see src/lib/config.ts + layout.tsx); everything else is fixed.

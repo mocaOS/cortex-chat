@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Next.js 16 multi-tenant chat suite for a RAG-based AI knowledge assistant (library-backend).
+Cortex Chat — a Next.js 16 multi-tenant chat suite for the Cortex RAG-based AI knowledge assistant (upstream codename: `library-backend`).
 
 **Key features:**
 - Email/password auth backed by server-side sessions (SQLite)
@@ -26,7 +26,7 @@ Next.js 16 multi-tenant chat suite for a RAG-based AI knowledge assistant (libra
 - **Users** are created by the superadmin (email + initial password). Each user belongs to exactly one `group`. Users can update their username, avatar, and password.
 - **Sessions** are DB-backed (`sessions` table) with an opaque cookie token. 30-day sliding TTL. Middleware checks cookie presence; route handlers validate against DB via `getAuth()` / `requireAuth()` / `requireSuperadmin()` in `src/lib/auth/session.ts`.
 
-## API Keys — How we talk to library-backend
+## API Keys — How we talk to Cortex
 
 Frontend never sees backend keys. All keys are stored **encrypted at rest** in SQLite (`api_keys.encrypted_value`, AES-256-GCM, key from `APP_ENCRYPTION_KEY`) and injected by server routes as the `X-API-Key` header.
 
@@ -38,11 +38,11 @@ Three kinds of key in play:
 | Group chat key | `read`, scoped to collections | `api_keys`, referenced by `groups.chat_key_id` | Every `/api/ask*` and `/api/search*` request from a user in that group |
 | User content key | `manage`, scoped to collections | `api_keys`, referenced by `users.content_key_id` | `/api/me/upload` — only users granted a content role can upload documents |
 
-**Collection scoping** — `api_keys.collection_ids` is a JSON array; `[]` means all collections (matches library-backend convention). The library-backend automatically filters reads by the key's scope, so the chat dropdown will only show collections the user's group can access.
+**Collection scoping** — `api_keys.collection_ids` is a JSON array; `[]` means all collections (matches the Cortex backend convention). The backend automatically filters reads by the key's scope, so the chat dropdown will only show collections the user's group can access.
 
 ## Upload flow — "no extraction in UI"
 
-`POST /api/upload` on the library-backend triggers extraction automatically; there is no flag to skip it. We honor the "never start extraction" UX requirement by **confirming upload as soon as the HTTP response lands** (typically the upstream's initial 202 / 200) and **never surfacing extraction progress** in this UI. Extraction still runs asynchronously in the backend; it's simply not this app's concern.
+`POST /api/upload` on the Cortex backend triggers extraction automatically; there is no flag to skip it. We honor the "never start extraction" UX requirement by **confirming upload as soon as the HTTP response lands** (typically the upstream's initial 202 / 200) and **never surfacing extraction progress** in this UI. Extraction still runs asynchronously in Cortex; it's simply not this app's concern.
 
 ## Cortex chat analytics
 
@@ -53,7 +53,7 @@ Admin-editable context block injected into every backend request, server-side, f
 - **Substitution:** `renderCortexAnalytics(template, user)` in `src/lib/cortex-analytics.ts`. `$userName` falls back to `email` when `username` is blank. Returns `null` for an empty template so the caller can skip injection cleanly.
 - **Injection:** `injectCortexAnalytics(bodyText, rendered)` prepends `{role:"user", content: rendered}` to `conversation_history` before the `/api/ask/stream` proxy forwards upstream. Fails open on malformed JSON — never block a chat because of a bad admin template.
 - **Invisibility:** the block never reaches the browser (proxy mutates the body server-side only) and is never written to `chat_messages`. Re-applied per request, so admin edits take effect immediately for in-flight sessions.
-- **Truncation caveat:** the library-backend caps `conversation_history` (env `MAX_CONVERSATION_HISTORY=6`). Re-injecting at position 0 every turn keeps the block present in the *current* request — which is what skills see — even after older turns fall off.
+- **Truncation caveat:** the Cortex backend caps `conversation_history` (env `MAX_CONVERSATION_HISTORY=6`). Re-injecting at position 0 every turn keeps the block present in the *current* request — which is what skills see — even after older turns fall off.
 
 ## Collection Scoping (user-facing)
 

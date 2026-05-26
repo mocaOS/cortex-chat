@@ -98,7 +98,7 @@ export async function POST(request: Request) {
       const text = await upstream.text().catch(() => "");
       return NextResponse.json(
         {
-          error: `Upload rejected by library backend (${upstream.status}): ${text.slice(0, 400)}`,
+          error: `Upload rejected by Cortex (${upstream.status}): ${text.slice(0, 400)}`,
         },
         { status: upstream.status }
       );

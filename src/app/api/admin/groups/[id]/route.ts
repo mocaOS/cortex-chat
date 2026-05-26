@@ -54,7 +54,7 @@ export async function PATCH(request: Request, ctx: Ctx) {
           {
             error:
               err instanceof Error
-                ? `Library backend rejected scope update: ${err.message}`
+                ? `Cortex rejected scope update: ${err.message}`
                 : "Backend error",
           },
           { status: 502 }

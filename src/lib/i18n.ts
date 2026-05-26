@@ -192,7 +192,7 @@ const translations = {
     collections: "Collections",
     accessAllCollections: "Access to all collections",
     noCollectionsFromBackend:
-      "No collections returned from the library backend.",
+      "No collections returned from Cortex.",
     docsBadge: "{count} docs",
 
     // Admin content roles
@@ -245,7 +245,7 @@ const translations = {
     // Upload page tabs
     documentManagementHeading: "Document Management",
     documentManagementDescription:
-      "Upload files, manage the document library, run the processing pipeline, and organize collections.",
+      "Upload files, manage your documents, run the processing pipeline, and organize collections.",
     tabUpload: "Upload",
     tabDocuments: "Documents",
     tabProcessing: "Processing",
@@ -254,7 +254,7 @@ const translations = {
     // Documents tab
     documentsHeading: "Documents",
     documentsDescription:
-      "All documents in the library. Reprocess to rerun extraction after a config change; delete removes the document and cleans up orphaned entities.",
+      "All documents in Cortex. Reprocess to rerun extraction after a config change; delete removes the document and cleans up orphaned entities.",
     tableFilename: "Filename",
     tableStatus: "Status",
     tableSource: "Source",
@@ -337,7 +337,7 @@ const translations = {
     // Collections tab
     collectionsHeading: "Collections",
     collectionsDescription:
-      "Create and manage collections in the library backend. Deleting a collection unlinks its documents but the documents themselves are preserved.",
+      "Create and manage collections in Cortex. Deleting a collection unlinks its documents but the documents themselves are preserved.",
     newCollection: "New collection",
     newCollectionTitle: "New collection",
     createCollection: "Create collection",
@@ -549,7 +549,7 @@ const translations = {
     collections: "Sammlungen",
     accessAllCollections: "Zugriff auf alle Sammlungen",
     noCollectionsFromBackend:
-      "Das Library-Backend hat keine Sammlungen zurückgegeben.",
+      "Cortex hat keine Sammlungen zurückgegeben.",
     docsBadge: "{count} Dok.",
 
     // Admin content roles
@@ -603,7 +603,7 @@ const translations = {
     // Upload page tabs
     documentManagementHeading: "Dokumentenverwaltung",
     documentManagementDescription:
-      "Dateien hochladen, die Dokumenten-Library verwalten, die Verarbeitungspipeline steuern und Sammlungen organisieren.",
+      "Dateien hochladen, deine Dokumente verwalten, die Verarbeitungspipeline steuern und Sammlungen organisieren.",
     tabUpload: "Upload",
     tabDocuments: "Dokumente",
     tabProcessing: "Verarbeitung",
@@ -612,7 +612,7 @@ const translations = {
     // Documents tab
     documentsHeading: "Dokumente",
     documentsDescription:
-      "Alle Dokumente in der Library. Mit Reprocess kannst du die Extraktion nach einer Konfigurationsänderung erneut ausführen; Löschen entfernt das Dokument und räumt verwaiste Entities auf.",
+      "Alle Dokumente in Cortex. Mit Reprocess kannst du die Extraktion nach einer Konfigurationsänderung erneut ausführen; Löschen entfernt das Dokument und räumt verwaiste Entities auf.",
     tableFilename: "Dateiname",
     tableStatus: "Status",
     tableSource: "Quelle",
@@ -696,7 +696,7 @@ const translations = {
     // Collections tab
     collectionsHeading: "Sammlungen",
     collectionsDescription:
-      "Sammlungen im Library-Backend anlegen und verwalten. Beim Löschen einer Sammlung werden ihre Dokumente entkoppelt, aber die Dokumente selbst bleiben erhalten.",
+      "Sammlungen in Cortex anlegen und verwalten. Beim Löschen einer Sammlung werden ihre Dokumente entkoppelt, aber die Dokumente selbst bleiben erhalten.",
     newCollection: "Neue Sammlung",
     newCollectionTitle: "Neue Sammlung",
     createCollection: "Sammlung anlegen",

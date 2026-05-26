@@ -1,11 +1,12 @@
 import "server-only";
 
-// Thin wrappers over the library-backend admin API. All requests use the
+// Thin wrappers over the Cortex backend admin API. All requests use the
 // master admin-tier key from env (BACKEND_ADMIN_API_KEY) — never a user key.
 
 function baseUrl(): string {
   return (
     process.env.NEXT_PUBLIC_API_URL ||
+    process.env.CORTEX_API_URL ||
     process.env.LIBRARY_API_URL ||
     "http://localhost:8000"
   );
@@ -15,7 +16,7 @@ function adminKey(): string {
   const k = process.env.BACKEND_ADMIN_API_KEY;
   if (!k) {
     throw new Error(
-      "BACKEND_ADMIN_API_KEY is required to perform admin operations against the library-backend."
+      "BACKEND_ADMIN_API_KEY is required to perform admin operations against Cortex."
     );
   }
   return k;
@@ -36,7 +37,7 @@ async function call<T>(
   if (!res.ok) {
     const body = await res.text().catch(() => "");
     throw new BackendError(
-      `Library backend ${init?.method ?? "GET"} ${path} -> ${res.status}: ${body.slice(0, 400)}`,
+      `Cortex backend ${init?.method ?? "GET"} ${path} -> ${res.status}: ${body.slice(0, 400)}`,
       res.status
     );
   }
