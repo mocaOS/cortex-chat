@@ -93,7 +93,12 @@ npm start
 
 ## Docker Deployment
 
-The project ships with a multi-stage Dockerfile and Docker Compose file for production deployment. There are no build-time env vars — every deploy-specific value is runtime, so the same image can serve any tenant.
+The project ships with a multi-stage Dockerfile and a Docker Compose file. There are no build-time env vars — every deploy-specific value is runtime, so the same image can serve any tenant.
+
+Two distinct paths, and they don't share storage conventions:
+
+- **Managed platforms (Coolify, Dokploy)** deploy `docker-compose.yml` as-is. It mounts `/app/data` from a **named volume** (`cortex-chat-data`), which is created owned by the image's runtime user (`nextjs`, uid 1001), so the container can write it without any `--user` override. Don't repurpose this file for local bind-mounted dev — see the note below.
+- **Local development** is normally just `npm run dev`. If you want to run the built image locally against your repo's `./data` directory (a host **bind mount**), you must run the container as your own UID — see [Local development with the Docker image](#local-development-with-the-docker-image).
 
 ### Docker (standalone)
 
@@ -112,7 +117,32 @@ docker run -p 3000:3000 \
 
 After first boot, log in as the superadmin and customize branding (accent, logo, title, language) at `/admin/settings`.
 
+### Local development with the Docker image
+
+To run the production image locally while keeping the SQLite DB in your repo's `./data` (editable from the host, survives container recreation), **bind-mount `./data` and run as your own UID**:
+
+```bash
+docker build -t cortex-chat .
+
+docker run -d --name cortex-chat \
+  --restart unless-stopped \
+  --user "$(id -u):$(id -g)" \
+  -p 3001:3000 \
+  --env-file .env \
+  -v "$(pwd)/data:/app/data" \
+  cortex-chat
+```
+
+- `--user "$(id -u):$(id -g)"` is **required** for the bind mount. The image runs as `nextjs` (uid 1001); your `./data` is owned by your host user, so without this override the container can't write and boot fails with `SQLITE_READONLY: attempt to write a readonly database`. (The named-volume examples above and Compose don't need it — Docker creates those volumes owned by the image user.)
+- `--env-file .env` loads runtime config. Use an unquoted `.env` (Docker's `--env-file` does **not** strip quotes or treat inline `#` as a comment, unlike dotenv).
+- The container listens on `3000` internally; `-p 3001:3000` exposes it on `http://localhost:3001`.
+- **`CORTEX_API_URL` must be reachable from inside the container.** `http://127.0.0.1:8000` / `localhost` resolves to the container itself, not your host — using it yields `502` (proxy logs show `ECONNREFUSED`). If your Cortex backend runs in Docker too, attach this container to the backend's network and address it by container name, e.g. add `--network cortex-app_default` and set `CORTEX_API_URL=http://cortex-backend:8000`. If the backend listens on the host, use `http://host.docker.internal:8000` with `--add-host=host.docker.internal:host-gateway`.
+
+To pick up edited env values, recreate the container (`docker rm -f cortex-chat` then re-run) — `docker restart` alone keeps the old environment.
+
 ### Docker Compose
+
+This is the deployment target for managed platforms (Coolify, Dokploy). It persists `/app/data` in a **named volume** (`cortex-chat-data`) owned by the image's runtime user, so no `--user` override is needed. For local dev against your repo's `./data`, use [Local development with the Docker image](#local-development-with-the-docker-image) instead — don't change this file.
 
 1. Create a `.env` file (or copy from `.env.example`):
 
@@ -132,11 +162,12 @@ PORT=3000
 docker compose up -d --build
 ```
 
-### Coolify
+### Coolify / Dokploy
 
-1. Create a new **Docker Compose** resource in Coolify
-2. Point it to this repository
-3. Set the variables in Coolify's environment settings (all runtime):
+Both deploy the `docker-compose.yml` unchanged.
+
+1. Create a new **Docker Compose** resource and point it to this repository
+2. Set the variables in the platform's environment settings (all runtime):
 
 | Variable | Value |
 |---|---|
@@ -146,8 +177,8 @@ docker compose up -d --build
 | `SUPERADMIN_PASSWORD` | Bootstrap password for the superadmin |
 | `APP_ENCRYPTION_KEY` | 32 random bytes, base64-encoded |
 
-4. Set the port to `3000`
-5. Deploy — Coolify builds the image and starts the container. Branding is configured in `/admin/settings` after first login.
+3. Set the port to `3000`
+4. Deploy — the platform builds the image and starts the container. Branding is configured in `/admin/settings` after first login.
 
 ### Other Platforms (Railway, Render, Fly.io, etc.)
 
