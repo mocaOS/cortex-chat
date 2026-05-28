@@ -9,7 +9,7 @@
     "lint": "next lint",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/lib/db/migrate-cli.ts",
-    "import-users": "bun run scripts/import-users.ts"
+    "import-users": "bun --env-file=scripts/.env run scripts/import-users.ts"
   },
   "keywords": [],
   "author": "",

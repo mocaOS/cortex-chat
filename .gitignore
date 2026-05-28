@@ -16,4 +16,6 @@ data/
 .vscode/
 .idea/
 
-*.xlsx
+# scripts/ — user data for one-off imports never belongs in the repo
+scripts/.env
+scripts/*.xlsx

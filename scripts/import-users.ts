@@ -5,20 +5,25 @@
  *   bun run import-users                       # dry-run (default)
  *   bun run import-users --apply               # actually create users
  *
- * Auth credentials come from env vars (preferred) or flags:
- *   IMPORT_ADMIN_EMAIL / IMPORT_ADMIN_PASSWORD
- *   --admin-email=<email> / --admin-password=<pw>
+ * All config comes from env vars (see scripts/.env.example) or matching CLI flags:
+ *   IMPORT_ADMIN_EMAIL / IMPORT_ADMIN_PASSWORD   superadmin login (required)
+ *   IMPORT_URL                                   target instance, e.g. https://chat.example.com (required)
+ *   IMPORT_FILE                                  xlsx path (required)
+ *   IMPORT_GROUP                                 group name to assign (required)
+ *   IMPORT_DEFAULT_PASSWORD                      password assigned to every new user (required)
+ * CLI flags (--url, --file, --group, --password, --admin-email, --admin-password) override env.
+ *
+ * Recommended invocation loads scripts/.env automatically:
+ *   bun run import-users               # dry-run
+ *   bun run import-users --apply
  */
 
 import { parseArgs } from "node:util";
 import { existsSync } from "node:fs";
 import * as XLSX from "xlsx";
 
+// Cookie name set by the cortex-chat server on successful login — internal protocol detail, not user config.
 const SESSION_COOKIE = "cortex_session";
-const DEFAULT_URL = "https://example.invalid";
-const DEFAULT_FILE = "./*.xlsx";
-const DEFAULT_GROUP = "KeyUser";
-const DEFAULT_PASSWORD = "REDACTED";
 
 const { values } = parseArgs({
   args: process.argv.slice(2),
@@ -43,36 +48,50 @@ Usage:
   bun run import-users                          # dry-run (default)
   bun run import-users --apply                  # actually creates users
 
-Flags:
+All values come from scripts/.env (loaded automatically via --env-file in
+package.json) or the matching CLI flag.
+
+Flags (CLI overrides env, all required unless they have a default in env):
   --apply              commit changes (default: dry-run)
-  --file=<path>        xlsx file (default: ${DEFAULT_FILE})
-  --url=<base>         API base URL (default: ${DEFAULT_URL})
-  --group=<name>       group to assign (default: ${DEFAULT_GROUP})
-  --password=<pw>      password for new users (default: ${DEFAULT_PASSWORD})
-  --admin-email=<x>    superadmin email (or env IMPORT_ADMIN_EMAIL)
-  --admin-password=<x> superadmin password (or env IMPORT_ADMIN_PASSWORD)
+  --url=<base>         API base URL (env IMPORT_URL)
+  --file=<path>        xlsx file (env IMPORT_FILE)
+  --group=<name>       group to assign (env IMPORT_GROUP)
+  --password=<pw>      password for new users (env IMPORT_DEFAULT_PASSWORD)
+  --admin-email=<x>    superadmin email (env IMPORT_ADMIN_EMAIL)
+  --admin-password=<x> superadmin password (env IMPORT_ADMIN_PASSWORD)
   -h, --help           show this message`);
   process.exit(0);
 }
 
 const APPLY = values.apply === true;
-const FILE_PATH = values.file ?? DEFAULT_FILE;
-const BASE_URL = (values.url ?? DEFAULT_URL).replace(/\/$/, "");
-const GROUP_NAME = values.group ?? DEFAULT_GROUP;
-const NEW_USER_PASSWORD = values.password ?? DEFAULT_PASSWORD;
-
+const BASE_URL_RAW = values.url ?? process.env.IMPORT_URL;
+const FILE_PATH = values.file ?? process.env.IMPORT_FILE;
+const GROUP_NAME = values.group ?? process.env.IMPORT_GROUP;
+const NEW_USER_PASSWORD =
+  values.password ?? process.env.IMPORT_DEFAULT_PASSWORD;
 const ADMIN_EMAIL = values["admin-email"] ?? process.env.IMPORT_ADMIN_EMAIL;
 const ADMIN_PASSWORD =
   values["admin-password"] ?? process.env.IMPORT_ADMIN_PASSWORD;
 
-if (!ADMIN_EMAIL || !ADMIN_PASSWORD) {
+const missing: string[] = [];
+if (!BASE_URL_RAW) missing.push("IMPORT_URL (or --url)");
+if (!FILE_PATH) missing.push("IMPORT_FILE (or --file)");
+if (!GROUP_NAME) missing.push("IMPORT_GROUP (or --group)");
+if (!NEW_USER_PASSWORD) missing.push("IMPORT_DEFAULT_PASSWORD (or --password)");
+if (!ADMIN_EMAIL) missing.push("IMPORT_ADMIN_EMAIL (or --admin-email)");
+if (!ADMIN_PASSWORD) missing.push("IMPORT_ADMIN_PASSWORD (or --admin-password)");
+
+if (missing.length > 0) {
   console.error(
-    "ERROR: missing superadmin credentials. Set IMPORT_ADMIN_EMAIL / IMPORT_ADMIN_PASSWORD env vars, or pass --admin-email / --admin-password."
+    `ERROR: missing required config:\n  - ${missing.join("\n  - ")}\n\n` +
+      `Copy scripts/.env.example to scripts/.env and fill it in, or pass the values as CLI flags.`
   );
   process.exit(1);
 }
 
-if (!existsSync(FILE_PATH)) {
+const BASE_URL = BASE_URL_RAW!.replace(/\/$/, "");
+
+if (!existsSync(FILE_PATH!)) {
   console.error(`ERROR: xlsx file not found: ${FILE_PATH}`);
   process.exit(1);
 }
