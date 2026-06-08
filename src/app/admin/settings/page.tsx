@@ -23,6 +23,8 @@ interface Settings {
   appDescription: string;
   cortexAnalyticsTemplate: string;
   accentColor: string;
+  supportUrl: string;
+  supportLabel: string;
   locale: Locale;
   hasCustomLogo: boolean;
   logoUrl: string;
@@ -33,6 +35,8 @@ interface Defaults {
   appDescription: string;
   cortexAnalyticsTemplate: string;
   accentColor: string;
+  supportUrl: string;
+  supportLabel: string;
   locale: Locale;
 }
 
@@ -47,6 +51,8 @@ export default function AdminSettingsPage() {
   const [appDescription, setAppDescription] = useState("");
   const [cortexAnalyticsTemplate, setCortexAnalyticsTemplate] = useState("");
   const [accentColor, setAccentColor] = useState("");
+  const [supportUrl, setSupportUrl] = useState("");
+  const [supportLabel, setSupportLabel] = useState("");
   const [locale, setLocaleState] = useState<Locale>("en");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -70,6 +76,8 @@ export default function AdminSettingsPage() {
       setAppDescription(data.settings.appDescription);
       setCortexAnalyticsTemplate(data.settings.cortexAnalyticsTemplate ?? "");
       setAccentColor(data.settings.accentColor ?? "");
+      setSupportUrl(data.settings.supportUrl ?? "");
+      setSupportLabel(data.settings.supportLabel ?? "");
       setLocaleState(data.settings.locale);
     } catch (err) {
       setError(err instanceof Error ? err.message : t("failedToLoad"));
@@ -88,6 +96,8 @@ export default function AdminSettingsPage() {
       appDescription: string;
       cortexAnalyticsTemplate: string;
       accentColor: string;
+      supportUrl: string;
+      supportLabel: string;
       locale: Locale;
     }>
   ) {
@@ -107,6 +117,8 @@ export default function AdminSettingsPage() {
       setAppDescription(data.settings.appDescription);
       setCortexAnalyticsTemplate(data.settings.cortexAnalyticsTemplate ?? "");
       setAccentColor(data.settings.accentColor ?? "");
+      setSupportUrl(data.settings.supportUrl ?? "");
+      setSupportLabel(data.settings.supportLabel ?? "");
       setLocaleState(data.settings.locale);
       setI18nLocale(data.settings.locale);
       if (data.settings.accentColor) {
@@ -130,6 +142,8 @@ export default function AdminSettingsPage() {
       appDescription,
       cortexAnalyticsTemplate,
       accentColor,
+      supportUrl,
+      supportLabel,
       locale,
     });
   }
@@ -383,6 +397,33 @@ export default function AdminSettingsPage() {
               style={{ color: "var(--fg2)" }}
             >
               {t("localeHint")}
+            </p>
+
+            <div
+              className="pt-2 mt-2 border-t"
+              style={{ borderColor: "var(--border)" }}
+            />
+
+            <Input
+              label={t("supportUrlLabel")}
+              type="url"
+              value={supportUrl}
+              onChange={(e) => setSupportUrl(e.target.value)}
+              maxLength={2000}
+              placeholder="https://support.example.com"
+            />
+            <Input
+              label={t("supportTooltipLabel")}
+              value={supportLabel}
+              onChange={(e) => setSupportLabel(e.target.value)}
+              maxLength={120}
+              placeholder={t("support")}
+            />
+            <p
+              className="text-[11.5px] -mt-2"
+              style={{ color: "var(--fg2)" }}
+            >
+              {t("supportLinkHint")}
             </p>
 
             <div

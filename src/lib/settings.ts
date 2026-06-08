@@ -8,6 +8,10 @@ export const DEFAULT_APP_DESCRIPTION =
   "Ask anything about your knowledge base. Switch to Deep Research for complex multi-step questions.";
 export const DEFAULT_LOCALE: Locale = "en";
 export const DEFAULT_CORTEX_ANALYTICS_TEMPLATE = "";
+// Support link in the chat header. Empty URL hides the button entirely;
+// empty label falls back to a localized "Support" tooltip in the UI.
+export const DEFAULT_SUPPORT_URL = "";
+export const DEFAULT_SUPPORT_LABEL = "";
 // MOCA design-system accent (warm yellow-green). Single source of truth —
 // duplicated nowhere except the hardcoded client-side fetch-failure fallback.
 export const DEFAULT_ACCENT_COLOR = "oklch(0.79 0.18 70.67)";
@@ -25,6 +29,8 @@ const TEXT_KEYS = [
   "appDescription",
   "cortexAnalyticsTemplate",
   "accentColor",
+  "supportUrl",
+  "supportLabel",
 ] as const;
 const LOCALE_KEY = "locale";
 const LOGO_KEY = "logoFile";
@@ -41,6 +47,8 @@ export interface AppSettings {
   appDescription: string;
   cortexAnalyticsTemplate: string;
   accentColor: string;
+  supportUrl: string;
+  supportLabel: string;
   locale: Locale;
   logoFile: string | null;
   logoUpdatedAt: number | null;
@@ -61,6 +69,8 @@ export function getAppSettings(): AppSettings {
     cortexAnalyticsTemplate:
       map.get("cortexAnalyticsTemplate") || DEFAULT_CORTEX_ANALYTICS_TEMPLATE,
     accentColor: map.get("accentColor") || DEFAULT_ACCENT_COLOR,
+    supportUrl: map.get("supportUrl") || DEFAULT_SUPPORT_URL,
+    supportLabel: map.get("supportLabel") || DEFAULT_SUPPORT_LABEL,
     locale: normalizeLocale(map.get(LOCALE_KEY)),
     logoFile: map.get(LOGO_KEY) || null,
     logoUpdatedAt: logoUpdatedRaw ? parseInt(logoUpdatedRaw, 10) : null,
@@ -75,6 +85,8 @@ export function setTextSettings(
       | "appDescription"
       | "cortexAnalyticsTemplate"
       | "accentColor"
+      | "supportUrl"
+      | "supportLabel"
     >
   >
 ) {

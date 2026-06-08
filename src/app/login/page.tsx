@@ -19,11 +19,21 @@ function LoginForm() {
   const [logoUrl, setLogoUrl] = useState(
     () => getCachedConfig()?.logoUrl || "/logo.svg"
   );
+  const [supportUrl, setSupportUrl] = useState(
+    () => getCachedConfig()?.supportUrl || ""
+  );
+  const [supportLabel, setSupportLabel] = useState(
+    () => getCachedConfig()?.supportLabel || ""
+  );
   const [ready, setReady] = useState(() => !!getCachedConfig());
 
   useEffect(() => {
     getConfig()
-      .then((cfg) => setLogoUrl(cfg.logoUrl || "/logo.svg"))
+      .then((cfg) => {
+        setLogoUrl(cfg.logoUrl || "/logo.svg");
+        setSupportUrl(cfg.supportUrl || "");
+        setSupportLabel(cfg.supportLabel || "");
+      })
       .finally(() => setReady(true));
   }, []);
 
@@ -57,7 +67,7 @@ function LoginForm() {
 
   return (
     <div
-      className="h-dvh flex items-center justify-center px-4 relative overflow-hidden"
+      className="h-dvh flex flex-col items-center justify-center px-4 relative overflow-hidden"
       style={{ background: "var(--bg)" }}
     >
       {/* Soft accent glow at 15% — MOCA hero signature */}
@@ -170,6 +180,24 @@ function LoginForm() {
           {loading ? t("signingIn") : t("signIn")}
         </button>
       </form>
+
+      {supportUrl ? (
+        <a
+          href={supportUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-5 text-[12.5px] transition-colors relative"
+          style={{ color: "var(--fg2)" }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.color = "var(--fg1)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.color = "var(--fg2)";
+          }}
+        >
+          {supportLabel || t("support")}
+        </a>
+      ) : null}
     </div>
   );
 }

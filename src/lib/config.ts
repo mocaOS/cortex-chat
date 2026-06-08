@@ -7,6 +7,8 @@ export interface ClientConfig {
   locale: string;
   appTitle: string;
   appDescription: string;
+  supportUrl: string;
+  supportLabel: string;
   maxUploadBytes: number;
 }
 
@@ -44,6 +46,8 @@ export async function getConfig(): Promise<ClientConfig> {
       appTitle: "Ask AI",
       appDescription:
         "Ask anything about your knowledge base. Switch to Deep Research for complex multi-step questions.",
+      supportUrl: "",
+      supportLabel: "",
       maxUploadBytes: MAX_UPLOAD_BYTES,
     };
   }

@@ -15,6 +15,8 @@ export function GET() {
     locale: settings.locale,
     appTitle: settings.appTitle,
     appDescription: settings.appDescription,
+    supportUrl: settings.supportUrl,
+    supportLabel: settings.supportLabel,
     maxUploadBytes: MAX_UPLOAD_BYTES,
   });
 }

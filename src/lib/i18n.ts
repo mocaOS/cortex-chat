@@ -37,6 +37,11 @@ const translations = {
     send: "Send",
     toggleSidebar: "Toggle sidebar",
     close: "Close",
+    support: "Support",
+    supportUrlLabel: "Support link URL",
+    supportTooltipLabel: "Support button tooltip",
+    supportLinkHint:
+      "Shown as a help icon in the top-right header, opens in a new tab. Leave the URL empty to hide the button. Accepts http(s):// or mailto: links.",
     errorPrefix: "Error",
     requestCancelled: "Request was cancelled.",
     unknownError: "Unknown error",
@@ -396,6 +401,11 @@ const translations = {
     send: "Senden",
     toggleSidebar: "Seitenleiste umschalten",
     close: "Schließen",
+    support: "Support",
+    supportUrlLabel: "Support-Link URL",
+    supportTooltipLabel: "Tooltip des Support-Buttons",
+    supportLinkHint:
+      "Wird als Hilfe-Symbol oben rechts angezeigt und öffnet sich in einem neuen Tab. Lass die URL leer, um den Button auszublenden. Erlaubt http(s):// oder mailto:-Links.",
     errorPrefix: "Fehler",
     requestCancelled: "Anfrage wurde abgebrochen.",
     unknownError: "Unbekannter Fehler",

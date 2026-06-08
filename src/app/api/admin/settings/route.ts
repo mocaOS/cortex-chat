@@ -8,6 +8,8 @@ import {
   DEFAULT_APP_TITLE,
   DEFAULT_CORTEX_ANALYTICS_TEMPLATE,
   DEFAULT_LOCALE,
+  DEFAULT_SUPPORT_LABEL,
+  DEFAULT_SUPPORT_URL,
   getAppSettings,
   setLocale,
   setTextSettings,
@@ -23,6 +25,8 @@ function serialize() {
     appDescription: s.appDescription,
     cortexAnalyticsTemplate: s.cortexAnalyticsTemplate,
     accentColor: s.accentColor,
+    supportUrl: s.supportUrl,
+    supportLabel: s.supportLabel,
     locale: s.locale,
     hasCustomLogo: s.logoFile !== null,
     logoUrl: resolveLogoUrl(s),
@@ -42,6 +46,8 @@ export async function GET() {
       appDescription: DEFAULT_APP_DESCRIPTION,
       cortexAnalyticsTemplate: DEFAULT_CORTEX_ANALYTICS_TEMPLATE,
       accentColor: DEFAULT_ACCENT_COLOR,
+      supportUrl: DEFAULT_SUPPORT_URL,
+      supportLabel: DEFAULT_SUPPORT_LABEL,
       locale: DEFAULT_LOCALE,
     },
     cortexAnalyticsVariables: CORTEX_ANALYTICS_VARIABLES,
@@ -66,6 +72,16 @@ const Body = z.object({
       message: "Accent color must be a hex, oklch(), rgb(), or hsl() value",
     })
     .optional(),
+  // Empty string clears the support link (hides the header button).
+  // Otherwise must be an absolute http(s) or mailto URL — it opens in a new tab.
+  supportUrl: z
+    .string()
+    .max(2000)
+    .refine((v) => v === "" || /^(https?:\/\/|mailto:)/i.test(v), {
+      message: "Support URL must start with http://, https://, or mailto:",
+    })
+    .optional(),
+  supportLabel: z.string().max(120).optional(),
   locale: z.enum(["en", "de"]).optional(),
 });
 
