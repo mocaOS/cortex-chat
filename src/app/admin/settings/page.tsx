@@ -194,7 +194,7 @@ export default function AdminSettingsPage() {
   const displayLogo =
     settings?.logoUrl && settings.logoUrl.length > 0
       ? settings.logoUrl
-      : "/logo.svg";
+      : "/logo.png";
 
   return (
     <div className="max-w-2xl space-y-6">

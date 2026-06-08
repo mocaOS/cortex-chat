@@ -17,7 +17,7 @@ function LoginForm() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [logoUrl, setLogoUrl] = useState(
-    () => getCachedConfig()?.logoUrl || "/logo.svg"
+    () => getCachedConfig()?.logoUrl || "/logo.png"
   );
   const [supportUrl, setSupportUrl] = useState(
     () => getCachedConfig()?.supportUrl || ""
@@ -30,7 +30,7 @@ function LoginForm() {
   useEffect(() => {
     getConfig()
       .then((cfg) => {
-        setLogoUrl(cfg.logoUrl || "/logo.svg");
+        setLogoUrl(cfg.logoUrl || "/logo.png");
         setSupportUrl(cfg.supportUrl || "");
         setSupportLabel(cfg.supportLabel || "");
       })

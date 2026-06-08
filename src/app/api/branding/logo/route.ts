@@ -7,7 +7,7 @@ export const runtime = "nodejs";
 
 // Public endpoint (exposed on /login too) — no auth. Middleware must include
 // this in PUBLIC_PATHS. Returns 404 when no custom logo is set so the client
-// falls back to its bundled /logo.svg default.
+// falls back to its bundled /logo.png default.
 export async function GET() {
   const { logoFile } = getAppSettings();
   if (!logoFile) {

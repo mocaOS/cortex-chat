@@ -50,7 +50,7 @@ export default function Home() {
   const [collections, setCollections] = useState<Collection[]>([]);
   const [selectedSource, setSelectedSource] = useState<Source | null>(null);
   const [logoUrl, setLogoUrl] = useState(
-    () => getCachedConfig()?.logoUrl || "/logo.svg"
+    () => getCachedConfig()?.logoUrl || "/logo.png"
   );
   const [emptyTitle, setEmptyTitle] = useState<string | undefined>(
     () => getCachedConfig()?.appTitle
@@ -78,7 +78,7 @@ export default function Home() {
   // Load config, auth, collections, sessions on mount.
   useEffect(() => {
     getConfig().then((cfg) => {
-      setLogoUrl(cfg.logoUrl || "/logo.svg");
+      setLogoUrl(cfg.logoUrl || "/logo.png");
       setEmptyTitle(cfg.appTitle);
       setEmptyDescription(cfg.appDescription);
       setConfigReady(true);

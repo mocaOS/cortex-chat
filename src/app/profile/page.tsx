@@ -18,7 +18,7 @@ export default function ProfilePage() {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [logoUrl, setLogoUrl] = useState(
-    () => getCachedConfig()?.logoUrl || "/logo.svg"
+    () => getCachedConfig()?.logoUrl || "/logo.png"
   );
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
@@ -40,7 +40,7 @@ export default function ProfilePage() {
   }, [router]);
 
   useEffect(() => {
-    getConfig().then((cfg) => setLogoUrl(cfg.logoUrl || "/logo.svg"));
+    getConfig().then((cfg) => setLogoUrl(cfg.logoUrl || "/logo.png"));
     refreshMe();
   }, [refreshMe]);
 

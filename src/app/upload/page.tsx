@@ -19,13 +19,13 @@ export default function UploadPage() {
   const router = useRouter();
   const [me, setMe] = useState<CurrentUser | null>(null);
   const [logoUrl, setLogoUrl] = useState(
-    () => getCachedConfig()?.logoUrl || "/logo.svg"
+    () => getCachedConfig()?.logoUrl || "/logo.png"
   );
   const [ready, setReady] = useState(false);
   const [tab, setTab] = useState<TabKey>("upload");
 
   useEffect(() => {
-    getConfig().then((cfg) => setLogoUrl(cfg.logoUrl || "/logo.svg"));
+    getConfig().then((cfg) => setLogoUrl(cfg.logoUrl || "/logo.png"));
     fetch("/api/auth/me")
       .then(async (res) => {
         if (res.status === 401) {

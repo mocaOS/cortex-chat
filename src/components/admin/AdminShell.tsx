@@ -25,11 +25,11 @@ export default function AdminShell({ user, children }: Props) {
   const pathname = usePathname();
   const router = useRouter();
   const [logoUrl, setLogoUrl] = useState(
-    () => getCachedConfig()?.logoUrl || "/logo.svg"
+    () => getCachedConfig()?.logoUrl || "/logo.png"
   );
 
   useEffect(() => {
-    getConfig().then((cfg) => setLogoUrl(cfg.logoUrl || "/logo.svg"));
+    getConfig().then((cfg) => setLogoUrl(cfg.logoUrl || "/logo.png"));
   }, []);
 
   async function handleSignOut() {
