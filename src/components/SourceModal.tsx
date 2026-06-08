@@ -129,8 +129,10 @@ export default function SourceModal({ source, onClose }: Props) {
       onClick={onClose}
     >
       <div
-        className="w-full max-w-2xl max-h-[80vh] flex flex-col rounded-[var(--radius-xl)] border"
+        className="w-full max-w-2xl flex flex-col rounded-[var(--radius-xl)] border"
         style={{
+          // 80vh compensated for --ui-scale (see globals.css zoom note).
+          maxHeight: "calc(80dvh / var(--ui-scale))",
           background: "var(--popover)",
           borderColor: "var(--border)",
           boxShadow: "var(--shadow-xl)",

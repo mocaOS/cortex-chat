@@ -6,6 +6,7 @@ import remarkGfm from "remark-gfm";
 import { ChatMessage, Source } from "@/types";
 import { t } from "@/lib/i18n";
 import { useLocale } from "@/lib/i18n-client";
+import ThinkingIndicator from "./ThinkingIndicator";
 
 interface Props {
   message: ChatMessage;
@@ -245,22 +246,7 @@ export default function MessageBubble({ message, onSourceClick }: Props) {
               </ReactMarkdown>
             </div>
           ) : message.isStreaming ? (
-            <div className="flex items-center gap-2 text-[var(--fg2)]">
-              <div className="flex items-center gap-1">
-                <span
-                  className="thinking-dot w-1.5 h-1.5 rounded-full"
-                  style={{ background: "var(--accent)" }}
-                />
-                <span
-                  className="thinking-dot w-1.5 h-1.5 rounded-full"
-                  style={{ background: "var(--accent)" }}
-                />
-                <span
-                  className="thinking-dot w-1.5 h-1.5 rounded-full"
-                  style={{ background: "var(--accent)" }}
-                />
-              </div>
-            </div>
+            <ThinkingIndicator message={message} />
           ) : null}
 
           {/* Sources strip inside the answer card — MOCA pattern */}

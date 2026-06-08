@@ -151,6 +151,15 @@ export async function askQuestionStream(
         if (data.thinking) {
           callbacks.onThinking(data.thinking);
         }
+        // Agent-research mode emits skill activity as `skill_tool` (+ optional
+        // `skill_name`). Surface it in the thinking stream rather than dropping it.
+        if (data.skill_tool) {
+          callbacks.onThinking(
+            data.skill_name
+              ? `${data.skill_name}: ${data.skill_tool}`
+              : String(data.skill_tool)
+          );
+        }
         if (data.sub_questions) {
           callbacks.onSubQuestions(data.sub_questions);
         }

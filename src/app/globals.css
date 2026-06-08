@@ -93,6 +93,11 @@
   /* Baseline accent — /api/config overrides this at runtime. */
   --accent: oklch(0.79 0.18 70.67);
 
+  /* Global UI scale — the whole app renders at this factor (browser-zoom
+     equivalent). 1.5 = 150%. Single source of truth; see `body { zoom }` and
+     the .h-dvh / .max-h-dvh overrides below that compensate viewport units. */
+  --ui-scale: 1.5;
+
   /* Shape */
   --radius: 0.5rem;
   --radius-sm: 0.25rem;
@@ -168,11 +173,20 @@
   border-color: var(--border);
 }
 
-html,
-body {
+html {
   margin: 0;
   padding: 0;
   height: 100%;
+  background: var(--bg);
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  /* Height intentionally not fixed to 100% here: the app's full-height shells
+     use `.h-dvh` (compensated below), and a fixed body height would itself be
+     scaled by `zoom` and overflow the viewport by (--ui-scale - 1). */
+  min-height: 100%;
   background: var(--bg);
   color: var(--fg1);
   font-family: var(--font-sans);
@@ -181,6 +195,24 @@ body {
   font-feature-settings: "ss01", "cv11";
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  /* Render the entire app at --ui-scale (default 150%). `zoom` scales layout
+     like browser zoom — unlike a transform it keeps document flow, focus, and
+     fixed positioning intact. Supported in all current evergreen browsers. */
+  zoom: var(--ui-scale);
+}
+
+/* `zoom` multiplies viewport units too, so a raw 100dvh shell would render at
+   150dvh and overflow. Dividing by --ui-scale maps these back to the real
+   viewport. All full-height shells in the app use .h-dvh / .max-h-dvh; modals
+   that use vh do the same calc inline. Unlayered → wins over Tailwind's. */
+.h-dvh {
+  height: calc(100dvh / var(--ui-scale));
+}
+.min-h-dvh {
+  min-height: calc(100dvh / var(--ui-scale));
+}
+.max-h-dvh {
+  max-height: calc(100dvh / var(--ui-scale));
 }
 
 /* ============================================
@@ -369,6 +401,43 @@ option:hover {
 }
 .thinking-dot:nth-child(3) {
   animation-delay: 0.4s;
+}
+
+/* Live "working" dot — solid accent core with an expanding ping ring. The
+   primary "it's alive, not stuck" cue during the silent pre-token window. */
+.live-dot {
+  position: relative;
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  flex-shrink: 0;
+  border-radius: 9999px;
+  background: var(--accent);
+}
+.live-dot::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: var(--accent);
+  animation: live-ping 1.5s var(--ease-out) infinite;
+}
+@keyframes live-ping {
+  0% {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  70%,
+  100% {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .live-dot::before {
+    animation: none;
+  }
 }
 
 .thinking-steps-fade {
