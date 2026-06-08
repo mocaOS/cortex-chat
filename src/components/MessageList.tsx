@@ -29,26 +29,24 @@ export default function MessageList({
   if (messages.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center px-6">
+        {/* Cortex symbol mark, tinted to the accent via a mask so the white SVG
+            picks up the configurable primary color. */}
         <div
-          className="w-12 h-12 rounded-[12px] flex items-center justify-center mb-4"
+          className="h-14 w-14 mb-4"
+          role="img"
+          aria-label="Cortex"
           style={{
-            background:
-              "color-mix(in oklch, var(--accent) 15%, transparent)",
-            color: "var(--accent)",
+            backgroundColor: "var(--accent)",
+            WebkitMaskImage: "url(/cortex_logo_white.svg)",
+            maskImage: "url(/cortex_logo_white.svg)",
+            WebkitMaskRepeat: "no-repeat",
+            maskRepeat: "no-repeat",
+            WebkitMaskPosition: "center",
+            maskPosition: "center",
+            WebkitMaskSize: "contain",
+            maskSize: "contain",
           }}
-        >
-          <svg
-            className="w-6 h-6"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M12 3l1.9 5.8L20 10l-5.8 1.9L12 18l-1.9-5.8L4 10l6.1-1.2L12 3z" />
-          </svg>
-        </div>
+        />
         <h2
           className="text-[22px] font-bold mb-1.5"
           style={{ color: "var(--fg1)", letterSpacing: "-0.015em" }}

@@ -36,6 +36,7 @@ export async function GET(_: Request, ctx: Ctx) {
   return NextResponse.json({
     id: session.id,
     title: session.title,
+    memory: session.memory ? safeParse(session.memory) : undefined,
     createdAt: session.createdAt,
     updatedAt: session.updatedAt,
     messages: messages.map((m) => {
@@ -66,6 +67,8 @@ const MessageSchema = z.object({
 const PatchBody = z.object({
   title: z.string().max(200).optional(),
   messages: z.array(MessageSchema).optional(),
+  // Opaque memory blob — stored verbatim as a JSON string, never inspected.
+  memory: z.unknown().optional(),
 });
 
 export async function PATCH(request: Request, ctx: Ctx) {
@@ -88,8 +91,13 @@ export async function PATCH(request: Request, ctx: Ctx) {
       .run();
   }
 
+  // Opaque memory blob is stored as a JSON string; absent key = leave as-is.
+  const hasMemory = parsed.data.memory !== undefined;
+  const memoryValue = hasMemory ? JSON.stringify(parsed.data.memory) : null;
+
   if (parsed.data.messages) {
-    // Replace all messages for this session in a transaction.
+    // Replace all messages for this session in a transaction. Fold the memory
+    // update in so a settled turn (messages + new memory) persists atomically.
     const now = Date.now();
     const msgs = parsed.data.messages;
     db.transaction((tx) => {
@@ -111,10 +119,15 @@ export async function PATCH(request: Request, ctx: Ctx) {
         i++;
       }
       tx.update(chatSessions)
-        .set({ updatedAt: now })
+        .set(hasMemory ? { updatedAt: now, memory: memoryValue } : { updatedAt: now })
         .where(eq(chatSessions.id, id))
         .run();
     });
+  } else if (hasMemory) {
+    db.update(chatSessions)
+      .set({ memory: memoryValue, updatedAt: Date.now() })
+      .where(eq(chatSessions.id, id))
+      .run();
   }
 
   return NextResponse.json({ ok: true });

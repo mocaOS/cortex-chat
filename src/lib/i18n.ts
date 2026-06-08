@@ -18,9 +18,9 @@ const translations = {
     researchAreas: "Research areas:",
     relevance: "Relevance",
     rerank: "Rerank",
-    emptyTitle: "Ask AI",
+    emptyTitle: "Ask Cortex",
     emptyDescription:
-      "Ask anything about your knowledge base. Switch to Deep Research for complex multi-step questions.",
+      "Formulate any question that you have about the Contents of this Cortex Knowledge Graph.",
     today: "Today",
     yesterday: "Yesterday",
     previous7Days: "Previous 7 Days",
@@ -384,9 +384,9 @@ const translations = {
     researchAreas: "Recherchebereiche:",
     relevance: "Relevanz",
     rerank: "Rerank",
-    emptyTitle: "KI fragen",
+    emptyTitle: "Ask Cortex",
     emptyDescription:
-      "Stelle deine Fragen an die Knowledge Base. Wechsle zu Deep Research für komplexere Anfragen.",
+      "Formuliere jede Frage, die du zu den Inhalten dieses Cortex Knowledge Graph hast.",
     today: "Heute",
     yesterday: "Gestern",
     previous7Days: "Letzte 7 Tage",

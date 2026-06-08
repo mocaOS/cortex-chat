@@ -43,9 +43,9 @@ export async function getConfig(): Promise<ClientConfig> {
       accentColor: "oklch(0.79 0.18 70.67)",
       logoUrl: "",
       locale: "en",
-      appTitle: "Ask AI",
+      appTitle: "Ask Cortex",
       appDescription:
-        "Ask anything about your knowledge base. Switch to Deep Research for complex multi-step questions.",
+        "Formulate any question that you have about the Contents of this Cortex Knowledge Graph.",
       supportUrl: "",
       supportLabel: "",
       maxUploadBytes: MAX_UPLOAD_BYTES,

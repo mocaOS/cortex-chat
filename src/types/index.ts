@@ -3,11 +3,27 @@ export interface Source {
   chunk_id: string;
   content: string;
   score: number;
+  // Conversation-stable source id, accumulated in the backend memory
+  // source_ledger. Additive — lets a follow-up reference the same document
+  // across turns. Rides inside the sources array, so it persists with the
+  // message metadata and reloads automatically. Per-turn [src_N] numbering
+  // and citation rendering are unchanged.
+  sid?: string;
   metadata: {
     filename: string;
     chunk_index?: number;
     rerank_score?: number;
   };
+}
+
+/**
+ * Structured pipeline status emitted by the backend on every mode.
+ * `stage` is a stable machine key (analyzing | searching | reranking |
+ * generating); `message` is human/i18n-friendly text to show directly.
+ */
+export interface StreamStatus {
+  stage: string;
+  message: string;
 }
 
 export interface GraphContext {
@@ -45,6 +61,7 @@ export interface ChatMessage {
   subQuestions?: string[];
   retrieval?: string[];
   retrievalStats?: RetrievalStats;
+  status?: StreamStatus;
   isStreaming?: boolean;
 }
 
@@ -56,6 +73,9 @@ export interface AskRequest {
   use_agentic?: boolean;
   conversation_history?: { role: "user" | "assistant"; content: string }[];
   collection_id?: string | null;
+  // Opaque client-carried memory blob. Sent verbatim each turn, replaced from
+  // the memory_update event — never constructed or mutated client-side.
+  conversation_memory?: unknown;
 }
 
 export type Mode = "chat" | "deep-research";
@@ -69,6 +89,9 @@ export interface ChatSession {
   id: string;
   title: string;
   messages?: ChatMessage[];
+  // Opaque conversation memory blob, replayed as conversation_memory on the
+  // next turn. Persisted server-side so it survives reload/device-switch.
+  memory?: unknown;
   createdAt: number;
   updatedAt: number;
 }

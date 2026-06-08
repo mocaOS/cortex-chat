@@ -76,6 +76,9 @@ export const chatSessions = sqliteTable("chat_sessions", {
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   title: text("title").notNull().default(""),
+  // Opaque conversation_memory blob (JSON string) replayed to the backend on
+  // each turn. Nullable — null/absent means "no memory yet" (turn 1 behavior).
+  memory: text("memory"),
   createdAt: integer("created_at").notNull().default(sql`(unixepoch() * 1000)`),
   updatedAt: integer("updated_at").notNull().default(sql`(unixepoch() * 1000)`),
 });

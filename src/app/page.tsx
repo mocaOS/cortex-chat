@@ -65,6 +65,11 @@ export default function Home() {
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const titleGeneratedRef = useRef<Set<string>>(new Set());
+  // Opaque conversation_memory blob for the active session. Held in a ref so
+  // the async handleSend always reads the latest value (no stale closure) and
+  // so updating it mid-stream doesn't trigger a re-render. Replayed verbatim on
+  // each turn, replaced from the memory_update event, persisted with messages.
+  const memoryRef = useRef<unknown>(undefined);
 
   const refreshSessions = useCallback(async () => {
     try {
@@ -113,7 +118,7 @@ export default function Home() {
     if (!activeSessionId || messages.length === 0) return;
     const hasStreaming = messages.some((m) => m.isStreaming);
     if (hasStreaming) return;
-    updateChatMessages(activeSessionId, messages)
+    updateChatMessages(activeSessionId, messages, memoryRef.current)
       .then(refreshSessions)
       .catch(() => {});
   }, [messages, activeSessionId, refreshSessions]);
@@ -124,6 +129,7 @@ export default function Home() {
       if (session) {
         setActiveSessionId(id);
         setMessages(session.messages ?? []);
+        memoryRef.current = session.memory;
         setIsLoading(false);
       }
     },
@@ -137,6 +143,7 @@ export default function Home() {
       if (activeSessionId === id) {
         setActiveSessionId(null);
         setMessages([]);
+        memoryRef.current = undefined;
       }
     },
     [activeSessionId, refreshSessions]
@@ -145,6 +152,7 @@ export default function Home() {
   const handleNewChat = useCallback(() => {
     setActiveSessionId(null);
     setMessages([]);
+    memoryRef.current = undefined;
     setIsLoading(false);
   }, []);
 
@@ -200,11 +208,14 @@ export default function Home() {
         use_reranking: true,
         conversation_history: conversationHistory,
         collection_id: settings.collectionId ?? null,
+        // Replay the opaque memory blob (or {} on turn 1). The backend returns
+        // an updated one via memory_update; we never construct or mutate it.
+        conversation_memory: memoryRef.current ?? {},
       };
 
       const finalize = (finalMessages: ChatMessage[]) => {
         if (sessionId) {
-          updateChatMessages(sessionId, finalMessages)
+          updateChatMessages(sessionId, finalMessages, memoryRef.current)
             .then(refreshSessions)
             .catch(() => {});
         }
@@ -275,6 +286,18 @@ export default function Home() {
                     : m
                 )
               );
+            },
+            onStatus: (status) => {
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === assistantId ? { ...m, status } : m
+                )
+              );
+            },
+            onMemoryUpdate: (memory) => {
+              // Store verbatim; persisted with the message on settle and
+              // replayed as conversation_memory next turn.
+              memoryRef.current = memory;
             },
             onDone: () => {
               setMessages((prev) => {

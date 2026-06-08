@@ -28,10 +28,15 @@ export default function ThinkingIndicator({ message }: { message: ChatMessage })
     return () => clearInterval(id);
   }, []);
 
-  // Label tracks the furthest stage reached so far. Sources arriving means
-  // retrieval is done and the writer is running, even before the first token.
+  // Prefer the backend's authoritative status message when present (it knows
+  // the real pipeline stage, including the fast-path). Otherwise fall back to
+  // inferring the stage from which fields have arrived so far. Sources arriving
+  // means retrieval is done and the writer is running, even before the first
+  // token.
   let label: string;
-  if (message.sources && message.sources.length > 0) {
+  if (message.status?.message) {
+    label = message.status.message;
+  } else if (message.sources && message.sources.length > 0) {
     label = t("generatingResponse");
   } else if (
     (message.retrieval && message.retrieval.length > 0) ||

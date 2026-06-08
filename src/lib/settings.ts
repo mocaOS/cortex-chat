@@ -3,9 +3,9 @@ import { eq, inArray } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { appSettings } from "@/lib/db/schema";
 
-export const DEFAULT_APP_TITLE = "Ask AI";
+export const DEFAULT_APP_TITLE = "Ask Cortex";
 export const DEFAULT_APP_DESCRIPTION =
-  "Ask anything about your knowledge base. Switch to Deep Research for complex multi-step questions.";
+  "Formulate any question that you have about the Contents of this Cortex Knowledge Graph.";
 export const DEFAULT_LOCALE: Locale = "en";
 export const DEFAULT_CORTEX_ANALYTICS_TEMPLATE = "";
 // Support link in the chat header. Empty URL hides the button entirely;

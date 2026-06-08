@@ -1,4 +1,4 @@
-import { AskRequest, Collection, Source, GraphContext, RetrievalStats } from "@/types";
+import { AskRequest, Collection, Source, GraphContext, RetrievalStats, StreamStatus } from "@/types";
 
 const PROXY_PREFIX = "/api/proxy";
 
@@ -57,6 +57,8 @@ export async function generateChatTitle(
         onSubQuestions: () => {},
         onRetrieval: () => {},
         onRetrievalStats: () => {},
+        onStatus: () => {},
+        onMemoryUpdate: () => {},
         onDone: () => {},
         onError: () => {},
       }
@@ -87,6 +89,8 @@ export interface StreamCallbacks {
   onSubQuestions: (questions: string[]) => void;
   onRetrieval: (info: string) => void;
   onRetrievalStats: (stats: RetrievalStats) => void;
+  onStatus: (status: StreamStatus) => void;
+  onMemoryUpdate: (memory: unknown) => void;
   onDone: () => void;
   onError: (error: string) => void;
 }
@@ -168,6 +172,12 @@ export async function askQuestionStream(
         }
         if (data.retrieval_stats) {
           callbacks.onRetrievalStats(data.retrieval_stats);
+        }
+        if (data.status) {
+          callbacks.onStatus(data.status);
+        }
+        if (data.memory_update) {
+          callbacks.onMemoryUpdate(data.memory_update);
         }
         if (data.done) {
           callbacks.onDone();

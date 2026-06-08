@@ -40,11 +40,16 @@ export async function createChat(
 
 export function updateChatMessages(
   id: string,
-  messages: ChatMessage[]
+  messages: ChatMessage[],
+  memory?: unknown
 ): Promise<void> {
+  // Only include memory when we actually have one, so we never clobber a stored
+  // blob with null on a turn that produced no memory_update.
+  const body =
+    memory !== undefined ? { messages, memory } : { messages };
   return http(`${BASE}/${id}`, {
     method: "PATCH",
-    body: JSON.stringify({ messages }),
+    body: JSON.stringify(body),
   }).then(() => undefined);
 }
 

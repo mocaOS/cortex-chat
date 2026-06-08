@@ -8,7 +8,8 @@ Cortex Chat — a Next.js 16 multi-tenant chat suite for the Cortex RAG-based AI
 - Email/password auth backed by server-side sessions (SQLite)
 - Superadmin-provisioned users and user groups
 - Per-group read-only API keys (chat); per-user manage keys (document upload / "content roles")
-- Streaming SSE responses from backend (`/api/ask/stream`)
+- Streaming SSE responses from backend (`/api/ask/stream`), with structured `status` stage events driving the live thinking indicator
+- Conversation memory — client-carried, server-persisted opaque blob for cross-turn recall, citation continuity (`sid`), and a memory-only fast-path
 - Chat and Deep Research modes
 - Collection-scoped search (default: all collections the user's group can read)
 - Source citations with modal viewer
@@ -55,6 +56,16 @@ Admin-editable context block injected into every backend request, server-side, f
 - **Invisibility:** the block never reaches the browser (proxy mutates the body server-side only) and is never written to `chat_messages`. Re-applied per request, so admin edits take effect immediately for in-flight sessions.
 - **Truncation caveat:** the Cortex backend caps `conversation_history` (env `MAX_CONVERSATION_HISTORY=6`). Re-injecting at position 0 every turn keeps the block present in the *current* request — which is what skills see — even after older turns fall off.
 
+## Conversation memory & streaming status
+
+Both consume additive, backward-compatible features on `/api/ask/stream`. Parsing lives in `askQuestionStream` (`src/lib/api.ts`); orchestration in `src/app/page.tsx`.
+
+- **Memory round-trip.** The client sends an **opaque** `conversation_memory` blob each turn (`{}` on turn 1), reads the updated blob from the `memory_update` SSE event, and replays it next turn. Never construct or mutate it — store and replay verbatim. Held in `memoryRef` (no stale closure / no re-render), persisted with messages.
+- **Persistence.** Stored per session in `chat_sessions.memory` (nullable JSON TEXT, migration `0002`). PATCH `/api/me/chats/[id]` folds it into the messages transaction so a settled turn is atomic; GET returns it; loaded on session select, reset on new/delete. Survives reload and device-switch like chat history.
+- **Citation continuity.** Each `sources[]` item now carries a conversation-stable `sid`. It rides inside the sources array, so it persists in message metadata and reloads automatically — no separate map, no rendering change.
+- **Status events.** `status` `{stage, message}` drives the `ThinkingIndicator` label directly (`message.status.message`), falling back to the old field-presence heuristic when absent. The memory fast-path (no `searching`/`sources`) is handled by this automatically.
+- **Heartbeats.** `: ping` comment lines need no handling — the parser only acts on `data:` lines.
+
 ## Collection Scoping (user-facing)
 
 - Chat and Deep Research default to searching **all collections the user has access to** (i.e. the scope of their group's chat key). No `collection_id` is sent — the backend filters by key scope.
@@ -94,7 +105,7 @@ This product uses the **MOCA Library design system** (aka Claude Design). Before
 ## Storage
 
 - Runtime state lives under `./data/`:
-  - `data/cortex-chat.db` — SQLite DB (users, groups, api_keys, sessions, login_events, chat_sessions, chat_messages, usage_events)
+  - `data/cortex-chat.db` — SQLite DB (users, groups, api_keys, sessions, login_events, chat_sessions [incl. opaque `memory` blob], chat_messages, usage_events)
   - `data/avatars/<userId>.webp` — user profile images
 - `data/` is gitignored and intended to be bind-mounted in Docker (see `docker-compose.yml`).
 - Schema lives in `src/lib/db/schema.ts`; migrations in `src/lib/db/migrations/` (generated via `npm run db:generate`, applied on server start via `src/instrumentation.ts` and manually via `npm run db:migrate`).
