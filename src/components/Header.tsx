@@ -45,12 +45,11 @@ export default function Header({
             href={supportUrl}
             target="_blank"
             rel="noopener noreferrer"
-            title={supportLabel}
             aria-label={supportLabel}
-            className="w-8 h-8 rounded-[var(--radius)] flex items-center justify-center text-[var(--fg2)] hover:text-[var(--fg1)] hover:bg-[var(--muted)] transition-colors cursor-pointer"
+            className="group relative w-9 h-9 rounded-[var(--radius)] flex items-center justify-center text-[var(--accent)] hover:text-white hover:bg-[var(--muted)] transition-colors cursor-pointer"
           >
             <svg
-              className="w-5 h-5"
+              className="w-6 h-6"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -62,6 +61,19 @@ export default function Header({
               <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
               <path d="M12 17h.01" />
             </svg>
+            {/* Instant CSS tooltip — native title attribute has a browser hover delay */}
+            <span
+              role="tooltip"
+              className="pointer-events-none absolute right-0 top-full mt-1.5 whitespace-nowrap rounded-[var(--radius-sm)] border px-2.5 py-1 text-[13px] opacity-0 group-hover:opacity-100 transition-opacity duration-100"
+              style={{
+                background: "var(--card)",
+                borderColor: "var(--border)",
+                color: "var(--fg1)",
+                boxShadow: "var(--shadow-xl)",
+              }}
+            >
+              {supportLabel}
+            </span>
           </a>
         ) : null}
       </div>
