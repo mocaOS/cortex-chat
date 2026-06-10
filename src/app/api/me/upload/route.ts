@@ -67,11 +67,16 @@ export async function POST(request: Request) {
   outForm.append("file", file, file.name);
   if (collectionId) outForm.append("collection_id", collectionId);
 
+  // Correlation id: reuse the client's, or mint one. The backend echoes and
+  // forwards it to cortex-helper, so all three services log the same id.
+  const requestId = request.headers.get("x-request-id") ?? crypto.randomUUID();
+
   try {
     const upstream = await fetch(`${apiUrl}/api/upload`, {
       method: "POST",
       headers: {
         "X-API-Key": resolved.apiKey,
+        "X-Request-ID": requestId,
       },
       body: outForm,
     });
@@ -93,11 +98,17 @@ export async function POST(request: Request) {
 
     if (!upstream.ok) {
       const text = await upstream.text().catch(() => "");
+      const errorHeaders: Record<string, string> = {
+        "X-Request-ID": requestId,
+      };
+      // Pass burst rate-limit hints through so the client can honor them.
+      const retryAfter = upstream.headers.get("Retry-After");
+      if (retryAfter) errorHeaders["Retry-After"] = retryAfter;
       return NextResponse.json(
         {
           error: `Upload rejected by Cortex (${upstream.status}): ${text.slice(0, 400)}`,
         },
-        { status: upstream.status }
+        { status: upstream.status, headers: errorHeaders }
       );
     }
 

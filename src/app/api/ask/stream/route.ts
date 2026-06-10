@@ -59,6 +59,10 @@ export async function POST(request: Request) {
   );
   const upstreamBody = injectCortexAnalytics(body, rendered);
 
+  // Correlation id: reuse the client's, or mint one. The backend echoes and
+  // forwards it to cortex-helper, so all three services log the same id.
+  const requestId = request.headers.get("x-request-id") ?? crypto.randomUUID();
+
   try {
     const upstream = await fetch(`${apiUrl}/api/ask/stream`, {
       method: "POST",
@@ -66,13 +70,22 @@ export async function POST(request: Request) {
         "Content-Type": "application/json",
         "X-API-Key": resolved.apiKey,
         "Accept-Encoding": "identity",
+        "X-Request-ID": requestId,
       },
       body: upstreamBody,
     });
 
     if (!upstream.ok) {
+      const errorHeaders: Record<string, string> = {
+        "X-Request-ID": requestId,
+      };
+      // Pass burst rate-limit hints through so the client can honor them.
+      const retryAfter = upstream.headers.get("Retry-After");
+      if (retryAfter) errorHeaders["Retry-After"] = retryAfter;
+
       return new Response(`Upstream error: ${upstream.status}`, {
         status: upstream.status,
+        headers: errorHeaders,
       });
     }
 
@@ -86,6 +99,7 @@ export async function POST(request: Request) {
         "Cache-Control": "no-cache, no-transform",
         Connection: "keep-alive",
         "X-Accel-Buffering": "no",
+        "X-Request-ID": requestId,
       },
     });
   } catch (err) {

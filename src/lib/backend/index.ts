@@ -29,6 +29,8 @@ async function call<T>(
     headers: {
       "Content-Type": "application/json",
       "X-API-Key": adminKey(),
+      // Correlation id — the backend echoes and forwards it downstream.
+      "X-Request-ID": crypto.randomUUID(),
       ...init?.headers,
     },
   });

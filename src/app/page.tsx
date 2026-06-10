@@ -8,6 +8,7 @@ import {
   askQuestion,
   askQuestionStream,
   fetchCollections,
+  RateLimitError,
 } from "@/lib/api";
 import {
   listChats,
@@ -325,6 +326,47 @@ export default function Home() {
               });
               setIsLoading(false);
             },
+            onRateLimited: (retryAfterSeconds) => {
+              setMessages((prev) => {
+                const updated = prev.map((m) =>
+                  m.id === assistantId
+                    ? {
+                        ...m,
+                        content:
+                          retryAfterSeconds != null
+                            ? t("rateLimited", { seconds: retryAfterSeconds })
+                            : t("rateLimitedNoTime"),
+                        isStreaming: false,
+                      }
+                    : m
+                );
+                finalize(updated);
+                return updated;
+              });
+              setIsLoading(false);
+            },
+            onReconnect: () => {
+              // Server is restarting and the request is being resubmitted —
+              // clear the partial answer so the regenerated one streams clean.
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === assistantId
+                    ? {
+                        ...m,
+                        content: "",
+                        sources: [],
+                        thinking: [],
+                        subQuestions: [],
+                        retrieval: [],
+                        retrievalStats: undefined,
+                        graphContext: undefined,
+                        status: undefined,
+                        isStreaming: true,
+                      }
+                    : m
+                )
+              );
+            },
           },
           controller.signal
         ).catch(() => {
@@ -362,12 +404,18 @@ export default function Home() {
             return updated;
           });
         } catch (err) {
+          const content =
+            err instanceof RateLimitError
+              ? err.retryAfterSeconds != null
+                ? t("rateLimited", { seconds: err.retryAfterSeconds })
+                : t("rateLimitedNoTime")
+              : `${t("errorPrefix")}: ${err instanceof Error ? err.message : t("unknownError")}`;
           setMessages((prev) => {
             const updated = prev.map((m) =>
               m.id === assistantId
                 ? {
                     ...m,
-                    content: `${t("errorPrefix")}: ${err instanceof Error ? err.message : t("unknownError")}`,
+                    content,
                     isStreaming: false,
                   }
                 : m

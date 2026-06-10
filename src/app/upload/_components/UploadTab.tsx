@@ -75,6 +75,15 @@ export default function UploadTab() {
     try {
       const res = await fetch("/api/me/upload", { method: "POST", body: form });
       const data = await res.json().catch(() => ({}));
+      if (res.status === 429) {
+        // Burst rate limit — honor Retry-After instead of generic failure.
+        const retryAfter = res.headers.get("Retry-After");
+        throw new Error(
+          retryAfter && Number.isFinite(Number(retryAfter))
+            ? t("rateLimited", { seconds: Math.ceil(Number(retryAfter)) })
+            : t("rateLimitedNoTime")
+        );
+      }
       if (!res.ok) throw new Error(data.error || t("uploadFailed"));
       setToast({
         kind: "success",

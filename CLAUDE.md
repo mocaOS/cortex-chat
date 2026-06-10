@@ -66,6 +66,18 @@ Both consume additive, backward-compatible features on `/api/ask/stream`. Parsin
 - **Status events.** `status` `{stage, message}` drives the `ThinkingIndicator` label directly (`message.status.message`), falling back to the old field-presence heuristic when absent. The memory fast-path (no `searching`/`sources`) is handled by this automatically.
 - **Heartbeats.** `: ping` comment lines need no handling — the parser only acts on `data:` lines.
 
+## Backend resilience (v-next behaviors)
+
+Adopted from the cortex-app v-next hand-off notes; all additive and backward-compatible.
+
+- **429 + Retry-After.** Deployments with `RATE_LIMIT_QPM` return 429 with `Retry-After` on bursts (besides the monthly-quota 429). All proxy routes pass `Retry-After` through; the client never auto-retries a 429 — `apiFetch` throws `RateLimitError`, `askQuestionStream` calls `onRateLimited`, and the UI shows a localized "slow down" message (`rateLimited`/`rateLimitedNoTime`) in chat and on upload.
+- **`event: shutdown` SSE frame.** On rolling restarts the backend ends active streams with `event: shutdown` instead of a dead socket. `askQuestionStream` transparently resubmits (max 2 reconnects, same `X-Request-ID`); `onReconnect` clears the partial assistant message so the regenerated answer streams clean.
+- **`X-Request-ID` correlation.** The client generates one id per user action (one per stream, stable across shutdown reconnects); every proxy route reuses-or-mints it, forwards it upstream, and echoes it on the response. The admin client (`src/lib/backend/index.ts`) mints one per call. Lines across chat → backend → cortex-helper share one id (`LOG_FORMAT=json` upstream).
+- **Retry wrapper.** `apiFetch` retries 3 attempts with exponential backoff + jitter (0.5–4s): GETs on connect failure and 5xx; non-GETs only on fetch rejection (no response received — the browser approximation of connect-failure-before-send). Never on 429.
+- **Collections cache.** `GET /api/collections` has no pagination upstream (verified); `fetchCollections` caches client-side for 60s with in-flight dedup.
+- **Titles.** Chat titles come from the first user message (no LLM call) and are guarded once-per-session via `titleGeneratedRef` — nothing regenerates on reconnect/replay, so no tenant LLM budget is burned.
+- **Keep `Accept-Encoding: identity`** on the SSE proxy. The v-next nginx config disables buffering on `/api/ask/stream`, which will make it redundant once deployed everywhere — but it stays harmless; don't remove it this cycle.
+
 ## Collection Scoping (user-facing)
 
 - Chat and Deep Research default to searching **all collections the user has access to** (i.e. the scope of their group's chat key). No `collection_id` is sent — the backend filters by key scope.
