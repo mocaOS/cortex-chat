@@ -23,8 +23,12 @@ export async function register() {
 
   const { runMigrations } = await import("@/lib/db/migrate");
   const { bootstrapSuperadmin } = await import("@/lib/auth/superadmin-bootstrap");
+  const { bootstrapDefaultGroup } = await import("@/lib/default-group-bootstrap");
   runMigrations();
   await bootstrapSuperadmin();
+  // Fire-and-forget: needs the Cortex backend (to mint the group's chat key),
+  // which may still be starting — retries in the background, never blocks boot.
+  bootstrapDefaultGroup();
   await migrateLegacyBrandingEnv();
 }
 
