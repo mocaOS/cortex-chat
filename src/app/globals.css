@@ -94,9 +94,9 @@
   --accent: oklch(0.79 0.18 70.67);
 
   /* Global UI scale — the whole app renders at this factor (browser-zoom
-     equivalent). 1.5 = 150%. Single source of truth; see `body { zoom }` and
+     equivalent). 1.125 = 112.5%. Single source of truth; see `body { zoom }` and
      the .h-dvh / .max-h-dvh overrides below that compensate viewport units. */
-  --ui-scale: 1.5;
+  --ui-scale: 1.125;
 
   /* Shape */
   --radius: 0.5rem;
@@ -195,14 +195,14 @@ body {
   font-feature-settings: "ss01", "cv11";
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
-  /* Render the entire app at --ui-scale (default 150%). `zoom` scales layout
+  /* Render the entire app at --ui-scale (default 112.5%). `zoom` scales layout
      like browser zoom — unlike a transform it keeps document flow, focus, and
      fixed positioning intact. Supported in all current evergreen browsers. */
   zoom: var(--ui-scale);
 }
 
 /* `zoom` multiplies viewport units too, so a raw 100dvh shell would render at
-   150dvh and overflow. Dividing by --ui-scale maps these back to the real
+   112.5dvh and overflow. Dividing by --ui-scale maps these back to the real
    viewport. All full-height shells in the app use .h-dvh / .max-h-dvh; modals
    that use vh do the same calc inline. Unlayered → wins over Tailwind's. */
 .h-dvh {
