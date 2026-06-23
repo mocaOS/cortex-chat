@@ -30,6 +30,7 @@ Cortex Chat connects to any Cortex instance via its REST API and mints scoped pe
 - **User & group management** — superadmin creates users at `/admin`, assigns each to exactly one group, and edits per-group collection scope
 - **Per-group read keys** — every chat request uses the group's `read`-scoped Cortex backend key, minted by the superadmin and stored AES-256-GCM encrypted at rest
 - **Per-user content roles** — selected users get a `manage`-scoped key for document upload at `/upload`; admin/superadmin upload via the env admin key
+- **Web Import** — content-role users can harvest web pages into a collection (paste URLs or Discover same-site links → crawled to markdown and ingested). A feature-gated toggle on `/upload`; **shown only when the Cortex backend has `ENABLE_WEB_CRAWL=true` and a reachable `CRAWL_SERVICE_URL`** (a [crawl4ai](https://github.com/unclecode/crawl4ai) service). Off by default — nothing to configure in this app; it auto-detects the backend flag via `GET /api/features`
 - **Login & usage analytics** — superadmin dashboard charts login activity and chat usage
 - **Cortex chat analytics** — admins define a `<cortexchatanalytics>` block in `/admin/settings` that is injected server-side into every backend request (after `$userEmail` / `$userName` substitution). Invisible in the chat UI; readable by backend agent skills for use cases like routing chat summaries to external systems
 

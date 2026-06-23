@@ -4,6 +4,9 @@ import { useCallback, useEffect, useState } from "react";
 import { Button, ErrorBanner, Select } from "@/components/admin/ui";
 import { t } from "@/lib/i18n";
 import { getConfig } from "@/lib/config";
+import WebImportForm from "./WebImportForm";
+
+type Mode = "file" | "web";
 
 function formatMaxBytes(bytes: number): string {
   return `${Math.round(bytes / (1024 * 1024))} MB`;
@@ -28,6 +31,17 @@ export default function UploadTab() {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<Toast | null>(null);
+  const [mode, setMode] = useState<Mode>("file");
+  const [webEnabled, setWebEnabled] = useState(false);
+
+  // Web Import is gated on the backend (ENABLE_WEB_CRAWL + a crawl service).
+  // /api/features reports the resolved flag; hide the toggle when it's off.
+  useEffect(() => {
+    fetch("/api/proxy/api/features")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => setWebEnabled(Boolean(data?.enable_web_crawl)))
+      .catch(() => setWebEnabled(false));
+  }, []);
 
   const loadScope = useCallback(async () => {
     const res = await fetch("/api/me/upload-scope");
@@ -107,12 +121,49 @@ export default function UploadTab() {
   return (
     <div className="max-w-xl space-y-5">
       <p className="text-[13px]" style={{ color: "var(--fg2)" }}>
-        {t("uploadDescription")}
+        {mode === "web" ? t("webImportDescription") : t("uploadDescription")}
       </p>
 
       <ErrorBanner message={error} />
 
-      {!error && (
+      {!error && webEnabled && (
+        <div
+          className="inline-flex rounded-[var(--radius)] border p-0.5"
+          style={{ borderColor: "var(--border)", background: "var(--card)" }}
+          role="tablist"
+        >
+          {(["file", "web"] as Mode[]).map((m) => {
+            const active = mode === m;
+            return (
+              <button
+                key={m}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                onClick={() => setMode(m)}
+                className="px-3.5 py-1.5 text-[12px] rounded-[calc(var(--radius)-2px)] transition-colors"
+                style={{
+                  background: active ? "var(--muted)" : "transparent",
+                  color: active ? "var(--fg1)" : "var(--fg2)",
+                  fontWeight: active ? 500 : 400,
+                }}
+              >
+                {m === "file" ? t("webImportModeFile") : t("webImportModeWeb")}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {!error && mode === "web" && (
+        <WebImportForm
+          collections={collections}
+          collectionId={collectionId}
+          setCollectionId={setCollectionId}
+        />
+      )}
+
+      {!error && mode === "file" && (
         <form
           onSubmit={handleUpload}
           className="rounded-[var(--radius-lg)] border p-5 space-y-4"
@@ -164,7 +215,7 @@ export default function UploadTab() {
         </form>
       )}
 
-      {toast && (
+      {toast && mode === "file" && (
         <div
           className="text-[13px] rounded-[var(--radius)] px-3 py-2 border space-y-1"
           style={

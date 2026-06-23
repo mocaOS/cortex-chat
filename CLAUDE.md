@@ -46,6 +46,15 @@ Three kinds of key in play:
 
 `POST /api/upload` on the Cortex backend triggers extraction automatically; there is no flag to skip it. We honor the "never start extraction" UX requirement by **confirming upload as soon as the HTTP response lands** (typically the upstream's initial 202 / 200) and **never surfacing extraction progress** in this UI. Extraction still runs asynchronously in Cortex; it's simply not this app's concern.
 
+## Web Import (MDHarvest / crawl4ai)
+
+A second content-add path on the `/upload` surface, alongside file upload: paste URLs (or use **Discover links** to crawl a page for same-site links), pick a content filter (Readable / Full page / Relevance-ranked), and harvest the pages into a collection as markdown. UI is a feature-gated mode toggle inside `UploadTab` (`WebImportForm.tsx`); same content-role gating as upload.
+
+- **Feature gate.** Backend exposes `GET /api/features` → `{enable_web_crawl}` (true only when `ENABLE_WEB_CRAWL` **and** a `CRAWL_SERVICE_URL` are set). `UploadTab` reads it via the generic proxy (`/api/proxy/api/features`) and hides the toggle when off, so the feature is invisible unless the backend is wired to a crawl4ai service.
+- **Permission split.** Submit + discover are `MANAGE` actions → ride the **user content key** via dedicated routes (`/api/me/web-import`, `/api/me/web-import/discover`), with the same collection-scope enforcement as upload. Progress polling + the feature flag are `READ` → ride the **group chat key** through the generic proxy. (Content keys are minted `manage`-only and would 403 on the READ-gated `/api/tasks/{id}` and `/api/features`.)
+- **Async, but progress IS shown.** Unlike file upload, Web Import is a backend task (`POST /api/web-import` → `{task_id}`); the UI polls `GET /api/proxy/api/tasks/{task_id}` (~1.5s) for a progress bar and a final "imported N of M" summary. This is crawl/import progress, not document extraction progress — the "no extraction in UI" rule still holds for the subsequent ingestion.
+- Logged as a `usage_events` row with `kind: "upload"`, `metadata.source: "web-import"` (no schema change).
+
 ## Cortex chat analytics
 
 Admin-editable context block injected into every backend request, server-side, for backend agent skills to read (e.g. forwarding chat summaries to a CRM with the user's identity attached).

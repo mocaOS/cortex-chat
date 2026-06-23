@@ -103,6 +103,35 @@ const translations = {
     fileUploaded: '"{name}" uploaded.',
     fileTooLarge: "File is too large. Maximum size is {max}.",
 
+    // Web Import (MDHarvest / crawl4ai)
+    webImportModeFile: "File",
+    webImportModeWeb: "Web Import",
+    webImportDescription:
+      "Paste web page URLs to harvest into a collection. Each page is crawled, cleaned to markdown, and ingested like an uploaded document. Processing happens in the background.",
+    webImportUrls: "URLs",
+    webImportUrlsPlaceholder: "https://example.com/article\nhttps://example.com/guide",
+    webImportContentFilter: "Content filter",
+    webImportFilterReadable: "Readable — main content only",
+    webImportFilterFullPage: "Full page — everything",
+    webImportFilterRelevance: "Relevance-ranked — by query",
+    webImportRelevanceQuery: "Relevance query",
+    webImportRelevanceQueryPlaceholder: "Keep passages about…",
+    webImportDiscover: "Discover links",
+    webImportDiscoverHint:
+      "Enter a page URL to find same-site links, then pick which ones to add.",
+    webImportDiscovering: "Discovering…",
+    webImportNoLinks: "No same-site links found on that page.",
+    webImportAddSelected: "Add {count} selected",
+    webImportDiscoverFailed: "Could not discover links.",
+    webImportSubmit: "Import {count} from web",
+    webImportImporting: "Importing…",
+    webImportStarting: "Starting web import…",
+    webImportFailed: "Web import could not be started.",
+    webImportTaskFailed: "Web import failed.",
+    webImportDone: "Imported {imported} of {total}.",
+    webImportSuccessHint: "The new documents are ready to search and explore.",
+    webImportFailedCount: "{failed} URL(s) could not be crawled.",
+
     // Admin navigation
     adminNavOverview: "Overview",
     adminNavUsers: "Users",
@@ -472,6 +501,35 @@ const translations = {
     upload: "Hochladen",
     fileUploaded: '„{name}" hochgeladen.',
     fileTooLarge: "Die Datei ist zu groß. Maximalgröße ist {max}.",
+
+    // Web Import (MDHarvest / crawl4ai)
+    webImportModeFile: "Datei",
+    webImportModeWeb: "Web Import",
+    webImportDescription:
+      "Füge URLs von Webseiten ein, um sie in eine Collection zu übernehmen. Jede Seite wird gecrawlt, zu Markdown bereinigt und wie ein hochgeladenes Dokument verarbeitet. Die Verarbeitung läuft im Hintergrund.",
+    webImportUrls: "URLs",
+    webImportUrlsPlaceholder: "https://example.com/artikel\nhttps://example.com/anleitung",
+    webImportContentFilter: "Inhaltsfilter",
+    webImportFilterReadable: "Lesbar — nur Hauptinhalt",
+    webImportFilterFullPage: "Ganze Seite — alles",
+    webImportFilterRelevance: "Relevanz — nach Suchbegriff",
+    webImportRelevanceQuery: "Relevanz-Suchbegriff",
+    webImportRelevanceQueryPlaceholder: "Behalte Passagen über…",
+    webImportDiscover: "Links finden",
+    webImportDiscoverHint:
+      "Gib eine Seiten-URL ein, um Links derselben Domain zu finden, und wähle dann die passenden aus.",
+    webImportDiscovering: "Suche…",
+    webImportNoLinks: "Keine Links derselben Domain auf dieser Seite gefunden.",
+    webImportAddSelected: "{count} ausgewählte hinzufügen",
+    webImportDiscoverFailed: "Links konnten nicht gefunden werden.",
+    webImportSubmit: "{count} aus dem Web importieren",
+    webImportImporting: "Importiere…",
+    webImportStarting: "Web Import wird gestartet…",
+    webImportFailed: "Web Import konnte nicht gestartet werden.",
+    webImportTaskFailed: "Web Import fehlgeschlagen.",
+    webImportDone: "{imported} von {total} importiert.",
+    webImportSuccessHint: "Die neuen Dokumente stehen zur Suche bereit.",
+    webImportFailedCount: "{failed} URL(s) konnten nicht gecrawlt werden.",
 
     // Admin navigation
     adminNavOverview: "Übersicht",

@@ -126,42 +126,6 @@ export async function askQuestion(req: AskRequest) {
   return res.json();
 }
 
-export async function generateChatTitle(
-  userMessage: string,
-  assistantMessage: string
-): Promise<string> {
-  try {
-    let title = "";
-    await askQuestionStream(
-      {
-        question: `Generate a very short title (max 6 words, no quotes, no punctuation at the end) for this conversation. Respond ONLY with the title, nothing else.\n\nUser: ${userMessage}\nAssistant: ${assistantMessage.slice(0, 500)}`,
-        use_graph: false,
-        use_reranking: false,
-        use_agentic: false,
-        conversation_history: [],
-        collection_id: null,
-      },
-      {
-        onContent: (token) => { title += token; },
-        onSources: () => {},
-        onGraphContext: () => {},
-        onThinking: () => {},
-        onSubQuestions: () => {},
-        onRetrieval: () => {},
-        onRetrievalStats: () => {},
-        onStatus: () => {},
-        onMemoryUpdate: () => {},
-        onDone: () => {},
-        onError: () => {},
-      }
-    );
-    title = title.trim().replace(/^["']|["']$/g, "");
-    return title.slice(0, 80) || "";
-  } catch {
-    return "";
-  }
-}
-
 export interface DocumentContent {
   id: string;
   filename: string;

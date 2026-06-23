@@ -155,17 +155,30 @@ export default function MessageBubble({ message, onSourceClick }: Props) {
                 ref={thinkingScrollRef}
                 className="max-h-[200px] overflow-y-auto px-3.5 pb-2.5 thinking-steps-fade"
               >
-                {message.thinking!.map((step, i) => (
-                  <div key={i} className="flex gap-3 py-0.5 leading-relaxed">
-                    <span
-                      className="text-[var(--fg3)] select-none w-4 text-right flex-shrink-0 tabular-nums"
-                      style={{ fontFamily: "var(--font-mono)" }}
-                    >
-                      {i + 1}
-                    </span>
-                    <span className="text-[var(--fg2)]">{step}</span>
-                  </div>
-                ))}
+                {message.thinking!.map((step, i) => {
+                  // Skill failures arrive on the same thinking stream (the
+                  // backend emits "API call failed: …" / "Failed to activate
+                  // skill …"). Surface them distinctly instead of as plain text.
+                  const failed = /API call failed|Failed to activate/i.test(step);
+                  return (
+                    <div key={i} className="flex gap-3 py-0.5 leading-relaxed">
+                      <span
+                        className="select-none w-4 text-right flex-shrink-0 tabular-nums"
+                        style={{
+                          fontFamily: "var(--font-mono)",
+                          color: failed ? "var(--destructive)" : "var(--fg3)",
+                        }}
+                      >
+                        {failed ? "!" : i + 1}
+                      </span>
+                      <span
+                        style={{ color: failed ? "var(--destructive)" : "var(--fg2)" }}
+                      >
+                        {step}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
