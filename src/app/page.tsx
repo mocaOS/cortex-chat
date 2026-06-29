@@ -230,9 +230,11 @@ export default function Home() {
         .filter((m) => !m.isStreaming)
         .map((m) => ({ role: m.role, content: m.content }));
 
+      const useAgentic = mode === "deep-research";
+
       const request = {
         question,
-        use_agentic: mode === "deep-research",
+        use_agentic: useAgentic,
         use_graph: true,
         use_reranking: true,
         conversation_history: conversationHistory,
@@ -241,6 +243,13 @@ export default function Home() {
         // an updated one via memory_update; we never construct or mutate it.
         conversation_memory: memoryRef.current ?? {},
       };
+
+      // Agentic deep research is SSE-only upstream: the non-streaming POST
+      // /api/ask rejects use_agentic with a 400 (it routinely exceeds the
+      // gateway deadline). So force the streaming path for deep research even
+      // when the user has toggled streaming off — the toggle only governs the
+      // plain chat path.
+      const useStreaming = settings.streaming || useAgentic;
 
       const finalize = (finalMessages: ChatMessage[]) => {
         if (sessionId) {
@@ -254,7 +263,7 @@ export default function Home() {
       // this turn so it resets on every send. See aggregateStatusCount.
       const statusCounts: Record<string, number> = {};
 
-      if (settings.streaming) {
+      if (useStreaming) {
         const controller = new AbortController();
         abortRef.current = controller;
 
