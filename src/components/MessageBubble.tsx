@@ -71,7 +71,12 @@ export default function MessageBubble({ message, onSourceClick }: Props) {
   // Replace [src_N] with zero-width-space-wrapped markers that survive markdown
   const processedContent = useMemo(() => {
     if (!message.content) return "";
-    if (!message.sources?.length) return message.content;
+    // The backend can stream citation markers without ever emitting a matching
+    // sources frame. With nothing to link to, strip the orphaned [src_N] (and
+    // any space in front of it) so it never renders as literal "[src_1]" text.
+    if (!message.sources?.length) {
+      return message.content.replace(/\s?\[src_\d+\]/g, "");
+    }
     return message.content.replace(
       /\[src_(\d+)\]/g,
       `${CITE_PREFIX}$1\u200B`
