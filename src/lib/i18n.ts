@@ -51,6 +51,10 @@ const translations = {
       "The system is handling a lot of requests right now. Please wait about {seconds} seconds and try again.",
     rateLimitedNoTime:
       "The system is handling a lot of requests right now. Please wait a moment and try again.",
+    quotaExhausted:
+      "This workspace's monthly usage limit has been reached. It resets on {date}.",
+    serverStorageFull:
+      "The server is out of storage space. Ask an administrator to free up disk space, then try again.",
 
     // Auth / login
     email: "Email",
@@ -314,6 +318,10 @@ const translations = {
     deleting: "Deleting…",
     reprocessQueued: "Reprocess queued.",
     pendingQueued: "Pending queue started.",
+    degradedBadge: "Degraded",
+    degradedNoEntities: "0 entities extracted",
+    degradedUnembedded: "{count} chunks missing embeddings",
+    injectionFlaggedBadge: "Injection flagged",
 
     // Processing tab
     processingHeading: "Knowledge base processing",
@@ -325,6 +333,10 @@ const translations = {
     kpiRelationships: "Relationships",
     kpiCommunities: "Communities",
     kpiPendingTasks: "Pending tasks",
+    monthlyUsageLabel: "Monthly usage",
+    monthlyUsageValue: "{used} / {limit} units",
+    monthlyUsageBreakdown: "{query} chat · {processing} processing",
+    kpiDiskFree: "Disk free (MB)",
     stepExtractionTitle: "Phase A — Entity extraction",
     stepExtractionDescription:
       "Runs automatically per document after upload. Use Process pending to kick off any queued documents.",
@@ -450,6 +462,10 @@ const translations = {
       "Das System verarbeitet gerade viele Anfragen. Bitte warte etwa {seconds} Sekunden und versuch es dann erneut.",
     rateLimitedNoTime:
       "Das System verarbeitet gerade viele Anfragen. Bitte warte einen Moment und versuch es dann erneut.",
+    quotaExhausted:
+      "Das monatliche Nutzungslimit dieses Workspace ist erreicht. Es wird am {date} zurückgesetzt.",
+    serverStorageFull:
+      "Der Server hat keinen freien Speicherplatz mehr. Bitte einen Administrator, Speicherplatz freizugeben, und versuch es dann erneut.",
 
     // Auth / login
     email: "E-Mail",
@@ -714,6 +730,10 @@ const translations = {
     deleteDocumentConfirmLabel: "Dateiname zur Bestätigung",
     deleting: "Lösche…",
     reprocessQueued: "Reprocess in Warteschlange.",
+    degradedBadge: "Beeinträchtigt",
+    degradedNoEntities: "0 Entitäten extrahiert",
+    degradedUnembedded: "{count} Chunks ohne Embeddings",
+    injectionFlaggedBadge: "Injection markiert",
     pendingQueued: "Ausstehende Verarbeitung gestartet.",
 
     // Processing tab
@@ -726,6 +746,10 @@ const translations = {
     kpiRelationships: "Relationen",
     kpiCommunities: "Communities",
     kpiPendingTasks: "Offene Tasks",
+    monthlyUsageLabel: "Monatliche Nutzung",
+    monthlyUsageValue: "{used} / {limit} Einheiten",
+    monthlyUsageBreakdown: "{query} Chat · {processing} Verarbeitung",
+    kpiDiskFree: "Freier Speicher (MB)",
     stepExtractionTitle: "Phase A — Entity-Extraktion",
     stepExtractionDescription:
       'Läuft automatisch pro Dokument nach dem Upload. Mit „Ausstehende verarbeiten" startest du die Warteschlange manuell.',

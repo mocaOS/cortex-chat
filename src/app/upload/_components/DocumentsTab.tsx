@@ -14,6 +14,10 @@ interface BackendDocument {
   processing_progress?: number;
   image_progress_current?: number;
   image_progress_total?: number;
+  entity_count?: number;
+  unembedded_chunk_count?: number;
+  injection_flagged?: boolean;
+  injection_reason?: string;
   created_at?: string;
   [k: string]: unknown;
 }
@@ -31,6 +35,38 @@ function isDocProcessing(status?: string): boolean {
     s === "pending" ||
     s === "queued" ||
     s === "in_progress"
+  );
+}
+
+function isDocCompleted(status?: string): boolean {
+  const s = (status || "").toLowerCase();
+  return s === "completed" || s === "complete" || s === "done" || s === "ready";
+}
+
+// A document can complete processing yet be silently broken — the backend
+// persists the signals (entity_count -1 = unknown) and the "degraded" state
+// is derived client-side, mirroring the Cortex admin UI.
+function degradedReason(doc: BackendDocument): string | null {
+  if (!isDocCompleted(doc.status)) return null;
+  if (doc.entity_count === 0) return t("degradedNoEntities");
+  if ((doc.unembedded_chunk_count ?? 0) > 0)
+    return t("degradedUnembedded", { count: doc.unembedded_chunk_count! });
+  return null;
+}
+
+function WarnChip({ label, title }: { label: string; title?: string }) {
+  return (
+    <span
+      className="text-[10.5px] uppercase tracking-[0.08em] px-2 py-0.5 rounded-[var(--radius-sm)] inline-block"
+      title={title}
+      style={{
+        background: "color-mix(in oklch, var(--warning) 16%, transparent)",
+        color: "var(--warning)",
+        fontFamily: "var(--font-mono)",
+      }}
+    >
+      {label}
+    </span>
   );
 }
 
@@ -63,9 +99,19 @@ function DocStatusCell({ doc }: { doc: BackendDocument }) {
     typeof doc.processing_progress === "number"
       ? doc.processing_progress
       : undefined;
+  const degraded = degradedReason(doc);
   return (
     <div className="space-y-1.5 min-w-[140px]">
-      <StatusChip status={doc.status} />
+      <div className="flex flex-wrap gap-1">
+        <StatusChip status={doc.status} />
+        {degraded && <WarnChip label={t("degradedBadge")} title={degraded} />}
+        {doc.injection_flagged && (
+          <WarnChip
+            label={t("injectionFlaggedBadge")}
+            title={doc.injection_reason || undefined}
+          />
+        )}
+      </div>
       {processing && typeof progress === "number" && (
         <div>
           <div
@@ -168,6 +214,8 @@ export default function DocumentsTab() {
         { method: "POST" }
       );
       const data = await res.json().catch(() => ({}));
+      // 507 = backend disk-free guardrail (MIN_FREE_DISK_MB) refused the job.
+      if (res.status === 507) throw new Error(t("serverStorageFull"));
       if (!res.ok) throw new Error(data.error || t("failedToLoad"));
       setToast(t("reprocessQueued"));
       await load();

@@ -19,6 +19,7 @@ import {
   deleteChat,
 } from "@/lib/chatHistory";
 import { t } from "@/lib/i18n";
+import { rateLimitMessage } from "@/lib/rate-limit-message";
 import { useLocale } from "@/lib/i18n-client";
 
 function uid(): string {
@@ -392,10 +393,7 @@ export default function Home() {
                   m.id === assistantId
                     ? {
                         ...m,
-                        content:
-                          retryAfterSeconds != null
-                            ? t("rateLimited", { seconds: retryAfterSeconds })
-                            : t("rateLimitedNoTime"),
+                        content: rateLimitMessage(retryAfterSeconds),
                         isStreaming: false,
                       }
                     : m
@@ -466,9 +464,7 @@ export default function Home() {
         } catch (err) {
           const content =
             err instanceof RateLimitError
-              ? err.retryAfterSeconds != null
-                ? t("rateLimited", { seconds: err.retryAfterSeconds })
-                : t("rateLimitedNoTime")
+              ? rateLimitMessage(err.retryAfterSeconds)
               : `${t("errorPrefix")}: ${err instanceof Error ? err.message : t("unknownError")}`;
           setMessages((prev) => {
             const updated = prev.map((m) =>

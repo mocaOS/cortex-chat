@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Button, ErrorBanner, Select } from "@/components/admin/ui";
 import { t } from "@/lib/i18n";
+import { rateLimitMessage } from "@/lib/rate-limit-message";
 import { getConfig } from "@/lib/config";
 import WebImportForm from "./WebImportForm";
 
@@ -90,13 +91,19 @@ export default function UploadTab() {
       const res = await fetch("/api/me/upload", { method: "POST", body: form });
       const data = await res.json().catch(() => ({}));
       if (res.status === 429) {
-        // Burst rate limit — honor Retry-After instead of generic failure.
+        // Burst rate limit or monthly unit quota — Retry-After tells them apart.
         const retryAfter = res.headers.get("Retry-After");
         throw new Error(
-          retryAfter && Number.isFinite(Number(retryAfter))
-            ? t("rateLimited", { seconds: Math.ceil(Number(retryAfter)) })
-            : t("rateLimitedNoTime")
+          rateLimitMessage(
+            retryAfter && Number.isFinite(Number(retryAfter))
+              ? Number(retryAfter)
+              : null
+          )
         );
+      }
+      if (res.status === 507) {
+        // Backend disk-free guardrail (MIN_FREE_DISK_MB) refused the upload.
+        throw new Error(t("serverStorageFull"));
       }
       if (!res.ok) throw new Error(data.error || t("uploadFailed"));
       setToast({

@@ -108,6 +108,13 @@ export interface BackendDocument {
   processing_progress?: number;
   image_progress_current?: number;
   image_progress_total?: number;
+  // Degraded-document signals (persisted at processing time; entity_count -1
+  // = unknown). "Degraded" = completed with 0 entities or unembedded chunks.
+  entity_count?: number;
+  unembedded_chunk_count?: number;
+  // Ingestion-time prompt-injection scan result — flagged, never blocked.
+  injection_flagged?: boolean;
+  injection_reason?: string;
   created_at?: string;
   updated_at?: string;
   [k: string]: unknown;
@@ -205,6 +212,15 @@ export interface BackendStats {
   relationship_count?: number;
   community_count?: number;
   pending_task_count?: number;
+  // Monthly unit quota (MAX_QUERIES_PER_MONTH, in LLM completions); limit 0
+  // or absent = unlimited.
+  monthly_usage_used?: number;
+  monthly_usage_limit?: number;
+  monthly_usage_query?: number;
+  monthly_usage_processing?: number;
+  // Free-disk guardrail telemetry (MIN_FREE_DISK_MB).
+  disk_free_mb?: number;
+  disk_total_mb?: number;
   [k: string]: unknown;
 }
 

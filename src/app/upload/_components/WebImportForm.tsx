@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Button, Input, Select, Textarea } from "@/components/admin/ui";
 import { t } from "@/lib/i18n";
+import { rateLimitMessage } from "@/lib/rate-limit-message";
 
 interface Collection {
   id: string;
@@ -203,11 +204,14 @@ export default function WebImportForm({
       });
       const data = await res.json().catch(() => ({}));
       if (res.status === 429) {
+        // Burst rate limit or monthly unit quota — Retry-After tells them apart.
         const retryAfter = res.headers.get("Retry-After");
         throw new Error(
-          retryAfter && Number.isFinite(Number(retryAfter))
-            ? t("rateLimited", { seconds: Math.ceil(Number(retryAfter)) })
-            : t("rateLimitedNoTime")
+          rateLimitMessage(
+            retryAfter && Number.isFinite(Number(retryAfter))
+              ? Number(retryAfter)
+              : null
+          )
         );
       }
       if (!res.ok || !data.task_id) {

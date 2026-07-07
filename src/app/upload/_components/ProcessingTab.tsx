@@ -12,6 +12,12 @@ interface BackendStats {
   relationship_count?: number;
   community_count?: number;
   pending_task_count?: number;
+  monthly_usage_used?: number;
+  monthly_usage_limit?: number;
+  monthly_usage_query?: number;
+  monthly_usage_processing?: number;
+  disk_free_mb?: number;
+  disk_total_mb?: number;
   [k: string]: unknown;
 }
 
@@ -175,6 +181,68 @@ function Kpi({
         }}
       >
         {value ?? "—"}
+      </div>
+    </div>
+  );
+}
+
+// Monthly unit quota (MAX_QUERIES_PER_MONTH, denominated in LLM completions):
+// rendered only when the backend reports a limit. Mirrors the Cortex admin
+// usage meter — amber at 80%, destructive when exhausted.
+function MonthlyUsageBar({ stats }: { stats: BackendStats }) {
+  const limit = stats.monthly_usage_limit ?? 0;
+  if (limit <= 0) return null;
+  const used = stats.monthly_usage_used ?? 0;
+  const pct = Math.min(100, (used / limit) * 100);
+  const color =
+    used >= limit
+      ? "var(--destructive)"
+      : pct >= 80
+      ? "var(--warning)"
+      : "var(--accent)";
+  return (
+    <div
+      className="rounded-[var(--radius-lg)] border px-4 py-3 space-y-2"
+      style={{ background: "var(--card)", borderColor: "var(--border)" }}
+    >
+      <div className="flex items-baseline justify-between gap-3">
+        <span
+          className="text-[10.5px] font-medium uppercase tracking-[0.08em]"
+          style={{ color: "var(--fg2)" }}
+        >
+          {t("monthlyUsageLabel")}
+        </span>
+        <span
+          className="text-[12px]"
+          style={{ color: "var(--fg1)", fontFamily: "var(--font-mono)" }}
+        >
+          {t("monthlyUsageValue", {
+            used: used.toLocaleString(),
+            limit: limit.toLocaleString(),
+          })}
+        </span>
+      </div>
+      <div
+        className="h-1.5 w-full rounded-full overflow-hidden"
+        style={{ background: "var(--muted)" }}
+      >
+        <div
+          style={{
+            width: `${pct}%`,
+            background: color,
+            height: "100%",
+            transition: "width 300ms ease-out",
+          }}
+        />
+      </div>
+      <div
+        className="text-[11px]"
+        style={{ color: "var(--fg2)", fontFamily: "var(--font-mono)" }}
+      >
+        {t("monthlyUsageBreakdown", {
+          query: (stats.monthly_usage_query ?? 0).toLocaleString(),
+          processing: (stats.monthly_usage_processing ?? 0).toLocaleString(),
+        })}
       </div>
     </div>
   );
@@ -586,7 +654,16 @@ export default function ProcessingTab() {
           value={stats?.pending_task_count}
           accent={(stats?.pending_task_count ?? 0) > 0}
         />
+        {typeof stats?.disk_free_mb === "number" && (
+          <Kpi
+            label={t("kpiDiskFree")}
+            value={stats.disk_free_mb.toLocaleString()}
+            accent={stats.disk_free_mb < 1024}
+          />
+        )}
       </div>
+
+      {stats && <MonthlyUsageBar stats={stats} />}
 
       <div className="grid md:grid-cols-3 gap-3">
         <StepCard
