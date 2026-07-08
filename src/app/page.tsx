@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import * as Sentry from "@sentry/nextjs";
 import { ChatMessage, ChatSession, Mode, Settings, Source, GraphContext, RetrievalStats } from "@/types";
 import { CurrentUser } from "@/types/auth";
 import {
@@ -129,6 +130,12 @@ export default function Home() {
       .then((me) => {
         if (me) {
           setCurrentUser(me);
+          // Attach the user to browser-side GlitchTip events.
+          Sentry.setUser({
+            id: me.id,
+            email: me.email,
+            username: me.username || undefined,
+          });
           refreshSessions();
         }
       })

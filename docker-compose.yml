@@ -3,12 +3,20 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        # GlitchTip source map upload (optional; build succeeds without it).
+        SENTRY_AUTH_TOKEN: ${SENTRY_AUTH_TOKEN:-}
+        # Release naming for GlitchTip; Coolify populates SOURCE_COMMIT.
+        SOURCE_COMMIT: ${SOURCE_COMMIT:-}
     environment:
       CORTEX_API_URL: ${CORTEX_API_URL:-http://localhost:8000}
       BACKEND_ADMIN_API_KEY: ${BACKEND_ADMIN_API_KEY}
       SUPERADMIN_EMAIL: ${SUPERADMIN_EMAIL}
       SUPERADMIN_PASSWORD: ${SUPERADMIN_PASSWORD}
       APP_ENCRYPTION_KEY: ${APP_ENCRYPTION_KEY}
+      # GlitchTip environment tag (DSN default is baked into the app;
+      # override with SENTRY_DSN / disable with SENTRY_DISABLED=1 if needed).
+      SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-production}
     ports:
       - "${PORT:-3000}:3000"
     volumes:

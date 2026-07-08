@@ -1,5 +1,6 @@
 import "server-only";
 import { cookies, headers } from "next/headers";
+import * as Sentry from "@sentry/nextjs";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { sessions, users, type Session, type User } from "@/lib/db/schema";
@@ -77,6 +78,15 @@ export async function getAuth(): Promise<AuthContext | null> {
       .where(eq(sessions.token, token))
       .run();
   }
+
+  // Attach the user to the current request's GlitchTip scope so server-side
+  // errors carry who was affected. The SDK isolates scopes per request, so
+  // this never leaks across concurrent requests.
+  Sentry.setUser({
+    id: user.id,
+    email: user.email,
+    username: user.username || undefined,
+  });
 
   return { session, user };
 }

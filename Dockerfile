@@ -13,10 +13,18 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# No build-time env vars: branding (accent, logo, title, locale) is managed at
-# runtime in the DB via /admin/settings. Server-side config (CORTEX_API_URL,
-# BACKEND_ADMIN_API_KEY, APP_ENCRYPTION_KEY, SUPERADMIN_*) is read at runtime
-# from the container environment.
+# App config is runtime-only: branding lives in the DB via /admin/settings;
+# server-side config (CORTEX_API_URL, BACKEND_ADMIN_API_KEY, APP_ENCRYPTION_KEY,
+# SUPERADMIN_*) is read from the container environment.
+#
+# The only build-time inputs are for GlitchTip source map upload — both
+# optional and scoped to this builder stage (never in the runtime image):
+#   SENTRY_AUTH_TOKEN  enables the upload (skipped cleanly when unset)
+#   SOURCE_COMMIT      release naming; Coolify provides it automatically
+ARG SENTRY_AUTH_TOKEN
+ARG SOURCE_COMMIT
+ENV SENTRY_AUTH_TOKEN=$SENTRY_AUTH_TOKEN \
+    SOURCE_COMMIT=$SOURCE_COMMIT
 RUN npm run build
 
 # --- Stage 3: Production runner ---

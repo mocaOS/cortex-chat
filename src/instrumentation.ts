@@ -1,5 +1,16 @@
+import * as Sentry from "@sentry/nextjs";
+
 export async function register() {
+  if (process.env.NEXT_RUNTIME === "edge") {
+    await import("./sentry.edge.config");
+    return;
+  }
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
+
+  // GlitchTip error tracking first, so even boot failures (env validation,
+  // migrations) are captured. No-op outside production builds.
+  await import("./sentry.server.config");
+
   if (process.env.NEXT_PHASE === "phase-production-build") return;
 
   // Back-compat: LIBRARY_API_URL and NEXT_PUBLIC_API_URL were renamed to
@@ -61,6 +72,10 @@ async function migrateLegacyBrandingEnv(): Promise<void> {
 function readRuntimeEnv(key: string): string | undefined {
   return process.env[key];
 }
+
+// Reports request errors from Server Components, route handlers and
+// middleware to GlitchTip (App Router instrumentation hook, Next 15+).
+export const onRequestError = Sentry.captureRequestError;
 
 // Fail fast on a misconfigured deploy. Each missing/invalid var produces a
 // distinct error message so an operator can fix it in one pass.
