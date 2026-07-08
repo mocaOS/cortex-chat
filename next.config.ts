@@ -43,14 +43,14 @@ const commit = resolveCommit();
 const rawRelease =
   process.env.SENTRY_RELEASE ||
   `cortex-chat-${commit || process.env.npm_package_version || "0.0.0"}`;
-// GlitchTip's release URL routes only match slug-safe versions
-// ([-a-zA-Z0-9_]) — anything with dots/@/+ gets a Django 403 on the
-// finalize/assemble endpoints (verified against 5.x, 2026-07). Sanitize.
+// GlitchTip < 6 rejected non-slug chars in release URLs; 6.x accepts them,
+// but we keep sanitizing so release names stay consistent across upgrades.
+// Keep in sync with resolveRelease() in scripts/glitchtip-sourcemaps.mjs.
 const release = rawRelease.replace(/[^-a-zA-Z0-9_]/g, "-");
 
 // GlitchTip speaks the Sentry protocol, so the stock Sentry build plugin
-// handles source map upload — pointed at our instance via sentryUrl. Runtime
-// DSN/env config lives in src/lib/glitchtip.ts.
+// wires the SDK (release injection etc.) — pointed at our instance via
+// sentryUrl. Runtime DSN/env config lives in src/lib/glitchtip.ts.
 export default withSentryConfig(nextConfig, {
   sentryUrl: "https://glitchtip.cortex.eco",
   org: "cortex",
@@ -60,15 +60,13 @@ export default withSentryConfig(nextConfig, {
   // Without it the build still succeeds — uploads are just skipped.
   authToken: process.env.SENTRY_AUTH_TOKEN,
 
-  // finalize:false — GlitchTip 405s sentry-cli's finalize call (PUT without
-  // trailing slash); finalization is cosmetic (sets dateReleased) and not
-  // needed for source map resolution.
-  release: { name: release, finalize: false },
+  release: { name: release },
 
-  // The plugin's own upload is disabled: GlitchTip needs the client chunks
-  // debug-id-injected BEFORE upload (browsers can't read //# debugId comments
-  // the way the Node SDK can), and it 500s on duplicate re-uploads. Both are
-  // handled by scripts/glitchtip-sourcemaps.mjs, chained after `next build`.
+  // The plugin's own upload is disabled: browsers only report debug IDs when
+  // the SERVED client chunks carry the `_sentryDebugIds` snippet, so
+  // `sentry-cli sourcemaps inject` must run BEFORE upload — an ordering the
+  // plugin's Turbopack hook doesn't allow. scripts/glitchtip-sourcemaps.mjs
+  // (chained after `next build`) does inject + upload instead.
   sourcemaps: { disable: true },
 
   // Upload problems (GlitchTip down, bad token) must never fail a deploy —
