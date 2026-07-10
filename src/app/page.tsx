@@ -64,14 +64,19 @@ function aggregateStatusCount(
 // the LATEST retrieval line, so shown verbatim the count jumps around (8 → 7)
 // instead of growing. Accumulate the per-step counts across the turn and show a
 // localized running total; retrieval lines that don't carry a source count
-// (e.g. "Found 3 relevant communities") pass through untouched.
+// (e.g. "Found 3 relevant communities") pass through untouched. Returns null
+// for zero-result lines ("Found 0 relevant communities" / "Found 0 entities"):
+// they add no information and would replace the running sources total in the
+// live line, which reads as if the results vanished.
 function aggregateRetrievalCount(
   info: string,
   counts: Record<string, number>
-): string {
-  const match = info.match(/^Found (\d+) sources?\b/i);
-  if (!match) return info;
-  const total = (counts.sources ?? 0) + Number(match[1]);
+): string | null {
+  const found = info.match(/^Found (\d+)\b/i);
+  if (found && Number(found[1]) === 0) return null;
+  const src = info.match(/^Found (\d+) sources?\b/i);
+  if (!src) return info;
+  const total = (counts.sources ?? 0) + Number(src[1]);
   counts.sources = total;
   return t("sourcesFoundSoFar", { count: total });
 }
@@ -168,8 +173,18 @@ export default function Home() {
     router.replace("/login");
   }, [router]);
 
+  // Set when messages were just replaced by loading a session from the
+  // server. The persist-on-settle effect below must skip that change: writing
+  // the unchanged messages back would bump the session's updatedAt and
+  // reorder the sidebar by "last opened" instead of "last message sent".
+  const justLoadedRef = useRef(false);
+
   // Persist messages to the server whenever they settle (not while streaming).
   useEffect(() => {
+    if (justLoadedRef.current) {
+      justLoadedRef.current = false;
+      return;
+    }
     if (!activeSessionId || messages.length === 0) return;
     const hasStreaming = messages.some((m) => m.isStreaming);
     if (hasStreaming) return;
@@ -182,6 +197,7 @@ export default function Home() {
     async (id: string) => {
       const session = await getChat(id);
       if (session) {
+        justLoadedRef.current = true;
         setActiveSessionId(id);
         setMessages(session.messages ?? []);
         memoryRef.current = session.memory;
@@ -349,6 +365,7 @@ export default function Home() {
             },
             onRetrieval: (info: string) => {
               const aggregated = aggregateRetrievalCount(info, retrievalCounts);
+              if (aggregated === null) return; // zero-result line — keep the current one
               setMessages((prev) =>
                 prev.map((m) =>
                   m.id === assistantId
@@ -368,6 +385,11 @@ export default function Home() {
             },
             onStatus: (status) => {
               const aggregated = aggregateStatusCount(status, statusCounts);
+              // Zero-result labels ("Found 0 relevant communities") confuse
+              // more than they inform — keep the previous label instead.
+              // (When the stage already has a running total, aggregation has
+              // rewritten the 0 to that total and this never triggers.)
+              if (/^Found 0\b/i.test(aggregated.message)) return;
               setMessages((prev) =>
                 prev.map((m) =>
                   m.id === assistantId ? { ...m, status: aggregated } : m
@@ -556,6 +578,10 @@ export default function Home() {
         <>
           <main className="flex-1 overflow-hidden relative">
             <MessageList
+              // Remount per session so switching chats starts at the top
+              // with a fresh scroll position instead of inheriting the
+              // previous chat's offset.
+              key={activeSessionId ?? "new"}
               messages={messages}
               onSourceClick={setSelectedSource}
               emptyTitle={emptyTitle}
