@@ -162,7 +162,7 @@ export default function ProfilePage() {
           {/* Avatar */}
           <section className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl p-5 space-y-4">
             <div className="text-sm font-medium">{t("avatar")}</div>
-            <div className="flex items-center gap-4">
+            <div className="flex flex-wrap items-center gap-4">
               <div className="w-16 h-16 rounded-lg bg-[var(--bg-tertiary)] overflow-hidden flex items-center justify-center text-[var(--text-secondary)]">
                 {avatarSrc ? (
                   <img

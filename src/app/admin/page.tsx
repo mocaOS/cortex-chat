@@ -141,8 +141,8 @@ export default function AdminDashboard() {
 
   return (
     <div className="max-w-5xl space-y-6">
-      <div className="flex items-end justify-between gap-4">
-        <div>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="min-w-0">
           <h1
             className="text-[24px] font-bold"
             style={{ color: "var(--fg1)", letterSpacing: "-0.015em" }}
@@ -153,7 +153,7 @@ export default function AdminDashboard() {
             {t("overviewDescription")}
           </p>
         </div>
-        <div className="w-48">
+        <div className="w-full sm:w-48">
           <Select
             label={t("range")}
             value={days}

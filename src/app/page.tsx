@@ -58,6 +58,24 @@ function aggregateStatusCount(
   return { ...status, message: status.message.replace(/\d+/, String(total)) };
 }
 
+// The multi-search modes also carry per-step counts on the `retrieval` stream:
+// the agentic loop emits "Found 8 sources" per search iteration and Chat-mode
+// decomposition emits "Found 8 sources for sub-question 2". The UI renders only
+// the LATEST retrieval line, so shown verbatim the count jumps around (8 → 7)
+// instead of growing. Accumulate the per-step counts across the turn and show a
+// localized running total; retrieval lines that don't carry a source count
+// (e.g. "Found 3 relevant communities") pass through untouched.
+function aggregateRetrievalCount(
+  info: string,
+  counts: Record<string, number>
+): string {
+  const match = info.match(/^Found (\d+) sources?\b/i);
+  if (!match) return info;
+  const total = (counts.sources ?? 0) + Number(match[1]);
+  counts.sources = total;
+  return t("sourcesFoundSoFar", { count: total });
+}
+
 import { getConfig, getCachedConfig } from "@/lib/config";
 import { Collection } from "@/types";
 import Header from "@/components/Header";
@@ -267,9 +285,11 @@ export default function Home() {
         }
       };
 
-      // Per-stage running source counts for the live status label, scoped to
-      // this turn so it resets on every send. See aggregateStatusCount.
+      // Per-stage running source counts for the live status label and the
+      // retrieval progress line, scoped to this turn so they reset on every
+      // send. See aggregateStatusCount / aggregateRetrievalCount.
       const statusCounts: Record<string, number> = {};
+      const retrievalCounts: Record<string, number> = {};
 
       if (useStreaming) {
         const controller = new AbortController();
@@ -328,10 +348,11 @@ export default function Home() {
               );
             },
             onRetrieval: (info: string) => {
+              const aggregated = aggregateRetrievalCount(info, retrievalCounts);
               setMessages((prev) =>
                 prev.map((m) =>
                   m.id === assistantId
-                    ? { ...m, retrieval: [...(m.retrieval || []), info] }
+                    ? { ...m, retrieval: [...(m.retrieval || []), aggregated] }
                     : m
                 )
               );
@@ -413,6 +434,10 @@ export default function Home() {
             onReconnect: () => {
               // Server is restarting and the request is being resubmitted —
               // clear the partial answer so the regenerated one streams clean.
+              // The regenerated answer re-emits its counts from zero, so the
+              // running totals must reset too or the replay double-counts.
+              for (const k of Object.keys(statusCounts)) delete statusCounts[k];
+              for (const k of Object.keys(retrievalCounts)) delete retrievalCounts[k];
               setMessages((prev) =>
                 prev.map((m) =>
                   m.id === assistantId

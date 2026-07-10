@@ -36,7 +36,7 @@ export default function Modal({
       onClick={onClose}
     >
       <div
-        className={`w-full ${wide ? "max-w-2xl" : "max-w-md"} rounded-[var(--radius-xl)] border`}
+        className={`w-full ${wide ? "max-w-2xl" : "max-w-md"} max-h-[85dvh] flex flex-col rounded-[var(--radius-xl)] border`}
         style={{
           background: "var(--popover)",
           borderColor: "var(--border)",
@@ -45,7 +45,7 @@ export default function Modal({
         onClick={(e) => e.stopPropagation()}
       >
         <div
-          className="flex items-center justify-between px-5 py-4 border-b"
+          className="flex items-center justify-between px-5 py-4 border-b shrink-0"
           style={{ borderColor: "var(--border)" }}
         >
           <h3 className="text-[14px] font-semibold" style={{ color: "var(--fg1)" }}>
@@ -76,10 +76,11 @@ export default function Modal({
             </svg>
           </button>
         </div>
-        <div className="px-5 py-4">{children}</div>
+        {/* Body scrolls when content exceeds the viewport (small screens) */}
+        <div className="px-5 py-4 overflow-y-auto min-h-0 flex-1">{children}</div>
         {footer && (
           <div
-            className="px-5 py-4 border-t flex items-center justify-end gap-2"
+            className="px-5 py-4 border-t shrink-0 flex items-center justify-end gap-2 flex-wrap"
             style={{ borderColor: "var(--border)" }}
           >
             {footer}

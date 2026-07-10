@@ -336,10 +336,17 @@ option:hover {
   text-decoration-style: dotted;
   text-underline-offset: 3px;
 }
+.markdown-content {
+  /* Long URLs / tokens must wrap instead of widening the bubble on phones */
+  overflow-wrap: anywhere;
+}
 .markdown-content table {
   border-collapse: collapse;
   width: 100%;
   margin-bottom: 0.75em;
+  /* Wide GFM tables scroll inside the answer card — never the page */
+  display: block;
+  overflow-x: auto;
 }
 .markdown-content th,
 .markdown-content td {

@@ -229,9 +229,9 @@ export default function AdminSettingsPage() {
             >
               {t("logoLabel")}
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex flex-wrap items-center gap-4">
               <div
-                className="h-16 w-40 rounded-[var(--radius)] border flex items-center justify-center overflow-hidden px-3"
+                className="h-16 w-40 max-w-full rounded-[var(--radius)] border flex items-center justify-center overflow-hidden px-3"
                 style={{
                   background: "var(--bg)",
                   borderColor: "var(--border)",
@@ -468,7 +468,7 @@ export default function AdminSettingsPage() {
                   {showVariables && analyticsVariables.length > 0 && (
                     <div
                       role="tooltip"
-                      className="absolute z-10 left-5 top-0 min-w-[260px] rounded-[var(--radius-sm)] border p-3 shadow-lg"
+                      className="absolute z-10 top-0 left-0 sm:left-5 sm:top-0 w-[260px] max-w-[calc(100vw-4rem)] rounded-[var(--radius-sm)] border p-3 shadow-lg"
                       style={{
                         background: "var(--card)",
                         borderColor: "var(--border)",
@@ -536,7 +536,7 @@ export default function AdminSettingsPage() {
               {t("cortexAnalyticsHint")}
             </p>
 
-            <div className="flex items-center justify-between gap-3 pt-2">
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
               <Button
                 variant="danger"
                 type="button"

@@ -144,7 +144,11 @@ export function Table({ children }: { children: React.ReactNode }) {
       className="rounded-[var(--radius-lg)] overflow-hidden border"
       style={{ background: "var(--card)", borderColor: "var(--border)" }}
     >
-      <table className="w-full text-[13px]">{children}</table>
+      {/* Wide tables scroll inside the card on narrow viewports — the page
+          itself must never scroll horizontally */}
+      <div className="overflow-x-auto">
+        <table className="w-full text-[13px]">{children}</table>
+      </div>
     </div>
   );
 }

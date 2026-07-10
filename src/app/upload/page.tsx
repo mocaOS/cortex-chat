@@ -89,7 +89,7 @@ export default function UploadPage() {
       </header>
 
       <main className="flex-1 overflow-y-auto">
-        <div className="max-w-6xl mx-auto px-6 pt-8 pb-10">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-8 pb-10">
           <div className="mb-6">
             <h1
               className="text-[24px] font-bold"
@@ -103,7 +103,7 @@ export default function UploadPage() {
           </div>
           {isAdmin && (
             <div
-              className="flex items-center gap-6 border-b mb-6"
+              className="flex items-center gap-5 sm:gap-6 border-b mb-6 overflow-x-auto"
               style={{ borderColor: "var(--border)" }}
             >
               {tabs
@@ -114,7 +114,7 @@ export default function UploadPage() {
                     <button
                       key={x.key}
                       onClick={() => setTab(x.key)}
-                      className="text-[13px] py-3 transition-colors border-b-2 -mb-px"
+                      className="text-[13px] py-3 transition-colors border-b-2 -mb-px whitespace-nowrap shrink-0"
                       style={{
                         color: active ? "var(--fg1)" : "var(--fg2)",
                         borderColor: active ? "var(--accent)" : "transparent",

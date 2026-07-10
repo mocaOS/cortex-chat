@@ -262,9 +262,9 @@ export default function DocumentsTab() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <p
-          className="text-[13px] max-w-3xl"
+          className="text-[13px] max-w-3xl min-w-[12rem] flex-1"
           style={{ color: "var(--fg2)" }}
         >
           {t("documentsDescription")}
@@ -346,11 +346,15 @@ export default function DocumentsTab() {
               return (
                 <tr key={d.id}>
                   <Td>
-                    <div style={{ color: "var(--fg1)" }}>
+                    <div
+                      className="truncate max-w-[220px] sm:max-w-[320px]"
+                      style={{ color: "var(--fg1)" }}
+                      title={d.filename || d.source || d.id}
+                    >
                       {d.filename || d.source || d.id}
                     </div>
                     <div
-                      className="text-[11px]"
+                      className="text-[11px] truncate max-w-[220px] sm:max-w-[320px]"
                       style={{
                         color: "var(--fg2)",
                         fontFamily: "var(--font-mono)",
@@ -385,7 +389,7 @@ export default function DocumentsTab() {
                       : "—"}
                   </Td>
                   <Td>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 whitespace-nowrap">
                       <Button
                         variant="outline"
                         onClick={() => reprocess(d)}

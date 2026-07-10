@@ -27,10 +27,17 @@ export default function AdminShell({ user, children }: Props) {
   const [logoUrl, setLogoUrl] = useState(
     () => getCachedConfig()?.logoUrl || "/logo.png"
   );
+  // Mobile-only off-canvas nav. On md+ the sidebar is static and this is inert.
+  const [navOpen, setNavOpen] = useState(false);
 
   useEffect(() => {
     getConfig().then((cfg) => setLogoUrl(cfg.logoUrl || "/logo.png"));
   }, []);
+
+  // Close the drawer after navigation (covers back/forward too).
+  useEffect(() => {
+    setNavOpen(false);
+  }, [pathname]);
 
   async function handleSignOut() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -48,8 +55,18 @@ export default function AdminShell({ user, children }: Props) {
           borderColor: "var(--border)",
         }}
       >
-        <div className="flex items-center gap-3">
-          <Link href="/" className="flex items-center gap-2">
+        <div className="flex items-center gap-3 min-w-0">
+          {/* Mobile nav toggle — the sidebar is static on md+ */}
+          <button
+            onClick={() => setNavOpen(true)}
+            className="md:hidden w-8 h-8 -ml-1 shrink-0 rounded-[var(--radius)] flex items-center justify-center text-[var(--fg2)] hover:text-[var(--fg1)] hover:bg-[var(--muted)] transition-colors"
+            aria-label={t("toggleSidebar")}
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+          <Link href="/" className="flex items-center gap-2 shrink-0">
             <img src={logoUrl} alt="Logo" className="h-6 w-auto" />
           </Link>
           <span
@@ -59,9 +76,11 @@ export default function AdminShell({ user, children }: Props) {
             {t("admin")}
           </span>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 md:gap-4 shrink-0">
+          {/* Identity chip is informational — drop it on phones to keep the
+              nav toggle + actions tappable */}
           <span
-            className="text-[11px] truncate max-w-[200px]"
+            className="hidden sm:inline text-[11px] truncate max-w-[140px] md:max-w-[200px]"
             style={{ color: "var(--fg2)", fontFamily: "var(--font-mono)" }}
           >
             {user.username || user.email}
@@ -96,8 +115,20 @@ export default function AdminShell({ user, children }: Props) {
       </header>
 
       <div className="flex-1 flex overflow-hidden">
+        {/* Backdrop for the mobile drawer */}
+        {navOpen && (
+          <div
+            className="fixed inset-0 z-40 md:hidden"
+            style={{ background: "oklch(0 0 0 / 0.55)" }}
+            onClick={() => setNavOpen(false)}
+          />
+        )}
+
+        {/* Static sidebar on md+; off-canvas drawer below */}
         <nav
-          className="w-52 shrink-0 border-r py-4 px-2 overflow-y-auto"
+          className={`w-56 md:w-52 shrink-0 border-r py-4 px-2 overflow-y-auto max-md:fixed max-md:top-0 max-md:left-0 max-md:h-full max-md:z-50 max-md:transition-transform max-md:duration-200 max-md:ease-out ${
+            navOpen ? "max-md:translate-x-0" : "max-md:-translate-x-full"
+          }`}
           style={{
             background: "oklch(0.17 0 0 / 0.85)",
             backdropFilter: "blur(24px)",
@@ -105,6 +136,24 @@ export default function AdminShell({ user, children }: Props) {
             borderColor: "var(--border)",
           }}
         >
+          {/* Drawer header (mobile only) — mirrors the chat sidebar pattern */}
+          <div className="md:hidden flex items-center justify-between px-2 pb-3 mb-2 border-b" style={{ borderColor: "var(--border)" }}>
+            <span
+              className="text-[10.5px] font-medium uppercase tracking-[0.08em] px-1"
+              style={{ color: "var(--fg3)" }}
+            >
+              {t("admin")}
+            </span>
+            <button
+              onClick={() => setNavOpen(false)}
+              className="w-8 h-8 rounded-[var(--radius)] flex items-center justify-center text-[var(--fg2)] hover:text-[var(--fg1)] hover:bg-[var(--muted)] transition-colors"
+              aria-label={t("close")}
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                <path d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
           {NAV.map((item) => {
             const active =
               item.href === "/admin"
@@ -133,7 +182,7 @@ export default function AdminShell({ user, children }: Props) {
           })}
         </nav>
 
-        <main className="flex-1 overflow-y-auto p-6 md:p-8">{children}</main>
+        <main className="flex-1 min-w-0 overflow-y-auto p-4 sm:p-6 md:p-8">{children}</main>
       </div>
     </div>
   );

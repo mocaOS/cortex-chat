@@ -171,7 +171,7 @@ export default function Sidebar({
                         e.stopPropagation();
                         onDeleteSession(session.id);
                       }}
-                      className="opacity-0 group-hover:opacity-100 w-6 h-6 flex-shrink-0 flex items-center justify-center rounded transition-all"
+                      className="opacity-0 group-hover:opacity-100 pointer-coarse:opacity-100 w-6 h-6 flex-shrink-0 flex items-center justify-center rounded transition-all"
                       style={{ color: "var(--fg3)" }}
                       onMouseEnter={(e) => {
                         e.currentTarget.style.color = "var(--destructive)";

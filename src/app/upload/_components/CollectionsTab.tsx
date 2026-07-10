@@ -65,9 +65,9 @@ export default function CollectionsTab() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <p
-          className="text-[13px] max-w-3xl"
+          className="text-[13px] max-w-3xl min-w-[12rem] flex-1"
           style={{ color: "var(--fg2)" }}
         >
           {t("collectionsDescription")}
@@ -118,9 +118,15 @@ export default function CollectionsTab() {
             {collections.map((c) => (
               <tr key={c.id}>
                 <Td>
-                  <div style={{ color: "var(--fg1)" }}>{c.name}</div>
                   <div
-                    className="text-[11px]"
+                    className="truncate max-w-[200px] sm:max-w-[280px]"
+                    style={{ color: "var(--fg1)" }}
+                    title={c.name}
+                  >
+                    {c.name}
+                  </div>
+                  <div
+                    className="text-[11px] truncate max-w-[200px] sm:max-w-[280px]"
                     style={{
                       color: "var(--fg2)",
                       fontFamily: "var(--font-mono)",
@@ -145,7 +151,7 @@ export default function CollectionsTab() {
                   {c.document_count ?? 0}
                 </Td>
                 <Td>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 whitespace-nowrap">
                     <Button
                       variant="outline"
                       onClick={() => setRenameTarget(c)}

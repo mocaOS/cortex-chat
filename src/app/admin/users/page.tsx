@@ -93,7 +93,7 @@ export default function AdminUsersPage() {
 
   return (
     <div className="max-w-5xl space-y-5">
-      <div className="flex items-end justify-between gap-4">
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1
             className="text-[24px] font-bold"
