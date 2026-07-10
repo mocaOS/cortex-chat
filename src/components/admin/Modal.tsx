@@ -36,11 +36,15 @@ export default function Modal({
       onClick={onClose}
     >
       <div
-        className={`w-full ${wide ? "max-w-2xl" : "max-w-md"} max-h-[85dvh] flex flex-col rounded-[var(--radius-xl)] border`}
+        className={`w-full ${wide ? "max-w-2xl" : "max-w-md"} flex flex-col rounded-[var(--radius-xl)] border`}
         style={{
           background: "var(--popover)",
           borderColor: "var(--border)",
           boxShadow: "var(--shadow-xl)",
+          // --pwa-vh corrects iOS standalone's dvh mismeasure (set in
+          // layout.tsx); browser tabs fall back to plain dvh. /--ui-scale
+          // compensates the body zoom, like .max-h-dvh in globals.css.
+          maxHeight: "calc(0.85 * var(--pwa-vh, 100dvh) / var(--ui-scale))",
         }}
         onClick={(e) => e.stopPropagation()}
       >

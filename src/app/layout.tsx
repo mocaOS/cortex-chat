@@ -68,6 +68,23 @@ export default function RootLayout({
       style={{ ["--accent" as string]: settings.accentColor }}
     >
       <body className="antialiased">
+        {/* Installed-PWA viewport fix: in standalone mode iOS mismeasures
+            100dvh (includes the status bar), making full-height shells
+            overflow and the app scroll. Publish the real viewport height as
+            --pwa-vh for the standalone override in globals.css. Inline and
+            parse-blocking so the first paint is already correct. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){
+  var standalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+  if (!standalone) return;
+  var set = function(){ document.documentElement.style.setProperty("--pwa-vh", window.innerHeight + "px"); };
+  set();
+  window.addEventListener("resize", set);
+  window.addEventListener("orientationchange", set);
+})();`,
+          }}
+        />
         <ConfigBootstrap config={initialConfig}>{children}</ConfigBootstrap>
       </body>
     </html>

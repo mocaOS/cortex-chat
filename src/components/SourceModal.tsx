@@ -131,8 +131,9 @@ export default function SourceModal({ source, onClose }: Props) {
       <div
         className="w-full max-w-2xl flex flex-col rounded-[var(--radius-xl)] border"
         style={{
-          // 80vh compensated for --ui-scale (see globals.css zoom note).
-          maxHeight: "calc(80dvh / var(--ui-scale))",
+          // 80vh compensated for --ui-scale (see globals.css zoom note);
+          // --pwa-vh corrects iOS standalone's dvh mismeasure (layout.tsx).
+          maxHeight: "calc(0.8 * var(--pwa-vh, 100dvh) / var(--ui-scale))",
           background: "var(--popover)",
           borderColor: "var(--border)",
           boxShadow: "var(--shadow-xl)",
