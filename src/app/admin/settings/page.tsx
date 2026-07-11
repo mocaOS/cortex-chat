@@ -12,6 +12,7 @@ import { t, setLocale as setI18nLocale } from "@/lib/i18n";
 import { useLocale } from "@/lib/i18n-client";
 
 type Locale = "en" | "de";
+type ChatMode = "chat" | "deep-research";
 
 interface AnalyticsVariable {
   token: string;
@@ -26,6 +27,7 @@ interface Settings {
   supportUrl: string;
   supportLabel: string;
   locale: Locale;
+  defaultChatMode: ChatMode;
   hasCustomLogo: boolean;
   logoUrl: string;
 }
@@ -38,6 +40,7 @@ interface Defaults {
   supportUrl: string;
   supportLabel: string;
   locale: Locale;
+  defaultChatMode: ChatMode;
 }
 
 export default function AdminSettingsPage() {
@@ -54,6 +57,7 @@ export default function AdminSettingsPage() {
   const [supportUrl, setSupportUrl] = useState("");
   const [supportLabel, setSupportLabel] = useState("");
   const [locale, setLocaleState] = useState<Locale>("en");
+  const [defaultChatMode, setDefaultChatMode] = useState<ChatMode>("chat");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [logoBusy, setLogoBusy] = useState(false);
@@ -79,6 +83,7 @@ export default function AdminSettingsPage() {
       setSupportUrl(data.settings.supportUrl ?? "");
       setSupportLabel(data.settings.supportLabel ?? "");
       setLocaleState(data.settings.locale);
+      setDefaultChatMode(data.settings.defaultChatMode ?? "chat");
     } catch (err) {
       setError(err instanceof Error ? err.message : t("failedToLoad"));
     } finally {
@@ -99,6 +104,7 @@ export default function AdminSettingsPage() {
       supportUrl: string;
       supportLabel: string;
       locale: Locale;
+      defaultChatMode: ChatMode;
     }>
   ) {
     setSaving(true);
@@ -120,6 +126,7 @@ export default function AdminSettingsPage() {
       setSupportUrl(data.settings.supportUrl ?? "");
       setSupportLabel(data.settings.supportLabel ?? "");
       setLocaleState(data.settings.locale);
+      setDefaultChatMode(data.settings.defaultChatMode ?? "chat");
       setI18nLocale(data.settings.locale);
       if (data.settings.accentColor) {
         document.documentElement.style.setProperty(
@@ -145,6 +152,7 @@ export default function AdminSettingsPage() {
       supportUrl,
       supportLabel,
       locale,
+      defaultChatMode,
     });
   }
 
@@ -397,6 +405,21 @@ export default function AdminSettingsPage() {
               style={{ color: "var(--fg2)" }}
             >
               {t("localeHint")}
+            </p>
+
+            <Select
+              label={t("defaultChatModeLabel")}
+              value={defaultChatMode}
+              onChange={(e) => setDefaultChatMode(e.target.value as ChatMode)}
+            >
+              <option value="chat">{t("chat")}</option>
+              <option value="deep-research">{t("deepResearch")}</option>
+            </Select>
+            <p
+              className="text-[11.5px] -mt-2"
+              style={{ color: "var(--fg2)" }}
+            >
+              {t("defaultChatModeHint")}
             </p>
 
             <div

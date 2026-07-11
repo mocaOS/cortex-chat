@@ -58,6 +58,7 @@ export default function RootLayout({
     appDescription: settings.appDescription,
     supportUrl: settings.supportUrl,
     supportLabel: settings.supportLabel,
+    defaultChatMode: settings.defaultChatMode,
     maxUploadBytes: MAX_UPLOAD_BYTES,
   };
 

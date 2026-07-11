@@ -6,11 +6,13 @@ import {
   DEFAULT_ACCENT_COLOR,
   DEFAULT_APP_DESCRIPTION,
   DEFAULT_APP_TITLE,
+  DEFAULT_CHAT_MODE,
   DEFAULT_CORTEX_ANALYTICS_TEMPLATE,
   DEFAULT_LOCALE,
   DEFAULT_SUPPORT_LABEL,
   DEFAULT_SUPPORT_URL,
   getAppSettings,
+  setDefaultChatMode,
   setLocale,
   setTextSettings,
 } from "@/lib/settings";
@@ -28,6 +30,7 @@ function serialize() {
     supportUrl: s.supportUrl,
     supportLabel: s.supportLabel,
     locale: s.locale,
+    defaultChatMode: s.defaultChatMode,
     hasCustomLogo: s.logoFile !== null,
     logoUrl: resolveLogoUrl(s),
   };
@@ -49,6 +52,7 @@ export async function GET() {
       supportUrl: DEFAULT_SUPPORT_URL,
       supportLabel: DEFAULT_SUPPORT_LABEL,
       locale: DEFAULT_LOCALE,
+      defaultChatMode: DEFAULT_CHAT_MODE,
     },
     cortexAnalyticsVariables: CORTEX_ANALYTICS_VARIABLES,
   });
@@ -83,6 +87,7 @@ const Body = z.object({
     .optional(),
   supportLabel: z.string().max(120).optional(),
   locale: z.enum(["en", "de"]).optional(),
+  defaultChatMode: z.enum(["chat", "deep-research"]).optional(),
 });
 
 export async function PATCH(request: Request) {
@@ -95,8 +100,9 @@ export async function PATCH(request: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
   }
-  const { locale, ...text } = parsed.data;
+  const { locale, defaultChatMode, ...text } = parsed.data;
   setTextSettings(text);
   if (locale) setLocale(locale);
+  if (defaultChatMode) setDefaultChatMode(defaultChatMode);
   return NextResponse.json({ settings: serialize() });
 }

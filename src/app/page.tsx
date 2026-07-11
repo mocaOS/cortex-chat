@@ -95,7 +95,18 @@ export default function Home() {
   const router = useRouter();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [mode, setMode] = useState<Mode>("chat");
+  // Admin-configured starting mode (app_settings.defaultChatMode). Applied on
+  // initial load and on every new chat; the user can still switch per
+  // conversation via the toggle in ChatInput.
+  const defaultModeRef = useRef<Mode>(
+    getCachedConfig()?.defaultChatMode ?? "chat"
+  );
+  const modeTouchedRef = useRef(false);
+  const [mode, setMode] = useState<Mode>(defaultModeRef.current);
+  const handleModeChange = useCallback((m: Mode) => {
+    modeTouchedRef.current = true;
+    setMode(m);
+  }, []);
   const [settings, setSettings] = useState<Settings>({
     streaming: true,
     collectionId: null,
@@ -140,6 +151,10 @@ export default function Home() {
       setLogoUrl(cfg.logoUrl || "/logo.png");
       setEmptyTitle(cfg.appTitle);
       setEmptyDescription(cfg.appDescription);
+      // When config wasn't seeded (direct fetch), apply the admin default —
+      // unless the user already toggled the mode by hand.
+      defaultModeRef.current = cfg.defaultChatMode ?? "chat";
+      if (!modeTouchedRef.current) setMode(defaultModeRef.current);
       setConfigReady(true);
     });
     fetch("/api/auth/me")
@@ -225,6 +240,9 @@ export default function Home() {
     setMessages([]);
     memoryRef.current = undefined;
     setIsLoading(false);
+    // Every new conversation starts in the admin-configured default mode.
+    modeTouchedRef.current = false;
+    setMode(defaultModeRef.current);
   }, []);
 
   const handleSend = useCallback(
@@ -594,7 +612,7 @@ export default function Home() {
             onStop={handleStop}
             isLoading={isLoading}
             mode={mode}
-            onModeChange={setMode}
+            onModeChange={handleModeChange}
             onSettingsClick={() => setShowSettings(!showSettings)}
             collectionName={
               settings.collectionId

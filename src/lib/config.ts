@@ -9,6 +9,7 @@ export interface ClientConfig {
   appDescription: string;
   supportUrl: string;
   supportLabel: string;
+  defaultChatMode: "chat" | "deep-research";
   maxUploadBytes: number;
 }
 
@@ -48,6 +49,7 @@ export async function getConfig(): Promise<ClientConfig> {
         "Formulate any question that you have about the Contents of this Cortex Knowledge Graph.",
       supportUrl: "",
       supportLabel: "",
+      defaultChatMode: "chat",
       maxUploadBytes: MAX_UPLOAD_BYTES,
     };
   }

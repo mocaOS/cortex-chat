@@ -15,6 +15,9 @@ export const DEFAULT_SUPPORT_LABEL = "";
 // MOCA design-system accent (warm yellow-green). Single source of truth —
 // duplicated nowhere except the hardcoded client-side fetch-failure fallback.
 export const DEFAULT_ACCENT_COLOR = "oklch(0.79 0.18 70.67)";
+// Mode the chat UI starts in for every user (initial load and each new chat).
+// Users can still switch per conversation; this only sets the starting point.
+export const DEFAULT_CHAT_MODE: ChatMode = "chat";
 
 export const CORTEX_ANALYTICS_VARIABLES = [
   { token: "$userEmail", description: "Logged-in user's email address" },
@@ -22,6 +25,9 @@ export const CORTEX_ANALYTICS_VARIABLES = [
 ] as const;
 
 export type Locale = "en" | "de";
+// Mirrors the client-side `Mode` type in src/types/index.ts (this module is
+// server-only, so the union is duplicated rather than imported).
+export type ChatMode = "chat" | "deep-research";
 
 // Keys stored in the app_settings KV table.
 const TEXT_KEYS = [
@@ -33,12 +39,14 @@ const TEXT_KEYS = [
   "supportLabel",
 ] as const;
 const LOCALE_KEY = "locale";
+const CHAT_MODE_KEY = "defaultChatMode";
 const LOGO_KEY = "logoFile";
 const LOGO_UPDATED_KEY = "logoUpdatedAt";
 
 export type AppSettingsKey =
   | (typeof TEXT_KEYS)[number]
   | typeof LOCALE_KEY
+  | typeof CHAT_MODE_KEY
   | typeof LOGO_KEY
   | typeof LOGO_UPDATED_KEY;
 
@@ -50,6 +58,7 @@ export interface AppSettings {
   supportUrl: string;
   supportLabel: string;
   locale: Locale;
+  defaultChatMode: ChatMode;
   logoFile: string | null;
   logoUpdatedAt: number | null;
 }
@@ -57,6 +66,10 @@ export interface AppSettings {
 function normalizeLocale(raw: string | undefined): Locale {
   if (raw === "de" || raw === "german") return "de";
   return "en";
+}
+
+function normalizeChatMode(raw: string | undefined): ChatMode {
+  return raw === "deep-research" ? "deep-research" : DEFAULT_CHAT_MODE;
 }
 
 export function getAppSettings(): AppSettings {
@@ -72,6 +85,7 @@ export function getAppSettings(): AppSettings {
     supportUrl: map.get("supportUrl") || DEFAULT_SUPPORT_URL,
     supportLabel: map.get("supportLabel") || DEFAULT_SUPPORT_LABEL,
     locale: normalizeLocale(map.get(LOCALE_KEY)),
+    defaultChatMode: normalizeChatMode(map.get(CHAT_MODE_KEY)),
     logoFile: map.get(LOGO_KEY) || null,
     logoUpdatedAt: logoUpdatedRaw ? parseInt(logoUpdatedRaw, 10) : null,
   };
@@ -117,6 +131,17 @@ export function setLocale(locale: Locale) {
     .onConflictDoUpdate({
       target: appSettings.key,
       set: { value: locale, updatedAt: now },
+    })
+    .run();
+}
+
+export function setDefaultChatMode(mode: ChatMode) {
+  const now = Date.now();
+  db.insert(appSettings)
+    .values({ key: CHAT_MODE_KEY, value: mode, updatedAt: now })
+    .onConflictDoUpdate({
+      target: appSettings.key,
+      set: { value: mode, updatedAt: now },
     })
     .run();
 }

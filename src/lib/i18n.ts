@@ -281,6 +281,9 @@ const translations = {
     langGerman: "Deutsch (du-Form)",
     localeHint:
       "Applies to every user of the chat system. Reload required for already-open tabs.",
+    defaultChatModeLabel: "Default chat mode",
+    defaultChatModeHint:
+      "Mode the chat starts in for every user — on page load and each new chat. Users can still switch per conversation.",
     resetTitleDescription: "Reset title & description",
     resetTitleDescriptionConfirm: "Reset title and description to defaults?",
     cortexAnalyticsLabel: "Cortex chat analytics",
@@ -694,6 +697,9 @@ const translations = {
     langGerman: "Deutsch (du-Form)",
     localeHint:
       "Gilt für alle Benutzer des Chat-Systems. Bereits geöffnete Tabs müssen neu geladen werden.",
+    defaultChatModeLabel: "Standard-Chat-Modus",
+    defaultChatModeHint:
+      "Modus, in dem der Chat für alle Benutzer startet — beim Laden der Seite und bei jedem neuen Chat. Benutzer können pro Unterhaltung weiterhin wechseln.",
     resetTitleDescription: "Titel & Beschreibung zurücksetzen",
     resetTitleDescriptionConfirm:
       "Titel und Beschreibung auf Standard zurücksetzen?",
