@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useRef } from "react";
 import { ChatMessage, Source } from "@/types";
 import { t } from "@/lib/i18n";
 import { useLocale } from "@/lib/i18n-client";
@@ -20,16 +19,6 @@ export default function MessageList({
   emptyDescription,
 }: Props) {
   useLocale();
-  const endRef = useRef<HTMLDivElement>(null);
-
-  // Follow the conversation only while a turn is in flight (a send always
-  // creates a streaming assistant message). Opening a chat from the sidebar
-  // renders it from the top instead of jumping to the bottom.
-  const hasStreaming = messages.some((m) => m.isStreaming);
-  useEffect(() => {
-    if (!hasStreaming) return;
-    endRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, hasStreaming]);
 
   if (messages.length === 0) {
     return (
@@ -75,7 +64,6 @@ export default function MessageList({
             onSourceClick={onSourceClick}
           />
         ))}
-        <div ref={endRef} />
       </div>
     </div>
   );
