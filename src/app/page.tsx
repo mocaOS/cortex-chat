@@ -96,13 +96,13 @@ export default function Home() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   // Admin-configured starting mode (app_settings.defaultChatMode). Applied on
-  // initial load and on every new chat; the user can still switch per
-  // conversation via the toggle in ChatInput.
-  const defaultModeRef = useRef<Mode>(
-    getCachedConfig()?.defaultChatMode ?? "chat"
+  // initial load and on every new chat, and puts the default first in the
+  // ChatInput toggle; the user can still switch per conversation.
+  const [defaultMode, setDefaultMode] = useState<Mode>(
+    () => getCachedConfig()?.defaultChatMode ?? "chat"
   );
   const modeTouchedRef = useRef(false);
-  const [mode, setMode] = useState<Mode>(defaultModeRef.current);
+  const [mode, setMode] = useState<Mode>(defaultMode);
   const handleModeChange = useCallback((m: Mode) => {
     modeTouchedRef.current = true;
     setMode(m);
@@ -153,8 +153,9 @@ export default function Home() {
       setEmptyDescription(cfg.appDescription);
       // When config wasn't seeded (direct fetch), apply the admin default —
       // unless the user already toggled the mode by hand.
-      defaultModeRef.current = cfg.defaultChatMode ?? "chat";
-      if (!modeTouchedRef.current) setMode(defaultModeRef.current);
+      const dm = cfg.defaultChatMode ?? "chat";
+      setDefaultMode(dm);
+      if (!modeTouchedRef.current) setMode(dm);
       setConfigReady(true);
     });
     fetch("/api/auth/me")
@@ -242,8 +243,8 @@ export default function Home() {
     setIsLoading(false);
     // Every new conversation starts in the admin-configured default mode.
     modeTouchedRef.current = false;
-    setMode(defaultModeRef.current);
-  }, []);
+    setMode(defaultMode);
+  }, [defaultMode]);
 
   const handleSend = useCallback(
     async (question: string) => {
@@ -612,6 +613,7 @@ export default function Home() {
             onStop={handleStop}
             isLoading={isLoading}
             mode={mode}
+            defaultMode={defaultMode}
             onModeChange={handleModeChange}
             onSettingsClick={() => setShowSettings(!showSettings)}
             collectionName={

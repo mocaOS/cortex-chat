@@ -10,6 +10,8 @@ interface Props {
   onStop: () => void;
   isLoading: boolean;
   mode: Mode;
+  // Admin-configured default — rendered as the first toggle option.
+  defaultMode: Mode;
   onModeChange: (mode: Mode) => void;
   onSettingsClick: () => void;
   collectionName: string | null;
@@ -20,6 +22,7 @@ export default function ChatInput({
   onStop,
   isLoading,
   mode,
+  defaultMode,
   onModeChange,
   onSettingsClick,
   collectionName,
@@ -43,6 +46,11 @@ export default function ChatInput({
 
   const canSend = !!input.trim() && !isLoading;
 
+  const modeOrder: Mode[] =
+    defaultMode === "deep-research"
+      ? ["deep-research", "chat"]
+      : ["chat", "deep-research"];
+
   return (
     <div className="px-4 pt-3 pb-5">
       <div className="max-w-3xl mx-auto space-y-2">
@@ -56,36 +64,24 @@ export default function ChatInput({
               boxShadow: "var(--shadow-sm)",
             }}
           >
-            <button
-              onClick={() => onModeChange("chat")}
-              className={`text-xs px-3 py-1 rounded-full transition-all ${
-                mode === "chat"
-                  ? "font-medium"
-                  : "text-[var(--fg2)] hover:text-[var(--fg1)]"
-              }`}
-              style={
-                mode === "chat"
-                  ? { background: "var(--accent)", color: "var(--accent-fg)" }
-                  : undefined
-              }
-            >
-              {t("chat")}
-            </button>
-            <button
-              onClick={() => onModeChange("deep-research")}
-              className={`text-xs px-3 py-1 rounded-full transition-all ${
-                mode === "deep-research"
-                  ? "font-medium"
-                  : "text-[var(--fg2)] hover:text-[var(--fg1)]"
-              }`}
-              style={
-                mode === "deep-research"
-                  ? { background: "var(--accent)", color: "var(--accent-fg)" }
-                  : undefined
-              }
-            >
-              {t("deepResearch")}
-            </button>
+            {modeOrder.map((m) => (
+              <button
+                key={m}
+                onClick={() => onModeChange(m)}
+                className={`text-xs px-3 py-1 rounded-full transition-all ${
+                  mode === m
+                    ? "font-medium"
+                    : "text-[var(--fg2)] hover:text-[var(--fg1)]"
+                }`}
+                style={
+                  mode === m
+                    ? { background: "var(--accent)", color: "var(--accent-fg)" }
+                    : undefined
+                }
+              >
+                {m === "chat" ? t("chat") : t("deepResearch")}
+              </button>
+            ))}
           </div>
         </div>
 
