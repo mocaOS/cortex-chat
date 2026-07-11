@@ -20,6 +20,25 @@ const nextConfig: NextConfig = {
     proxyClientMaxBodySize: "200mb",
     serverSourceMaps: !!process.env.SENTRY_AUTH_TOKEN,
   },
+  // Baseline security headers. No Content-Security-Policy yet — that needs its
+  // own tested pass (nonce/hash for any inline scripts) before it can ship
+  // without breaking the app.
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          {
+            key: "Permissions-Policy",
+            value: "camera=(), microphone=(), geolocation=()",
+          },
+        ],
+      },
+    ];
+  },
 };
 
 // Release ties runtime events to the source maps uploaded at build time, and

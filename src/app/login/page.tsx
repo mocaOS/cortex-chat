@@ -6,11 +6,21 @@ import { getConfig, getCachedConfig } from "@/lib/config";
 import { t } from "@/lib/i18n";
 import { useLocale } from "@/lib/i18n-client";
 
+// Only allow same-origin, absolute-path redirects — reject absolute URLs and
+// protocol-relative "//host" values so ?next= can't be used for open-redirect
+// phishing after login.
+function safeNext(raw: string | null): string {
+  if (!raw || !raw.startsWith("/") || raw.startsWith("//") || raw.startsWith("/\\")) {
+    return "/";
+  }
+  return raw;
+}
+
 function LoginForm() {
   useLocale();
   const router = useRouter();
   const params = useSearchParams();
-  const next = params.get("next") || "/";
+  const next = safeNext(params.get("next"));
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
