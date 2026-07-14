@@ -38,8 +38,12 @@ function CitationBadge({
 
 // Marker that survives markdown parsing (not a link, not a comment)
 const CITE_PREFIX = "\u200Bcite:";
-const CITE_REGEX = /\u200Bcite:(\d+)\u200B/g;
 const CITE_SPLIT = /(\u200Bcite:\d+\u200B)/g;
+
+// One bracket group holding one or more citations: [src_3], [src_3, src_5],
+// [src_3; src_5], [src_3 and src_5], [src_3 & src_5] \u2014 the model varies the
+// separator, so match the whole group and expand every src_N inside it.
+const SRC_GROUP_REGEX = /\[src_\d+(?:\s*(?:[,;&]|and)\s*src_\d+)*\s*\]/gi;
 
 export default function MessageBubble({ message, onSourceClick }: Props) {
   useLocale();
@@ -75,11 +79,15 @@ export default function MessageBubble({ message, onSourceClick }: Props) {
     // sources frame. With nothing to link to, strip the orphaned [src_N] (and
     // any space in front of it) so it never renders as literal "[src_1]" text.
     if (!message.sources?.length) {
-      return message.content.replace(/\s?\[src_\d+\]/g, "");
+      return message.content.replace(
+        new RegExp(`\\s?${SRC_GROUP_REGEX.source}`, "gi"),
+        ""
+      );
     }
-    return message.content.replace(
-      /\[src_(\d+)\]/g,
-      `${CITE_PREFIX}$1\u200B`
+    return message.content.replace(SRC_GROUP_REGEX, (group) =>
+      (group.match(/src_(\d+)/gi) ?? [])
+        .map((token) => `${CITE_PREFIX}${token.slice(4)}\u200B`)
+        .join("")
     );
   }, [message.content, message.sources]);
 
@@ -101,6 +109,9 @@ export default function MessageBubble({ message, onSourceClick }: Props) {
 
   const hasThinking = message.thinking && message.thinking.length > 0;
   const hasSources = message.sources && message.sources.length > 0;
+
+  const cite = (children: React.ReactNode) =>
+    injectCitations(children, message.sources || [], onSourceClick);
 
   return (
     <div className="flex justify-start">
@@ -238,26 +249,16 @@ export default function MessageBubble({ message, onSourceClick }: Props) {
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 components={{
-                  p: ({ children, ...props }) => (
-                    <p {...props}>
-                      {injectCitations(children, message.sources || [], onSourceClick)}
-                    </p>
-                  ),
-                  li: ({ children, ...props }) => (
-                    <li {...props}>
-                      {injectCitations(children, message.sources || [], onSourceClick)}
-                    </li>
-                  ),
-                  strong: ({ children, ...props }) => (
-                    <strong {...props}>
-                      {injectCitations(children, message.sources || [], onSourceClick)}
-                    </strong>
-                  ),
-                  em: ({ children, ...props }) => (
-                    <em {...props}>
-                      {injectCitations(children, message.sources || [], onSourceClick)}
-                    </em>
-                  ),
+                  p: ({ children, ...props }) => <p {...props}>{cite(children)}</p>,
+                  li: ({ children, ...props }) => <li {...props}>{cite(children)}</li>,
+                  strong: ({ children, ...props }) => <strong {...props}>{cite(children)}</strong>,
+                  em: ({ children, ...props }) => <em {...props}>{cite(children)}</em>,
+                  h1: ({ children, ...props }) => <h1 {...props}>{cite(children)}</h1>,
+                  h2: ({ children, ...props }) => <h2 {...props}>{cite(children)}</h2>,
+                  h3: ({ children, ...props }) => <h3 {...props}>{cite(children)}</h3>,
+                  h4: ({ children, ...props }) => <h4 {...props}>{cite(children)}</h4>,
+                  td: ({ children, ...props }) => <td {...props}>{cite(children)}</td>,
+                  th: ({ children, ...props }) => <th {...props}>{cite(children)}</th>,
                 }}
               >
                 {processedContent}
