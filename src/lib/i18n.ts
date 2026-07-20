@@ -96,16 +96,23 @@ const translations = {
     // Upload page
     uploadDocumentsHeading: "Upload documents",
     uploadDescription:
-      "Pick a collection and upload a document. You'll get a confirmation when the file is received. Processing happens in the background and isn't shown here.",
+      "Pick a collection and upload one or more documents. You'll get a confirmation when the files are received. Processing happens in the background and isn't shown here.",
     noUploadPermission: "You do not have upload permission.",
     collection: "Collection",
     noCollectionsAvailable: "No collections available",
     file: "File",
     supportedFormats:
-      "Documents (PDF, DOCX, XLSX, PPTX, HTML, Markdown, LaTeX, XML), images (PNG, JPG, TIFF, BMP), audio (WAV, MP3) and subtitles (VTT).",
+      "Documents (PDF, DOCX, XLSX, PPTX, HTML, Markdown, LaTeX, XML, EPUB), images (PNG, JPG, TIFF, BMP), audio (WAV, MP3) and subtitles (VTT).",
     uploading: "Uploading…",
+    uploadingProgress: "Uploading {current} of {total}…",
     upload: "Upload",
     fileUploaded: '"{name}" uploaded.',
+    filesUploaded: "{count} files uploaded.",
+    uploadPartial: "{ok} of {total} files uploaded.",
+    fileStatusUploading: "Uploading",
+    fileStatusDone: "Uploaded",
+    fileStatusError: "Failed",
+    fileStatusSkipped: "Skipped",
     fileTooLarge: "File is too large. Maximum size is {max}.",
 
     // Web Import (MDHarvest / crawl4ai)
@@ -511,16 +518,23 @@ const translations = {
     // Upload page
     uploadDocumentsHeading: "Dokumente hochladen",
     uploadDescription:
-      "Wähle eine Sammlung und lade ein Dokument hoch. Du bekommst eine Bestätigung, sobald die Datei empfangen wurde. Die Verarbeitung läuft im Hintergrund und wird hier nicht angezeigt.",
+      "Wähle eine Sammlung und lade ein oder mehrere Dokumente hoch. Du bekommst eine Bestätigung, sobald die Dateien empfangen wurden. Die Verarbeitung läuft im Hintergrund und wird hier nicht angezeigt.",
     noUploadPermission: "Du hast keine Berechtigung zum Hochladen.",
     collection: "Sammlung",
     noCollectionsAvailable: "Keine Sammlungen verfügbar",
     file: "Datei",
     supportedFormats:
-      "Dokumente (PDF, DOCX, XLSX, PPTX, HTML, Markdown, LaTeX, XML), Bilder (PNG, JPG, TIFF, BMP), Audio (WAV, MP3) und Untertitel (VTT).",
+      "Dokumente (PDF, DOCX, XLSX, PPTX, HTML, Markdown, LaTeX, XML, EPUB), Bilder (PNG, JPG, TIFF, BMP), Audio (WAV, MP3) und Untertitel (VTT).",
     uploading: "Lädt hoch…",
+    uploadingProgress: "Lädt {current} von {total} hoch…",
     upload: "Hochladen",
     fileUploaded: '„{name}" hochgeladen.',
+    filesUploaded: "{count} Dateien hochgeladen.",
+    uploadPartial: "{ok} von {total} Dateien hochgeladen.",
+    fileStatusUploading: "Lädt hoch",
+    fileStatusDone: "Hochgeladen",
+    fileStatusError: "Fehlgeschlagen",
+    fileStatusSkipped: "Übersprungen",
     fileTooLarge: "Die Datei ist zu groß. Maximalgröße ist {max}.",
 
     // Web Import (MDHarvest / crawl4ai)

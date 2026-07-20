@@ -44,7 +44,9 @@ Three kinds of key in play:
 
 ## Upload flow — "no extraction in UI"
 
-`POST /api/upload` on the Cortex backend triggers extraction automatically; there is no flag to skip it. We honor the "never start extraction" UX requirement by **confirming upload as soon as the HTTP response lands** (typically the upstream's initial 202 / 200) and **never surfacing extraction progress** in this UI. Extraction still runs asynchronously in Cortex; it's simply not this app's concern.
+`POST /api/upload` on the Cortex backend takes a `start_processing` query param that **defaults to `false`** (bulk-upload flow: park files as pending, process later via `POST /api/documents/process-pending`). Our `/api/me/upload` route passes `start_processing=true` explicitly so extraction kicks off in the background per file — without it, user uploads would sit pending until an admin runs process-pending. We honor the "never start extraction" UX requirement by **confirming upload as soon as the HTTP response lands** and **never surfacing extraction progress** in this UI. Extraction still runs asynchronously in Cortex; it's simply not this app's concern.
+
+**Multi-file:** the backend accepts one file per multipart request, so `UploadTab` uploads a multi-selection sequentially (one request per file, per-file status list, batch summary toast). A 429 or 507 aborts the rest of the batch (marked "skipped"); other per-file errors (unsupported type, 409 duplicate) don't stop the batch. Re-submitting after a partial failure skips files already marked done. The `accept` list mirrors the backend's `allowed_extensions` (`backend/app/config.py` in cortex-app) — includes `.epub`.
 
 ## Web Import (MDHarvest / crawl4ai)
 

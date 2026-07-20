@@ -72,7 +72,9 @@ export async function POST(request: Request) {
   const requestId = request.headers.get("x-request-id") ?? crypto.randomUUID();
 
   try {
-    const upstream = await fetch(`${apiUrl}/api/upload`, {
+    // start_processing defaults to false upstream (bulk-upload flow); we want
+    // the classic behavior — extraction kicks off in the background per file.
+    const upstream = await fetch(`${apiUrl}/api/upload?start_processing=true`, {
       method: "POST",
       headers: {
         "X-API-Key": resolved.apiKey,
