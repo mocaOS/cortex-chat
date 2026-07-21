@@ -36,6 +36,10 @@ function LoginForm() {
     () => getCachedConfig()?.supportLabel || ""
   );
   const [ready, setReady] = useState(() => !!getCachedConfig());
+  const [emailConfigured, setEmailConfigured] = useState(
+    () => getCachedConfig()?.emailConfigured ?? false
+  );
+  const justReset = params.get("reset") === "1";
 
   useEffect(() => {
     getConfig()
@@ -43,6 +47,7 @@ function LoginForm() {
         setLogoUrl(cfg.logoUrl || "/logo.png");
         setSupportUrl(cfg.supportUrl || "");
         setSupportLabel(cfg.supportLabel || "");
+        setEmailConfigured(!!cfg.emailConfigured);
       })
       .finally(() => setReady(true));
   }, []);
@@ -167,6 +172,15 @@ function LoginForm() {
           />
         </div>
 
+        {justReset && (
+          <div
+            className="text-[12.5px] text-center"
+            style={{ color: "var(--fg2)" }}
+          >
+            {t("resetPasswordSuccess")}
+          </div>
+        )}
+
         {error && (
           <div
             className="text-[12.5px] text-center"
@@ -189,6 +203,18 @@ function LoginForm() {
         >
           {loading ? t("signingIn") : t("signIn")}
         </button>
+
+        {emailConfigured && (
+          <div className="text-center pt-1">
+            <a
+              href="/forgot-password"
+              className="text-[12.5px] transition-colors"
+              style={{ color: "var(--fg2)" }}
+            >
+              {t("forgotPassword")}
+            </a>
+          </div>
+        )}
       </form>
 
       {supportUrl ? (

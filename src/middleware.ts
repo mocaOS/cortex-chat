@@ -5,7 +5,11 @@ import { SESSION_COOKIE } from "@/lib/auth/cookie";
 // Everything else goes through the session gate.
 const PUBLIC_PATHS = new Set<string>([
   "/login",
+  "/forgot-password",
+  "/reset-password",
   "/api/auth/login",
+  "/api/auth/forgot-password",
+  "/api/auth/reset-password",
   "/api/config",
   "/api/branding/logo",
 ]);

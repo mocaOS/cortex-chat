@@ -11,6 +11,7 @@ import {
   Td,
   Th,
 } from "@/components/admin/ui";
+import { getCachedConfig } from "@/lib/config";
 import { t } from "@/lib/i18n";
 import { useLocale } from "@/lib/i18n-client";
 
@@ -77,6 +78,28 @@ export default function AdminUsersPage() {
       return;
     }
     await load();
+  }
+
+  const emailConfigured = getCachedConfig()?.emailConfigured ?? false;
+
+  async function handleSendReset(u: UserRow) {
+    if (!confirm(t("sendResetEmailConfirm", { email: u.email }))) return;
+    const res = await fetch(`/api/admin/users/${u.id}/send-reset`, {
+      method: "POST",
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      alert(data.error || t("sendResetEmailFailed"));
+      return;
+    }
+    alert(t("sendResetEmailSent", { email: u.email }));
+  }
+
+  function canSendReset(u: UserRow): boolean {
+    if (!emailConfigured) return false;
+    if (u.role === "superadmin") return false;
+    if (u.role === "admin" && viewerRole !== "superadmin") return false;
+    return true;
   }
 
   function canDelete(u: UserRow): boolean {
@@ -158,6 +181,14 @@ export default function AdminUsersPage() {
                     >
                       {t("edit")}
                     </Button>
+                    {canSendReset(u) && (
+                      <Button
+                        variant="ghost"
+                        onClick={() => handleSendReset(u)}
+                      >
+                        {t("sendResetEmail")}
+                      </Button>
+                    )}
                     <Button
                       variant="danger"
                       onClick={() => handleDelete(u)}

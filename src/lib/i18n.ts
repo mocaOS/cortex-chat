@@ -64,6 +64,29 @@ const translations = {
     signingIn: "Signing in…",
     signOut: "Sign out",
     loginFailed: "Sign in failed",
+    forgotPassword: "Forgot password?",
+    forgotPasswordHeading: "Reset your password",
+    forgotPasswordDescription:
+      "Enter your email and we'll send you a link to reset your password.",
+    forgotPasswordSubmit: "Send reset link",
+    forgotPasswordSending: "Sending…",
+    forgotPasswordSent:
+      "If that email is registered, we've sent a reset link. Check your inbox.",
+    backToSignIn: "Back to sign in",
+    resetPasswordHeading: "Choose a new password",
+    resetPasswordNew: "New password (min. 8 characters)",
+    resetPasswordConfirm: "Confirm new password",
+    resetPasswordSubmit: "Set new password",
+    resetPasswordSaving: "Saving…",
+    resetPasswordSuccess: "Password updated. You can now sign in.",
+    resetPasswordMismatch: "Passwords don't match.",
+    resetPasswordInvalid:
+      "This reset link is invalid or has expired. Request a new one.",
+    resetPasswordCheckingLink: "Checking link…",
+    sendResetEmail: "Send reset email",
+    sendResetEmailConfirm: "Send a password reset email to {email}?",
+    sendResetEmailSent: "Reset email sent to {email}.",
+    sendResetEmailFailed: "Could not send reset email.",
 
     // Navigation / account
     profile: "Profile",
@@ -486,6 +509,30 @@ const translations = {
     signingIn: "Melde an…",
     signOut: "Abmelden",
     loginFailed: "Anmeldung fehlgeschlagen",
+    forgotPassword: "Passwort vergessen?",
+    forgotPasswordHeading: "Passwort zurücksetzen",
+    forgotPasswordDescription:
+      "Gib deine E-Mail ein und wir senden dir einen Link zum Zurücksetzen deines Passworts.",
+    forgotPasswordSubmit: "Link senden",
+    forgotPasswordSending: "Sende…",
+    forgotPasswordSent:
+      "Falls diese E-Mail registriert ist, haben wir einen Link zum Zurücksetzen gesendet. Sieh in deinem Postfach nach.",
+    backToSignIn: "Zurück zur Anmeldung",
+    resetPasswordHeading: "Neues Passwort wählen",
+    resetPasswordNew: "Neues Passwort (mind. 8 Zeichen)",
+    resetPasswordConfirm: "Neues Passwort bestätigen",
+    resetPasswordSubmit: "Neues Passwort setzen",
+    resetPasswordSaving: "Speichert…",
+    resetPasswordSuccess: "Passwort aktualisiert. Du kannst dich jetzt anmelden.",
+    resetPasswordMismatch: "Die Passwörter stimmen nicht überein.",
+    resetPasswordInvalid:
+      "Dieser Link ist ungültig oder abgelaufen. Fordere einen neuen an.",
+    resetPasswordCheckingLink: "Prüfe Link…",
+    sendResetEmail: "Reset-E-Mail senden",
+    sendResetEmailConfirm:
+      "Eine E-Mail zum Zurücksetzen des Passworts an {email} senden?",
+    sendResetEmailSent: "Reset-E-Mail an {email} gesendet.",
+    sendResetEmailFailed: "Reset-E-Mail konnte nicht gesendet werden.",
 
     // Navigation / account
     profile: "Profil",

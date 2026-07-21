@@ -28,6 +28,31 @@ Cortex Chat — a Next.js 16 multi-tenant chat suite for the Cortex RAG-based AI
 - **Users** are created by the superadmin (email + initial password). Each user belongs to exactly one `group`. Users can update their username, avatar, and password.
 - **Sessions** are DB-backed (`sessions` table) with an opaque cookie token. 30-day sliding TTL. Middleware checks cookie presence; route handlers validate against DB via `getAuth()` / `requireAuth()` / `requireSuperadmin()` in `src/lib/auth/session.ts`.
 
+## Password reset & email
+
+Self-service and admin-triggered password reset, backed by the app's SMTP email
+module (`src/lib/email/`). Entirely feature-gated: unset `SMTP_HOST` ⇒ no mail
+sends, and both the login "Forgot password?" link and the admin "Send reset
+email" button are hidden (`ClientConfig.emailConfigured`).
+
+- **Config (env only):** `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER?`, `SMTP_PASS?`,
+  `SMTP_SECURE?`, `SMTP_FROM`, and `APP_BASE_URL`. When `SMTP_HOST` is set,
+  `SMTP_FROM` + `APP_BASE_URL` are required (validated at boot in
+  `src/instrumentation.ts`). Reset links use `APP_BASE_URL` only — never the
+  request Host header.
+- **Local dev (Mailpit):** SMTP is on `1025` (`8025` is Mailpit's web UI). Use
+  `SMTP_HOST=localhost`, `SMTP_PORT=1025`, `APP_BASE_URL=http://localhost:3000`.
+- **Tokens:** `password_reset_tokens` table; `sha256(token)` at rest, plaintext
+  only in the link; 60-min TTL; 60s resend cooldown; single-use. A successful
+  reset updates the hash and deletes ALL of that user's sessions (atomic).
+- **Enumeration-safe:** `POST /api/auth/forgot-password` always returns 200.
+- **Superadmin excluded:** its password is env-managed (`SUPERADMIN_PASSWORD`,
+  re-hashed every boot). Self-service issues no token for it; the admin route
+  rejects it with 400.
+- **Emails reuse DB branding:** accent (converted oklch→hex for mail clients),
+  logo (inline CID, PNG/JPEG only), and app title from `app_settings`. Email
+  copy is server-side only (`src/lib/email/templates/`), never in `i18n.ts`.
+
 ## API Keys — How we talk to Cortex
 
 Frontend never sees backend keys. All keys are stored **encrypted at rest** in SQLite (`api_keys.encrypted_value`, AES-256-GCM, key from `APP_ENCRYPTION_KEY`) and injected by server routes as the `X-API-Key` header.

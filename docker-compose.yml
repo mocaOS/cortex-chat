@@ -17,6 +17,14 @@ services:
       # GlitchTip environment tag (DSN default is baked into the app;
       # override with SENTRY_DSN / disable with SENTRY_DISABLED=1 if needed).
       SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-production}
+      # Email / SMTP (optional — password reset is off unless SMTP_HOST is set).
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_FROM: ${SMTP_FROM:-}
+      APP_BASE_URL: ${APP_BASE_URL:-}
     ports:
       - "${PORT:-3000}:3000"
     volumes:

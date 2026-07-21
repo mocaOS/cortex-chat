@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getAppSettings } from "@/lib/settings";
 import { resolveLogoUrl } from "@/lib/branding-url";
 import { MAX_UPLOAD_BYTES } from "@/lib/upload-limits";
+import { isEmailConfigured } from "@/lib/email/config";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +19,7 @@ export function GET() {
     supportUrl: settings.supportUrl,
     supportLabel: settings.supportLabel,
     defaultChatMode: settings.defaultChatMode,
+    emailConfigured: isEmailConfigured(),
     maxUploadBytes: MAX_UPLOAD_BYTES,
   });
 }

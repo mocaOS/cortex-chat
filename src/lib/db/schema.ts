@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 // API keys issued by the library-backend, stored encrypted (AES-256-GCM).
 // One row per backend key; referenced polymorphically by groups.chatKeyId (read)
@@ -60,6 +60,25 @@ export const sessions = sqliteTable("sessions", {
   expiresAt: integer("expires_at").notNull(),
 });
 
+export const passwordResetTokens = sqliteTable(
+  "password_reset_tokens",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    // sha256(token) hex. The plaintext token lives ONLY in the emailed link.
+    tokenHash: text("token_hash").notNull(),
+    expiresAt: integer("expires_at").notNull(),
+    usedAt: integer("used_at"), // null until consumed (single-use)
+    createdAt: integer("created_at").notNull().default(sql`(unixepoch() * 1000)`),
+  },
+  (t) => ({
+    tokenHashIdx: index("idx_prt_token_hash").on(t.tokenHash),
+    userIdIdx: index("idx_prt_user_id").on(t.userId),
+  })
+);
+
 export const loginEvents = sqliteTable("login_events", {
   id: text("id").primaryKey(),
   userId: text("user_id").references(() => users.id, { onDelete: "set null" }),
@@ -117,6 +136,7 @@ export type User = typeof users.$inferSelect;
 export type Group = typeof groups.$inferSelect;
 export type ApiKey = typeof apiKeys.$inferSelect;
 export type Session = typeof sessions.$inferSelect;
+export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
 export type LoginEvent = typeof loginEvents.$inferSelect;
 export type ChatSessionRow = typeof chatSessions.$inferSelect;
 export type ChatMessageRow = typeof chatMessages.$inferSelect;
