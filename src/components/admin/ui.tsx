@@ -127,7 +127,7 @@ export function Button({
   variant?: ButtonVariant;
 }) {
   const base =
-    "inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-[var(--radius)] text-[13px] font-medium transition-all disabled:opacity-60 disabled:cursor-not-allowed active:scale-[0.98]";
+    "inline-flex items-center justify-center gap-2 whitespace-nowrap px-3.5 py-2 rounded-[var(--radius)] text-[13px] font-medium transition-all disabled:opacity-60 disabled:cursor-not-allowed active:scale-[0.98]";
   const merged = { ...variantStyle[variant], ...style };
   return (
     <button
