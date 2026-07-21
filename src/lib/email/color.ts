@@ -22,6 +22,7 @@ export function cssColorToHex(input: string): string {
     if (oklch[1].endsWith("%")) L = L / 100;
     const C = parseFloat(oklch[2]);
     const H = parseFloat(oklch[3]);
+    if (!Number.isFinite(L) || !Number.isFinite(C) || !Number.isFinite(H)) return FALLBACK;
     const [r, g, b] = oklchToLinearSrgb(L, C, H);
     return toHex(gammaEncode(r), gammaEncode(g), gammaEncode(b));
   }
