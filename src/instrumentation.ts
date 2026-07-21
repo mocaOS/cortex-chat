@@ -109,6 +109,23 @@ function validateRequiredEnv(): void {
     errors.push("SUPERADMIN_PASSWORD is required to bootstrap the superadmin user.");
   }
 
+  // Email is optional (feature-gated on SMTP_HOST). But if SMTP is configured,
+  // the pieces required to send a usable reset email must all be present.
+  if (process.env.SMTP_HOST) {
+    if (!process.env.SMTP_FROM) {
+      errors.push(
+        'SMTP_FROM is required when SMTP_HOST is set (e.g. "Cortex Chat <no-reply@example.com>").'
+      );
+    }
+    if (!process.env.APP_BASE_URL) {
+      errors.push(
+        "APP_BASE_URL is required when SMTP_HOST is set (absolute base URL for reset links, e.g. https://chat.example.com)."
+      );
+    } else if (!/^https?:\/\//.test(process.env.APP_BASE_URL)) {
+      errors.push("APP_BASE_URL must start with http:// or https://.");
+    }
+  }
+
   if (errors.length > 0) {
     const header =
       "[env] Cortex Chat refuses to start: required environment is missing or invalid.";
