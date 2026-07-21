@@ -751,18 +751,12 @@ export async function sendPasswordResetEmail(params: {
 }
 ```
 
-Note: `escapeHtml` is imported because `renderEmailLayout` escapes internally — but keep the import only if used. It is **not** used directly here, so remove the `escapeHtml` import line before typechecking (the layout handles escaping).
-
-- [ ] **Step 5: Remove the unused import**
-
-In `src/lib/email/send.ts`, delete the line `import { escapeHtml } from "./render";` (the layout escapes internally; a stray import will fail `tsc` under the project's settings).
-
-- [ ] **Step 6: Typecheck**
+- [ ] **Step 5: Typecheck**
 
 Run: `npm run typecheck`
 Expected: no errors.
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
 git add src/lib/email/templates/password-reset.ts src/lib/email/transport.ts src/lib/email/send.ts
