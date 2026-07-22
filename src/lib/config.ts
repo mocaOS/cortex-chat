@@ -11,6 +11,7 @@ export interface ClientConfig {
   supportLabel: string;
   defaultChatMode: "chat" | "deep-research";
   emailConfigured: boolean;
+  registrationEnabled: boolean;
   maxUploadBytes: number;
 }
 
@@ -52,6 +53,7 @@ export async function getConfig(): Promise<ClientConfig> {
       supportLabel: "",
       defaultChatMode: "chat",
       emailConfigured: false,
+      registrationEnabled: false,
       maxUploadBytes: MAX_UPLOAD_BYTES,
     };
   }

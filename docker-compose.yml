@@ -25,6 +25,8 @@ services:
       SMTP_SECURE: ${SMTP_SECURE:-false}
       SMTP_FROM: ${SMTP_FROM:-}
       APP_BASE_URL: ${APP_BASE_URL:-}
+      # Self-registration (default on; set "false" to disable the /register page).
+      ENABLE_REGISTRATION: ${ENABLE_REGISTRATION:-}
     ports:
       - "${PORT:-3000}:3000"
     volumes:

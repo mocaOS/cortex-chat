@@ -5,6 +5,7 @@ import { resolveLogoUrl } from "@/lib/branding-url";
 import { setLocale as setI18nLocale } from "@/lib/i18n";
 import { MAX_UPLOAD_BYTES } from "@/lib/upload-limits";
 import { isEmailConfigured } from "@/lib/email/config";
+import { isRegistrationEnabled } from "@/lib/registration";
 import ConfigBootstrap from "@/components/ConfigBootstrap";
 
 export const dynamic = "force-dynamic";
@@ -61,6 +62,7 @@ export default function RootLayout({
     supportLabel: settings.supportLabel,
     defaultChatMode: settings.defaultChatMode,
     emailConfigured: isEmailConfigured(),
+    registrationEnabled: isRegistrationEnabled(),
     maxUploadBytes: MAX_UPLOAD_BYTES,
   };
 

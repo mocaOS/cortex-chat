@@ -3,6 +3,7 @@ import { getAppSettings } from "@/lib/settings";
 import { resolveLogoUrl } from "@/lib/branding-url";
 import { MAX_UPLOAD_BYTES } from "@/lib/upload-limits";
 import { isEmailConfigured } from "@/lib/email/config";
+import { isRegistrationEnabled } from "@/lib/registration";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +21,7 @@ export function GET() {
     supportLabel: settings.supportLabel,
     defaultChatMode: settings.defaultChatMode,
     emailConfigured: isEmailConfigured(),
+    registrationEnabled: isRegistrationEnabled(),
     maxUploadBytes: MAX_UPLOAD_BYTES,
   });
 }
