@@ -7,9 +7,11 @@ const PUBLIC_PATHS = new Set<string>([
   "/login",
   "/forgot-password",
   "/reset-password",
+  "/register",
   "/api/auth/login",
   "/api/auth/forgot-password",
   "/api/auth/reset-password",
+  "/api/auth/register",
   "/api/config",
   "/api/branding/logo",
 ]);

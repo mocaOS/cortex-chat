@@ -1,0 +1,77 @@
+import { NextResponse } from "next/server";
+import { eq } from "drizzle-orm";
+import { z } from "zod";
+import { db } from "@/lib/db/client";
+import { registrations, users } from "@/lib/db/schema";
+import { hashPassword } from "@/lib/auth/password";
+import { getRequestMeta } from "@/lib/auth/session";
+import { newId } from "@/lib/auth/crypto";
+import { isRegistrationEnabled } from "@/lib/registration";
+
+export const dynamic = "force-dynamic";
+
+const Body = z.object({
+  email: z.string().email(),
+  password: z.string().min(8),
+});
+
+// In-memory per-IP cooldown — a spam floor for this unauthenticated write
+// endpoint (same spirit as the forgot-password 60s resend cooldown). Resets on
+// restart, and is skipped when no client IP is attributable (e.g. local dev
+// without a proxy) — the unique email index is the real integrity guard.
+const lastRegistrationByIp = new Map<string, number>();
+const COOLDOWN_MS = 60_000;
+
+export async function POST(request: Request) {
+  if (!isRegistrationEnabled()) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  const parsed = Body.safeParse(await request.json().catch(() => ({})));
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+  }
+
+  const { ip } = await getRequestMeta();
+  if (ip && Date.now() - (lastRegistrationByIp.get(ip) ?? 0) < COOLDOWN_MS) {
+    return NextResponse.json(
+      { error: "Please wait before trying again." },
+      { status: 429 }
+    );
+  }
+
+  const email = parsed.data.email.trim().toLowerCase();
+  const existingUser = db
+    .select()
+    .from(users)
+    .where(eq(users.email, email))
+    .get();
+  const existingRegistration = db
+    .select()
+    .from(registrations)
+    .where(eq(registrations.email, email))
+    .get();
+  if (existingUser || existingRegistration) {
+    return NextResponse.json(
+      { error: "This email is already registered." },
+      { status: 409 }
+    );
+  }
+
+  const passwordHash = await hashPassword(parsed.data.password);
+  try {
+    db.insert(registrations).values({ id: newId(), email, passwordHash }).run();
+  } catch {
+    // Unique-index race between the check above and the insert.
+    return NextResponse.json(
+      { error: "This email is already registered." },
+      { status: 409 }
+    );
+  }
+
+  if (ip) {
+    if (lastRegistrationByIp.size > 1000) lastRegistrationByIp.clear();
+    lastRegistrationByIp.set(ip, Date.now());
+  }
+  return NextResponse.json({ ok: true });
+}
