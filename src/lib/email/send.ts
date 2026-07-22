@@ -1,6 +1,6 @@
 import "server-only";
 import { getAppSettings, type AppSettings } from "@/lib/settings";
-import { readLogo } from "@/lib/branding";
+import { readEmailLogo } from "@/lib/branding";
 import { getAppBaseUrl } from "./config";
 import { sendMail, type OutgoingMail } from "./transport";
 import { renderEmailLayout } from "./layout";
@@ -27,9 +27,9 @@ function getBranding(): Branding {
   };
 }
 
-// Shared delivery: branded layout + inline logo (CID) for PNG/JPEG only —
-// SVG/WebP are unreliable across mail clients, so those fall back to a text
-// wordmark in the layout.
+// Shared delivery: branded layout + inline logo (CID). PNG/JPEG logos embed
+// as-is; SVG/WebP go through the cached PNG derivative (readEmailLogo) — only
+// a failed conversion falls back to the text wordmark in the layout.
 async function deliverBrandedEmail(
   to: string,
   composed: ComposedEmail,
@@ -38,10 +38,10 @@ async function deliverBrandedEmail(
   const attachments: NonNullable<OutgoingMail["attachments"]> = [];
   let logoCid: string | null = null;
   if (branding.settings.logoFile) {
-    const logo = readLogo(branding.settings.logoFile);
-    if (logo && (logo.mime === "image/png" || logo.mime === "image/jpeg")) {
+    const logo = await readEmailLogo(branding.settings.logoFile);
+    if (logo) {
       attachments.push({
-        filename: branding.settings.logoFile,
+        filename: logo.filename,
         content: logo.buffer,
         cid: LOGO_CID,
         contentType: logo.mime,

@@ -29,6 +29,7 @@
     "recharts": "^3.8.1",
     "remark-gfm": "^4.0.1",
     "server-only": "^0.0.1",
+    "sharp": "^0.35.3",
     "zod": "^4.3.6"
   },
   "devDependencies": {

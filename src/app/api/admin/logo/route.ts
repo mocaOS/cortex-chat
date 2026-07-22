@@ -4,6 +4,7 @@ import {
   isAcceptedLogoMime,
   logoExtForMime,
   MAX_LOGO_BYTES,
+  readEmailLogo,
   saveLogo,
   deleteLogo,
 } from "@/lib/branding";
@@ -53,6 +54,10 @@ export async function POST(request: Request) {
   const buffer = Buffer.from(await file.arrayBuffer());
   const filename = saveLogo(buffer, ext);
   setLogoFile(filename);
+  // Warm the email PNG derivative for SVG/WebP now — a broken conversion
+  // shows up in the server log at upload time, not on the first mail send.
+  // Failure is non-fatal (readEmailLogo returns null; mails use the wordmark).
+  await readEmailLogo(filename);
 
   return NextResponse.json({ logoUrl: resolveLogoUrl(getAppSettings()) });
 }

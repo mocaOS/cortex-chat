@@ -50,8 +50,12 @@ email" button are hidden (`ClientConfig.emailConfigured`).
   re-hashed every boot). Self-service issues no token for it; the admin route
   rejects it with 400.
 - **Emails reuse DB branding:** accent (converted oklch→hex for mail clients),
-  logo (inline CID, PNG/JPEG only), and app title from `app_settings`. Email
-  copy is server-side only (`src/lib/email/templates/`), never in `i18n.ts`.
+  logo (inline CID), and app title from `app_settings`. PNG/JPEG logos embed
+  as-is; SVG/WebP are converted to a cached PNG derivative
+  (`data/branding/logo.email.png`, via `sharp`) — eagerly on upload, lazily on
+  first send for pre-existing logos; only a failed conversion falls back to
+  the text wordmark (`readEmailLogo` in `src/lib/branding.ts`). Email copy is
+  server-side only (`src/lib/email/templates/`), never in `i18n.ts`.
 
 ## Self-registration & admin approval
 

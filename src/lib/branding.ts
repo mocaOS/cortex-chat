@@ -78,3 +78,41 @@ export function readLogo(
   if (!mime) return null;
   return { buffer: readFileSync(full), mime };
 }
+
+// Mail clients can't render SVG and classic Outlook chokes on WebP, so emails
+// embed a PNG derivative instead. The `logo.` prefix keeps it inside the
+// removeExistingLogos() sweep — re-uploading or deleting the logo is what
+// invalidates the cached conversion.
+const EMAIL_LOGO_FILE = "logo.email.png";
+
+export async function readEmailLogo(
+  logoFile: string
+): Promise<{ filename: string; buffer: Buffer; mime: string } | null> {
+  const original = readLogo(logoFile);
+  if (!original) return null;
+  if (original.mime === "image/png" || original.mime === "image/jpeg") {
+    return { filename: logoFile, ...original };
+  }
+
+  const cached = readLogo(EMAIL_LOGO_FILE);
+  if (cached) return { filename: EMAIL_LOGO_FILE, ...cached };
+
+  try {
+    const sharp = (await import("sharp")).default;
+    // density only affects vector input: SVGs rasterize ~4x their intrinsic
+    // 72dpi size, then downscale to the 2x-retina header height (32px CSS in
+    // the email layout) — rasters pass through capped, never enlarged.
+    const buffer = await sharp(original.buffer, { density: 300 })
+      .resize({ width: 640, height: 64, fit: "inside", withoutEnlargement: true })
+      .png()
+      .toBuffer();
+    writeFileSync(resolve(BRANDING_DIR, EMAIL_LOGO_FILE), buffer);
+    return { filename: EMAIL_LOGO_FILE, buffer, mime: "image/png" };
+  } catch (err) {
+    console.warn(
+      `[branding] email logo conversion failed for ${logoFile}; emails fall back to the text wordmark:`,
+      err
+    );
+    return null;
+  }
+}
