@@ -40,6 +40,9 @@ function LoginForm() {
   const [emailConfigured, setEmailConfigured] = useState(
     () => getCachedConfig()?.emailConfigured ?? false
   );
+  const [registrationEnabled, setRegistrationEnabled] = useState(
+    () => getCachedConfig()?.registrationEnabled ?? false
+  );
   const justReset = params.get("reset") === "1";
 
   useEffect(() => {
@@ -49,6 +52,7 @@ function LoginForm() {
         setSupportUrl(cfg.supportUrl || "");
         setSupportLabel(cfg.supportLabel || "");
         setEmailConfigured(!!cfg.emailConfigured);
+        setRegistrationEnabled(!!cfg.registrationEnabled);
       })
       .finally(() => setReady(true));
   }, []);
@@ -65,7 +69,11 @@ function LoginForm() {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setError(data.error || t("loginFailed"));
+        setError(
+          data.code === "pendingApproval"
+            ? t("loginPendingApproval")
+            : data.error || t("loginFailed")
+        );
         setLoading(false);
         return;
       }
@@ -192,15 +200,30 @@ function LoginForm() {
           {loading ? t("signingIn") : t("signIn")}
         </button>
 
-        {emailConfigured && (
-          <div className="text-center pt-1">
-            <a
-              href="/forgot-password"
-              className="text-[12.5px] transition-colors"
-              style={{ color: "var(--fg2)" }}
-            >
-              {t("forgotPassword")}
-            </a>
+        {(emailConfigured || registrationEnabled) && (
+          <div className="text-center pt-1 space-y-1.5">
+            {emailConfigured && (
+              <div>
+                <a
+                  href="/forgot-password"
+                  className="text-[12.5px] transition-colors"
+                  style={{ color: "var(--fg2)" }}
+                >
+                  {t("forgotPassword")}
+                </a>
+              </div>
+            )}
+            {registrationEnabled && (
+              <div>
+                <a
+                  href="/register"
+                  className="text-[12.5px] transition-colors"
+                  style={{ color: "var(--fg2)" }}
+                >
+                  {t("createAccount")}
+                </a>
+              </div>
+            )}
           </div>
         )}
       </form>
