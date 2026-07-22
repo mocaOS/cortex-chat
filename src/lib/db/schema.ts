@@ -79,6 +79,17 @@ export const passwordResetTokens = sqliteTable(
   })
 );
 
+// Self-registration requests awaiting admin approval. Deliberately a separate
+// table: every `users` row remains a real, sign-in-capable account, so no
+// existing users query needs a "pending" filter. Approval moves the row into
+// `users` in one transaction (see /api/admin/registrations/[id]/approve).
+export const registrations = sqliteTable("registrations", {
+  id: text("id").primaryKey(),
+  email: text("email").notNull().unique(),
+  passwordHash: text("password_hash").notNull(),
+  createdAt: integer("created_at").notNull().default(sql`(unixepoch() * 1000)`),
+});
+
 export const loginEvents = sqliteTable("login_events", {
   id: text("id").primaryKey(),
   userId: text("user_id").references(() => users.id, { onDelete: "set null" }),
@@ -137,6 +148,7 @@ export type Group = typeof groups.$inferSelect;
 export type ApiKey = typeof apiKeys.$inferSelect;
 export type Session = typeof sessions.$inferSelect;
 export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
+export type Registration = typeof registrations.$inferSelect;
 export type LoginEvent = typeof loginEvents.$inferSelect;
 export type ChatSessionRow = typeof chatSessions.$inferSelect;
 export type ChatMessageRow = typeof chatMessages.$inferSelect;
