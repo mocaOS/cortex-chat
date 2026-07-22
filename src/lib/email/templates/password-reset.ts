@@ -1,7 +1,6 @@
 import { emailButton } from "../layout";
 import { escapeHtml } from "../render";
-
-export type EmailLocale = "en" | "de";
+import type { ComposedEmail, EmailLocale } from "./types";
 
 export interface PasswordResetVars {
   userName: string;
@@ -9,13 +8,6 @@ export interface PasswordResetVars {
   expiresMinutes: number;
   appTitle: string;
   accentHex: string;
-}
-
-export interface ComposedEmail {
-  subject: string;
-  previewText: string;
-  bodyHtml: string;
-  bodyText: string;
 }
 
 const BUILDERS: Record<EmailLocale, (v: PasswordResetVars) => ComposedEmail> = {
