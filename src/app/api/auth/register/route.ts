@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
+import * as Sentry from "@sentry/nextjs";
 import { db } from "@/lib/db/client";
 import { registrations, users } from "@/lib/db/schema";
 import { hashPassword } from "@/lib/auth/password";
@@ -61,12 +62,17 @@ export async function POST(request: Request) {
   const passwordHash = await hashPassword(parsed.data.password);
   try {
     db.insert(registrations).values({ id: newId(), email, passwordHash }).run();
-  } catch {
+  } catch (err) {
     // Unique-index race between the check above and the insert.
-    return NextResponse.json(
-      { error: "This email is already registered." },
-      { status: 409 }
-    );
+    if (err instanceof Error && err.message.includes("UNIQUE constraint failed")) {
+      return NextResponse.json(
+        { error: "This email is already registered." },
+        { status: 409 }
+      );
+    }
+    // Anything else is a real server error — surface it, don't masquerade as 409.
+    Sentry.captureException(err);
+    return NextResponse.json({ error: "Registration failed." }, { status: 500 });
   }
 
   if (ip) {
