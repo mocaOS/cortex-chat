@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/lib/db/client";
-import { loginEvents, usageEvents, users } from "@/lib/db/schema";
+import { loginEvents, registrations, usageEvents, users } from "@/lib/db/schema";
 import { verifyPassword } from "@/lib/auth/password";
 import {
   createSession,
@@ -46,6 +46,27 @@ export async function POST(request: Request) {
     .run();
 
   if (!ok || !user) {
+    // Self-registered but not yet approved? Only reveal the pending status
+    // when the password matches — otherwise outsiders could probe emails.
+    if (!user) {
+      const pending = db
+        .select()
+        .from(registrations)
+        .where(eq(registrations.email, email))
+        .get();
+      if (
+        pending &&
+        (await verifyPassword(pending.passwordHash, parsed.data.password))
+      ) {
+        return NextResponse.json(
+          {
+            error: "Your account is awaiting approval.",
+            code: "pendingApproval",
+          },
+          { status: 401 }
+        );
+      }
+    }
     return NextResponse.json(
       { error: "Invalid email or password" },
       { status: 401 }
