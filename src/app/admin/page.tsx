@@ -15,6 +15,7 @@ import {
   ErrorBanner,
   Select,
   Table,
+  Tabs,
   Td,
   Th,
 } from "@/components/admin/ui";
@@ -332,41 +333,6 @@ function Legend({ color, label }: { color: string; label: string }) {
       />
       {label}
     </span>
-  );
-}
-
-function Tabs<K extends string>({
-  active,
-  onChange,
-  tabs,
-}: {
-  active: K;
-  onChange: (k: K) => void;
-  tabs: { key: K; label: string }[];
-}) {
-  return (
-    <div
-      className="flex gap-1 border-b"
-      style={{ borderColor: "var(--border)" }}
-    >
-      {tabs.map((tab) => {
-        const on = tab.key === active;
-        return (
-          <button
-            key={tab.key}
-            onClick={() => onChange(tab.key)}
-            className="px-3 py-2 text-[13px] -mb-px border-b-2 transition-colors"
-            style={{
-              color: on ? "var(--fg1)" : "var(--fg2)",
-              borderColor: on ? "var(--accent)" : "transparent",
-              fontWeight: on ? 500 : 400,
-            }}
-          >
-            {tab.label}
-          </button>
-        );
-      })}
-    </div>
   );
 }
 

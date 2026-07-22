@@ -9,6 +9,7 @@ import {
   PasswordInput,
   Select,
   Table,
+  Tabs,
   Td,
   Th,
 } from "@/components/admin/ui";
@@ -36,10 +37,21 @@ interface GroupRow {
   name: string;
 }
 
+type TabKey = "users" | "registrations";
+
+interface RegistrationRow {
+  id: string;
+  email: string;
+  createdAt: number;
+}
+
 export default function AdminUsersPage() {
   useLocale();
   const [users, setUsers] = useState<UserRow[]>([]);
   const [groups, setGroups] = useState<GroupRow[]>([]);
+  const [registrations, setRegistrations] = useState<RegistrationRow[]>([]);
+  const [tab, setTab] = useState<TabKey>("users");
+  const [approving, setApproving] = useState<RegistrationRow | null>(null);
   const [viewerRole, setViewerRole] = useState<ViewerRole>("admin");
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<UserRow | "new" | null>(null);
@@ -49,14 +61,16 @@ export default function AdminUsersPage() {
     setLoading(true);
     setError(null);
     try {
-      const [u, g] = await Promise.all([
-        fetch("/api/admin/users").then((r) => r.json()),
-        fetch("/api/admin/groups").then((r) => r.json()),
+      const [u, g, r] = await Promise.all([
+        fetch("/api/admin/users").then((res) => res.json()),
+        fetch("/api/admin/groups").then((res) => res.json()),
+        fetch("/api/admin/registrations").then((res) => res.json()),
       ]);
       if (u.error) throw new Error(u.error);
       setUsers(u.users ?? []);
       setViewerRole((u.viewerRole as ViewerRole) ?? "admin");
       setGroups(g.groups ?? []);
+      setRegistrations(r.registrations ?? []);
     } catch (err) {
       setError(err instanceof Error ? err.message : t("failedToLoad"));
     } finally {
@@ -96,6 +110,19 @@ export default function AdminUsersPage() {
     alert(t("sendResetEmailSent", { email: u.email }));
   }
 
+  async function handleDeleteRegistration(r: RegistrationRow) {
+    if (!confirm(t("deleteRegistrationConfirm", { email: r.email }))) return;
+    const res = await fetch(`/api/admin/registrations/${r.id}`, {
+      method: "DELETE",
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      alert(data.error || t("failedToDelete"));
+      return;
+    }
+    await load();
+  }
+
   function canSendReset(u: UserRow): boolean {
     if (!emailConfigured) return false;
     if (u.role === "superadmin") return false;
@@ -129,8 +156,25 @@ export default function AdminUsersPage() {
             {t("usersDescription")}
           </p>
         </div>
-        <Button onClick={() => setEditing("new")}>{t("newUser")}</Button>
+        {tab === "users" && (
+          <Button onClick={() => setEditing("new")}>{t("newUser")}</Button>
+        )}
       </div>
+
+      <Tabs<TabKey>
+        active={tab}
+        onChange={setTab}
+        tabs={[
+          { key: "users", label: t("usersTab") },
+          {
+            key: "registrations",
+            label:
+              registrations.length > 0
+                ? `${t("registrationsTab")} (${registrations.length})`
+                : t("registrationsTab"),
+          },
+        ]}
+      />
 
       <ErrorBanner message={error} />
 
@@ -138,6 +182,12 @@ export default function AdminUsersPage() {
         <div className="text-[13px]" style={{ color: "var(--fg2)" }}>
           {t("loading")}
         </div>
+      ) : tab === "registrations" ? (
+        <RegistrationsTable
+          rows={registrations}
+          onApprove={setApproving}
+          onDelete={handleDeleteRegistration}
+        />
       ) : (
         <Table>
           <thead>
@@ -213,6 +263,19 @@ export default function AdminUsersPage() {
           onClose={() => setEditing(null)}
           onSaved={async () => {
             setEditing(null);
+            await load();
+          }}
+        />
+      )}
+
+      {approving && (
+        <ApproveDialog
+          registration={approving}
+          groups={groups}
+          emailConfigured={emailConfigured}
+          onClose={() => setApproving(null)}
+          onDone={async () => {
+            setApproving(null);
             await load();
           }}
         />
@@ -396,6 +459,136 @@ function UserForm({
             </option>
           ))}
         </Select>
+        <ErrorBanner message={error} />
+      </form>
+    </Modal>
+  );
+}
+
+function RegistrationsTable({
+  rows,
+  onApprove,
+  onDelete,
+}: {
+  rows: RegistrationRow[];
+  onApprove: (r: RegistrationRow) => void;
+  onDelete: (r: RegistrationRow) => void;
+}) {
+  if (rows.length === 0) {
+    return (
+      <div className="text-[13px]" style={{ color: "var(--fg2)" }}>
+        {t("registrationsEmpty")}
+      </div>
+    );
+  }
+  return (
+    <Table>
+      <thead>
+        <tr>
+          <Th>{t("tableEmail")}</Th>
+          <Th>{t("tableRegistered")}</Th>
+          <Th>{t("actions")}</Th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((r) => (
+          <tr key={r.id}>
+            <Td>{r.email}</Td>
+            <Td>{new Date(r.createdAt).toLocaleString()}</Td>
+            <Td>
+              <div className="flex gap-2">
+                <Button onClick={() => onApprove(r)}>
+                  {t("confirmRegistration")}
+                </Button>
+                <Button variant="danger" onClick={() => onDelete(r)}>
+                  {t("delete")}
+                </Button>
+              </div>
+            </Td>
+          </tr>
+        ))}
+      </tbody>
+    </Table>
+  );
+}
+
+function ApproveDialog({
+  registration,
+  groups,
+  emailConfigured,
+  onClose,
+  onDone,
+}: {
+  registration: RegistrationRow;
+  groups: GroupRow[];
+  emailConfigured: boolean;
+  onClose: () => void;
+  onDone: () => Promise<void> | void;
+}) {
+  const [groupId, setGroupId] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await fetch(
+        `/api/admin/registrations/${registration.id}/approve`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ groupId: groupId || null }),
+        }
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || t("saveFailed"));
+      alert(
+        emailConfigured && !data.emailSent
+          ? t("registrationApprovedNoEmail")
+          : t("registrationApproved", { email: registration.email })
+      );
+      await onDone();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t("saveFailed"));
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      title={t("confirmRegistrationTitle", { email: registration.email })}
+      footer={
+        <>
+          <Button variant="ghost" onClick={onClose} type="button">
+            {t("cancel")}
+          </Button>
+          <Button type="submit" form="approve-form" disabled={saving}>
+            {saving ? t("confirmingRegistration") : t("confirmRegistration")}
+          </Button>
+        </>
+      }
+    >
+      <form id="approve-form" onSubmit={handleSubmit} className="space-y-4">
+        <Select
+          label={t("tableGroup")}
+          value={groupId}
+          onChange={(e) => setGroupId(e.target.value)}
+          autoFocus
+        >
+          <option value="">{t("noGroupOption")}</option>
+          {groups.map((g) => (
+            <option key={g.id} value={g.id}>
+              {g.name}
+            </option>
+          ))}
+        </Select>
+        <p className="text-[11px]" style={{ color: "var(--fg2)" }}>
+          {t("confirmRegistrationHint")}
+        </p>
         <ErrorBanner message={error} />
       </form>
     </Modal>
