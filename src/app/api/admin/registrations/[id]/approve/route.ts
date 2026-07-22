@@ -50,29 +50,45 @@ export async function POST(request: Request, ctx: Ctx) {
   // together. Re-check the email inside the transaction — an admin may have
   // created this user manually since the registration came in.
   const userId = newId();
-  let emailTaken = false;
-  db.transaction((tx) => {
+  // The early fetch above answered before request.json() yielded the event
+  // loop — re-fetch inside the transaction so an admin deleting the
+  // registration in that window wins over a stale approval. The outcome is
+  // returned from the callback (rather than assigned to a captured `let`)
+  // because TS doesn't widen a mutated closure variable's narrowed type back
+  // for the outer scope — the same footgun as `let flag = false; arr.forEach(() => { flag = true })`.
+  const { outcome, approvedEmail } = db.transaction((tx) => {
+    const current = tx
+      .select()
+      .from(registrations)
+      .where(eq(registrations.id, id))
+      .get();
+    if (!current) {
+      return { outcome: "gone" as const, approvedEmail: "" };
+    }
     const existing = tx
       .select()
       .from(users)
-      .where(eq(users.email, reg.email))
+      .where(eq(users.email, current.email))
       .get();
     if (existing) {
-      emailTaken = true;
-      return;
+      return { outcome: "emailTaken" as const, approvedEmail: "" };
     }
     tx.insert(users)
       .values({
         id: userId,
-        email: reg.email,
-        passwordHash: reg.passwordHash,
+        email: current.email,
+        passwordHash: current.passwordHash,
         role: "user",
         groupId,
       })
       .run();
-    tx.delete(registrations).where(eq(registrations.id, reg.id)).run();
+    tx.delete(registrations).where(eq(registrations.id, current.id)).run();
+    return { outcome: "ok" as const, approvedEmail: current.email };
   });
-  if (emailTaken) {
+  if (outcome === "gone") {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+  if (outcome === "emailTaken") {
     return NextResponse.json(
       {
         error:
@@ -87,7 +103,7 @@ export async function POST(request: Request, ctx: Ctx) {
   let emailSent = false;
   if (isEmailConfigured()) {
     try {
-      await sendAccountApprovedEmail({ to: reg.email, userName: reg.email });
+      await sendAccountApprovedEmail({ to: approvedEmail, userName: approvedEmail });
       emailSent = true;
     } catch (err) {
       Sentry.captureException(err);

@@ -12,8 +12,8 @@ import { isRegistrationEnabled } from "@/lib/registration";
 export const dynamic = "force-dynamic";
 
 const Body = z.object({
-  email: z.string().email(),
-  password: z.string().min(8),
+  email: z.string().email().max(254),
+  password: z.string().min(8).max(256),
 });
 
 // In-memory per-IP cooldown — a spam floor for this unauthenticated write
@@ -34,11 +34,17 @@ export async function POST(request: Request) {
   }
 
   const { ip } = await getRequestMeta();
-  if (ip && Date.now() - (lastRegistrationByIp.get(ip) ?? 0) < COOLDOWN_MS) {
-    return NextResponse.json(
-      { error: "Please wait before trying again." },
-      { status: 429 }
-    );
+  if (ip) {
+    if (Date.now() - (lastRegistrationByIp.get(ip) ?? 0) < COOLDOWN_MS) {
+      return NextResponse.json(
+        { error: "Please wait before trying again." },
+        { status: 429 }
+      );
+    }
+    // Arm on every attempt past the gate (not just successful inserts) so
+    // duplicate-email probes are metered too.
+    if (lastRegistrationByIp.size > 1000) lastRegistrationByIp.clear();
+    lastRegistrationByIp.set(ip, Date.now());
   }
 
   const email = parsed.data.email.trim().toLowerCase();
@@ -75,9 +81,5 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Registration failed." }, { status: 500 });
   }
 
-  if (ip) {
-    if (lastRegistrationByIp.size > 1000) lastRegistrationByIp.clear();
-    lastRegistrationByIp.set(ip, Date.now());
-  }
   return NextResponse.json({ ok: true });
 }
