@@ -37,7 +37,7 @@ export async function POST(request: Request, ctx: Ctx) {
     return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
   }
   const groupId = parsed.data.groupId;
-  if (groupId) {
+  if (groupId !== null) {
     // FK enforcement is on (PRAGMA foreign_keys) — validate up front for a
     // friendly error instead of a raw constraint failure.
     const group = db.select().from(groups).where(eq(groups.id, groupId)).get();
