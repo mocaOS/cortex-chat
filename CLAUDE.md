@@ -53,6 +53,37 @@ email" button are hidden (`ClientConfig.emailConfigured`).
   logo (inline CID, PNG/JPEG only), and app title from `app_settings`. Email
   copy is server-side only (`src/lib/email/templates/`), never in `i18n.ts`.
 
+## Self-registration & admin approval
+
+Public `/register` page (email + password + confirm with a live match
+indicator) writing to a separate `registrations` table — deliberately NOT a
+status column on `users`, so every `users` row stays a real, sign-in-capable
+account and no existing query needs a "pending" filter. Feature-gated by
+`ENABLE_REGISTRATION` (**default ON**; set `false`/`0` to disable — the login
+"Create account" link disappears, `/register` redirects, and
+`POST /api/auth/register` 404s, while the admin tab keeps working for leftover
+pending rows).
+
+- **Approval:** Registrations tab on `/admin/users` (`requireAdmin`). Confirm
+  opens a group-picker modal (the group carries chat access); approval is one
+  transaction (insert `users` row with role `user` + delete registration) in
+  `POST /api/admin/registrations/[id]/approve`, which re-checks the email
+  against `users` (409 if an admin created it meanwhile).
+- **Approval email** (`templates/account-approved.ts`, EN/DE like
+  password-reset) is best-effort AFTER commit — a failed send never rolls back
+  an approval; the response's `emailSent: false` makes the UI warn. No SMTP ⇒
+  silently skipped.
+- **Pending login:** `/api/auth/login` answers 401 + `code: "pendingApproval"`
+  only when the password verifies against the pending hash — wrong passwords
+  get the generic 401, so outsiders can't probe emails. Signup dupes get an
+  honest 409 (deliberate contrast to the strictly enumeration-safe
+  forgot-password flow).
+- **Spam floor:** in-memory 60s per-IP cooldown on `/api/auth/register`
+  (skipped when no client IP is attributable; resets on restart).
+- **Password fields** app-wide (login, register, reset, profile, admin user
+  form) use the shared eye-toggle components (`src/components/PasswordInput`
+  public flavor, `PasswordInput` in `components/admin/ui` labeled flavor).
+
 ## API Keys — How we talk to Cortex
 
 Frontend never sees backend keys. All keys are stored **encrypted at rest** in SQLite (`api_keys.encrypted_value`, AES-256-GCM, key from `APP_ENCRYPTION_KEY`) and injected by server routes as the `X-API-Key` header.
