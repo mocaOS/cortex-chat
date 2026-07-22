@@ -83,6 +83,37 @@ const translations = {
     resetPasswordInvalid:
       "This reset link is invalid or has expired. Request a new one.",
     resetPasswordCheckingLink: "Checking link…",
+
+    // Self-registration
+    createAccount: "Create account",
+    registerHeading: "Create your account",
+    registerPasswordLabel: "Password (min. 8 characters)",
+    registerConfirmLabel: "Confirm password",
+    registerSubmit: "Sign up",
+    registerSubmitting: "Signing up…",
+    registerSuccess:
+      "Registration received — an admin needs to approve your account before you can sign in.",
+    registerEmailTaken: "This email is already registered.",
+    registerRateLimited: "Please wait a moment before trying again.",
+    registerFailed: "Registration failed. Please try again.",
+    passwordsMatch: "Passwords match",
+    loginPendingApproval:
+      "Your account is awaiting approval by an administrator.",
+    showPassword: "Show password",
+    hidePassword: "Hide password",
+    usersTab: "Users",
+    registrationsTab: "Registrations",
+    registrationsEmpty: "No pending registrations.",
+    tableRegistered: "Registered",
+    confirmRegistrationTitle: "Approve {email}",
+    confirmRegistrationHint:
+      "The group determines which collections the new user can chat with. Without a group, they can sign in but can't chat.",
+    confirmRegistration: "Confirm",
+    confirmingRegistration: "Confirming…",
+    registrationApproved: "{email} has been approved.",
+    registrationApprovedNoEmail:
+      "Approved — but the confirmation email could not be sent.",
+    deleteRegistrationConfirm: "Delete the registration for {email}?",
     sendResetEmail: "Send reset email",
     sendResetEmailConfirm: "Send a password reset email to {email}?",
     sendResetEmailSent: "Reset email sent to {email}.",
@@ -528,6 +559,38 @@ const translations = {
     resetPasswordInvalid:
       "Dieser Link ist ungültig oder abgelaufen. Fordere einen neuen an.",
     resetPasswordCheckingLink: "Prüfe Link…",
+
+    // Selbstregistrierung
+    createAccount: "Konto erstellen",
+    registerHeading: "Konto erstellen",
+    registerPasswordLabel: "Passwort (mind. 8 Zeichen)",
+    registerConfirmLabel: "Passwort bestätigen",
+    registerSubmit: "Registrieren",
+    registerSubmitting: "Registriere…",
+    registerSuccess:
+      "Registrierung eingegangen — ein Admin muss dein Konto freischalten, bevor du dich anmelden kannst.",
+    registerEmailTaken: "Diese E-Mail-Adresse ist bereits registriert.",
+    registerRateLimited:
+      "Bitte warte einen Moment, bevor du es erneut versuchst.",
+    registerFailed: "Registrierung fehlgeschlagen. Bitte versuche es erneut.",
+    passwordsMatch: "Passwörter stimmen überein",
+    loginPendingApproval:
+      "Dein Konto wartet auf die Freischaltung durch einen Administrator.",
+    showPassword: "Passwort anzeigen",
+    hidePassword: "Passwort verbergen",
+    usersTab: "Benutzer",
+    registrationsTab: "Registrierungen",
+    registrationsEmpty: "Keine offenen Registrierungen.",
+    tableRegistered: "Registriert",
+    confirmRegistrationTitle: "{email} freischalten",
+    confirmRegistrationHint:
+      "Die Gruppe bestimmt, mit welchen Collections der neue Benutzer chatten kann. Ohne Gruppe ist die Anmeldung möglich, aber kein Chat.",
+    confirmRegistration: "Bestätigen",
+    confirmingRegistration: "Bestätige…",
+    registrationApproved: "{email} wurde freigeschaltet.",
+    registrationApprovedNoEmail:
+      "Freigeschaltet — aber die Bestätigungs-E-Mail konnte nicht gesendet werden.",
+    deleteRegistrationConfirm: "Registrierung von {email} löschen?",
     sendResetEmail: "Reset-E-Mail senden",
     sendResetEmailConfirm:
       "Eine E-Mail zum Zurücksetzen des Passworts an {email} senden?",
