@@ -41,9 +41,12 @@ const CITE_PREFIX = "\u200Bcite:";
 const CITE_SPLIT = /(\u200Bcite:\d+\u200B)/g;
 
 // One bracket group holding one or more citations: [src_3], [src_3, src_5],
-// [src_3; src_5], [src_3 and src_5], [src_3 & src_5] \u2014 the model varies the
-// separator, so match the whole group and expand every src_N inside it.
-const SRC_GROUP_REGEX = /\[src_\d+(?:\s*(?:[,;&]|and)\s*src_\d+)*\s*\]/gi;
+// [src_3; src_5], [src_3 and src_5], [src_3 & src_5]. The model also folds prose
+// into the bracket \u2014 [Research Summary, src_6, src_7] or [src_6, Research
+// Summary] \u2014 so match ANY bracket that contains at least one src_N (but not a
+// markdown link `[...](url)`) and expand every src_N inside it; the extraction
+// below (`/src_(\d+)/gi`) keeps only the src_N tokens and drops the prose.
+const SRC_GROUP_REGEX = /\[[^\]]*?src_\d+[^\]]*\](?!\()/gi;
 
 export default function MessageBubble({ message, onSourceClick }: Props) {
   useLocale();
