@@ -6,6 +6,7 @@ import {
   Button,
   ErrorBanner,
   Input,
+  PasswordInput,
   Select,
   Table,
   Td,
@@ -357,9 +358,8 @@ function UserForm({
               value={username}
               onChange={(e) => setUsername(e.target.value)}
             />
-            <Input
+            <PasswordInput
               label={user ? t("newPasswordLeaveBlank") : t("password")}
-              type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder={user ? "•••••••" : ""}

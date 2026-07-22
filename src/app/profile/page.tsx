@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { getConfig, getCachedConfig } from "@/lib/config";
 import { CurrentUser } from "@/types/auth";
-import { Button, ErrorBanner, Input } from "@/components/admin/ui";
+import { Button, ErrorBanner, Input, PasswordInput } from "@/components/admin/ui";
 import { t } from "@/lib/i18n";
 import { useLocale } from "@/lib/i18n-client";
 
@@ -246,17 +246,15 @@ export default function ProfilePage() {
           <section className="bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl p-5 space-y-4">
             <div className="text-sm font-medium">{t("password")}</div>
             <form onSubmit={handlePasswordSave} className="space-y-3">
-              <Input
+              <PasswordInput
                 label={t("currentPassword")}
-                type="password"
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
                 autoComplete="current-password"
                 required
               />
-              <Input
+              <PasswordInput
                 label={t("newPasswordMin")}
-                type="password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 autoComplete="new-password"

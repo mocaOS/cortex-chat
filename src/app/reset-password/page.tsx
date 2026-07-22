@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { getConfig, getCachedConfig } from "@/lib/config";
 import { t } from "@/lib/i18n";
 import { useLocale } from "@/lib/i18n-client";
+import PasswordInput from "@/components/PasswordInput";
 
 function ResetForm() {
   useLocale();
@@ -131,26 +132,13 @@ function ResetForm() {
               >
                 {t("resetPasswordNew")}
               </label>
-              <input
-                type="password"
+              <PasswordInput
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 minLength={8}
                 autoComplete="new-password"
                 autoFocus
-                className="w-full rounded-[var(--radius)] px-3 py-2.5 text-[13px] outline-none border transition-colors"
-                style={{
-                  background: "var(--bg)",
-                  borderColor: "var(--input)",
-                  color: "var(--fg1)",
-                }}
-                onFocus={(e) => {
-                  e.currentTarget.style.borderColor = "var(--ring)";
-                }}
-                onBlur={(e) => {
-                  e.currentTarget.style.borderColor = "var(--input)";
-                }}
               />
             </div>
 
@@ -161,25 +149,12 @@ function ResetForm() {
               >
                 {t("resetPasswordConfirm")}
               </label>
-              <input
-                type="password"
+              <PasswordInput
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value)}
                 required
                 minLength={8}
                 autoComplete="new-password"
-                className="w-full rounded-[var(--radius)] px-3 py-2.5 text-[13px] outline-none border transition-colors"
-                style={{
-                  background: "var(--bg)",
-                  borderColor: "var(--input)",
-                  color: "var(--fg1)",
-                }}
-                onFocus={(e) => {
-                  e.currentTarget.style.borderColor = "var(--ring)";
-                }}
-                onBlur={(e) => {
-                  e.currentTarget.style.borderColor = "var(--input)";
-                }}
               />
             </div>
 

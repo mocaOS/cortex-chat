@@ -1,6 +1,7 @@
 "use client";
 
-import { forwardRef } from "react";
+import { forwardRef, useState } from "react";
+import { VisibilityToggle } from "../PasswordVisibility";
 
 const inputBase =
   "w-full rounded-[var(--radius)] px-3 py-2 text-[13px] outline-none border transition-colors disabled:opacity-60";
@@ -31,6 +32,43 @@ export const Input = forwardRef<
         }}
         className={`${inputBase} placeholder:text-[var(--fg3)] ${className}`}
       />
+    </label>
+  );
+});
+
+// Password variant of Input: same label + styling, plus the show/hide eye
+// toggle. `type` is owned by the component.
+export const PasswordInput = forwardRef<
+  HTMLInputElement,
+  Omit<React.InputHTMLAttributes<HTMLInputElement>, "type"> & { label?: string }
+>(function PasswordInput({ label, className = "", ...props }, ref) {
+  const [visible, setVisible] = useState(false);
+  return (
+    <label className="block space-y-1.5">
+      {label && <span className={fieldLabel}>{label}</span>}
+      <div className="relative">
+        <input
+          ref={ref}
+          {...props}
+          type={visible ? "text" : "password"}
+          style={{
+            background: "var(--bg)",
+            borderColor: "var(--input)",
+            color: "var(--fg1)",
+          }}
+          onFocus={(e) => {
+            e.currentTarget.style.borderColor = "var(--ring)";
+          }}
+          onBlur={(e) => {
+            e.currentTarget.style.borderColor = "var(--input)";
+          }}
+          className={`${inputBase} pr-10 placeholder:text-[var(--fg3)] ${className}`}
+        />
+        <VisibilityToggle
+          visible={visible}
+          onToggle={() => setVisible((v) => !v)}
+        />
+      </div>
     </label>
   );
 });
