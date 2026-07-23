@@ -353,6 +353,12 @@ const translations = {
     cortexAnalyticsPlaceholder:
       "<cortexchatanalytics>\nThis conversation was held by $userEmail\n</cortexchatanalytics>",
     cortexAnalyticsVariablesHeading: "Available variables",
+    registrationNotifyLabel: "Registration notifications",
+    registrationNotifyHint:
+      "One email per line. Leave empty to disable. These addresses are notified whenever someone registers and is awaiting approval.",
+    registrationNotifyEmailOff:
+      "Email is not configured (SMTP_HOST unset), so no notifications will be sent until it is.",
+    registrationNotifyPlaceholder: "alice@example.com\nops-team@example.com",
 
     // Upload page tabs
     documentManagementHeading: "Document Management",
@@ -833,6 +839,12 @@ const translations = {
     cortexAnalyticsPlaceholder:
       "<cortexchatanalytics>\nDiese Konversation wurde geführt von $userEmail\n</cortexchatanalytics>",
     cortexAnalyticsVariablesHeading: "Verfügbare Variablen",
+    registrationNotifyLabel: "Registrierungs-Benachrichtigungen",
+    registrationNotifyHint:
+      "Eine E-Mail pro Zeile. Leer lassen zum Deaktivieren. Diese Adressen werden benachrichtigt, sobald sich jemand registriert und auf Freigabe wartet.",
+    registrationNotifyEmailOff:
+      "E-Mail ist nicht konfiguriert (SMTP_HOST fehlt) — es werden keine Benachrichtigungen gesendet, bis das eingerichtet ist.",
+    registrationNotifyPlaceholder: "alice@example.com\nops-team@example.com",
 
     // Upload page tabs
     documentManagementHeading: "Dokumentenverwaltung",

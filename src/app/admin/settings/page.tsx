@@ -28,8 +28,10 @@ interface Settings {
   supportLabel: string;
   locale: Locale;
   defaultChatMode: ChatMode;
+  registrationNotifyEmails: string;
   hasCustomLogo: boolean;
   logoUrl: string;
+  emailConfigured: boolean;
 }
 
 interface Defaults {
@@ -41,6 +43,7 @@ interface Defaults {
   supportLabel: string;
   locale: Locale;
   defaultChatMode: ChatMode;
+  registrationNotifyEmails: string;
 }
 
 export default function AdminSettingsPage() {
@@ -58,6 +61,7 @@ export default function AdminSettingsPage() {
   const [supportLabel, setSupportLabel] = useState("");
   const [locale, setLocaleState] = useState<Locale>("en");
   const [defaultChatMode, setDefaultChatMode] = useState<ChatMode>("chat");
+  const [registrationNotifyEmails, setRegistrationNotifyEmails] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [logoBusy, setLogoBusy] = useState(false);
@@ -84,6 +88,7 @@ export default function AdminSettingsPage() {
       setSupportLabel(data.settings.supportLabel ?? "");
       setLocaleState(data.settings.locale);
       setDefaultChatMode(data.settings.defaultChatMode ?? "chat");
+      setRegistrationNotifyEmails(data.settings.registrationNotifyEmails ?? "");
     } catch (err) {
       setError(err instanceof Error ? err.message : t("failedToLoad"));
     } finally {
@@ -103,6 +108,7 @@ export default function AdminSettingsPage() {
       accentColor: string;
       supportUrl: string;
       supportLabel: string;
+      registrationNotifyEmails: string;
       locale: Locale;
       defaultChatMode: ChatMode;
     }>
@@ -127,6 +133,7 @@ export default function AdminSettingsPage() {
       setSupportLabel(data.settings.supportLabel ?? "");
       setLocaleState(data.settings.locale);
       setDefaultChatMode(data.settings.defaultChatMode ?? "chat");
+      setRegistrationNotifyEmails(data.settings.registrationNotifyEmails ?? "");
       setI18nLocale(data.settings.locale);
       if (data.settings.accentColor) {
         document.documentElement.style.setProperty(
@@ -151,6 +158,7 @@ export default function AdminSettingsPage() {
       accentColor,
       supportUrl,
       supportLabel,
+      registrationNotifyEmails,
       locale,
       defaultChatMode,
     });
@@ -558,6 +566,48 @@ export default function AdminSettingsPage() {
             >
               {t("cortexAnalyticsHint")}
             </p>
+
+            <div
+              className="pt-2 mt-2 border-t"
+              style={{ borderColor: "var(--border)" }}
+            />
+
+            <div className="block space-y-1.5">
+              <label
+                className="text-[10.5px] font-medium uppercase tracking-[0.08em]"
+                style={{ color: "var(--fg2)" }}
+              >
+                {t("registrationNotifyLabel")}
+              </label>
+              <textarea
+                value={registrationNotifyEmails}
+                onChange={(e) => setRegistrationNotifyEmails(e.target.value)}
+                maxLength={4000}
+                rows={4}
+                placeholder={t("registrationNotifyPlaceholder")}
+                className="w-full rounded-[var(--radius)] px-3 py-2 text-[12.5px] outline-none border transition-colors disabled:opacity-60 placeholder:text-[var(--fg3)]"
+                style={{
+                  background: "var(--bg)",
+                  borderColor: "var(--input)",
+                  color: "var(--fg1)",
+                  fontFamily: "var(--font-mono)",
+                }}
+                onFocus={(e) => {
+                  e.currentTarget.style.borderColor = "var(--ring)";
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.borderColor = "var(--input)";
+                }}
+              />
+              <p className="text-[11.5px]" style={{ color: "var(--fg2)" }}>
+                {t("registrationNotifyHint")}
+              </p>
+              {settings && !settings.emailConfigured && (
+                <p className="text-[11.5px]" style={{ color: "var(--fg2)" }}>
+                  {t("registrationNotifyEmailOff")}
+                </p>
+              )}
+            </div>
 
             <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
               <Button
