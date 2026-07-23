@@ -12,6 +12,7 @@ export const DEFAULT_CORTEX_ANALYTICS_TEMPLATE = "";
 // empty label falls back to a localized "Support" tooltip in the UI.
 export const DEFAULT_SUPPORT_URL = "";
 export const DEFAULT_SUPPORT_LABEL = "";
+export const DEFAULT_REGISTRATION_NOTIFY_EMAILS = "";
 // MOCA design-system accent (warm yellow-green). Single source of truth —
 // duplicated nowhere except the hardcoded client-side fetch-failure fallback.
 export const DEFAULT_ACCENT_COLOR = "oklch(0.79 0.18 70.67)";
@@ -37,6 +38,7 @@ const TEXT_KEYS = [
   "accentColor",
   "supportUrl",
   "supportLabel",
+  "registrationNotifyEmails",
 ] as const;
 const LOCALE_KEY = "locale";
 const CHAT_MODE_KEY = "defaultChatMode";
@@ -57,6 +59,7 @@ export interface AppSettings {
   accentColor: string;
   supportUrl: string;
   supportLabel: string;
+  registrationNotifyEmails: string;
   locale: Locale;
   defaultChatMode: ChatMode;
   logoFile: string | null;
@@ -84,6 +87,9 @@ export function getAppSettings(): AppSettings {
     accentColor: map.get("accentColor") || DEFAULT_ACCENT_COLOR,
     supportUrl: map.get("supportUrl") || DEFAULT_SUPPORT_URL,
     supportLabel: map.get("supportLabel") || DEFAULT_SUPPORT_LABEL,
+    registrationNotifyEmails:
+      map.get("registrationNotifyEmails") ||
+      DEFAULT_REGISTRATION_NOTIFY_EMAILS,
     locale: normalizeLocale(map.get(LOCALE_KEY)),
     defaultChatMode: normalizeChatMode(map.get(CHAT_MODE_KEY)),
     logoFile: map.get(LOGO_KEY) || null,
@@ -101,6 +107,7 @@ export function setTextSettings(
       | "accentColor"
       | "supportUrl"
       | "supportLabel"
+      | "registrationNotifyEmails"
     >
   >
 ) {
@@ -168,4 +175,20 @@ export function setLogoFile(filename: string | null) {
         .run();
     }
   });
+}
+
+// Tokenizer shared by the settings validator and the registration-notify send
+// path so the two can never disagree about what counts as a recipient. Splits
+// on newlines and commas, trims, lowercases, drops blanks, and dedupes while
+// preserving first-seen order.
+export function parseNotifyRecipients(raw: string): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const token of raw.split(/[\n,]/)) {
+    const email = token.trim().toLowerCase();
+    if (!email || seen.has(email)) continue;
+    seen.add(email);
+    out.push(email);
+  }
+  return out;
 }
