@@ -9,14 +9,17 @@ import {
   DEFAULT_CHAT_MODE,
   DEFAULT_CORTEX_ANALYTICS_TEMPLATE,
   DEFAULT_LOCALE,
+  DEFAULT_REGISTRATION_NOTIFY_EMAILS,
   DEFAULT_SUPPORT_LABEL,
   DEFAULT_SUPPORT_URL,
   getAppSettings,
+  parseNotifyRecipients,
   setDefaultChatMode,
   setLocale,
   setTextSettings,
 } from "@/lib/settings";
 import { resolveLogoUrl } from "@/lib/branding-url";
+import { isEmailConfigured } from "@/lib/email/config";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +32,8 @@ function serialize() {
     accentColor: s.accentColor,
     supportUrl: s.supportUrl,
     supportLabel: s.supportLabel,
+    registrationNotifyEmails: s.registrationNotifyEmails,
+    emailConfigured: isEmailConfigured(),
     locale: s.locale,
     defaultChatMode: s.defaultChatMode,
     hasCustomLogo: s.logoFile !== null,
@@ -53,6 +58,7 @@ export async function GET() {
       supportLabel: DEFAULT_SUPPORT_LABEL,
       locale: DEFAULT_LOCALE,
       defaultChatMode: DEFAULT_CHAT_MODE,
+      registrationNotifyEmails: DEFAULT_REGISTRATION_NOTIFY_EMAILS,
     },
     cortexAnalyticsVariables: CORTEX_ANALYTICS_VARIABLES,
   });
@@ -86,6 +92,9 @@ const Body = z.object({
     })
     .optional(),
   supportLabel: z.string().max(120).optional(),
+  // Newline/comma-separated recipient list. Validated + normalized in the
+  // handler so we can return a 400 that names the offending address.
+  registrationNotifyEmails: z.string().max(4000).optional(),
   locale: z.enum(["en", "de"]).optional(),
   defaultChatMode: z.enum(["chat", "deep-research"]).optional(),
 });
@@ -101,6 +110,29 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
   }
   const { locale, defaultChatMode, ...text } = parsed.data;
+
+  // Validate + normalize the recipient list before it is stored. Uses the same
+  // tokenizer as the send path so validation and delivery agree on entries.
+  if (text.registrationNotifyEmails !== undefined) {
+    const recipients = parseNotifyRecipients(text.registrationNotifyEmails);
+    if (recipients.length > 50) {
+      return NextResponse.json(
+        { error: "Too many notification recipients (maximum 50)." },
+        { status: 400 }
+      );
+    }
+    for (const recipient of recipients) {
+      if (!z.string().email().safeParse(recipient).success) {
+        return NextResponse.json(
+          { error: `Invalid email address: ${recipient}` },
+          { status: 400 }
+        );
+      }
+    }
+    // Persist the cleaned form (trimmed / lowercased / deduped / newline-joined).
+    text.registrationNotifyEmails = recipients.join("\n");
+  }
+
   setTextSettings(text);
   if (locale) setLocale(locale);
   if (defaultChatMode) setDefaultChatMode(defaultChatMode);
