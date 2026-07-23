@@ -8,6 +8,8 @@ import { cssColorToHex } from "./color";
 import type { ComposedEmail, EmailLocale } from "./templates/types";
 import { composePasswordReset } from "./templates/password-reset";
 import { composeAccountApproved } from "./templates/account-approved";
+import { composeRegistrationPending } from "./templates/registration-pending";
+import * as Sentry from "@sentry/nextjs";
 
 const LOGO_CID = "brandlogo";
 const EXPIRES_MINUTES = 60;
@@ -98,4 +100,31 @@ export async function sendAccountApprovedEmail(params: {
     accentHex: branding.accentHex,
   });
   await deliverBrandedEmail(params.to, composed, branding);
+}
+
+// Notify the admin-configured recipient list that a new account is awaiting
+// approval. Composes once (shared branding/locale) and delivers to each
+// recipient individually via Promise.allSettled — one bad address never blocks
+// the others, and the recipient list is not exposed across recipients (no
+// shared To/Cc). Rejections are reported, never thrown (best-effort).
+export async function sendRegistrationPendingNotification(params: {
+  recipients: string[];
+  registrantEmail: string;
+}): Promise<void> {
+  if (params.recipients.length === 0) return;
+  const branding = getBranding();
+  const composed = composeRegistrationPending(branding.locale, {
+    registrantEmail: params.registrantEmail,
+    reviewUrl: `${getAppBaseUrl()}/admin/users`,
+    appTitle: branding.settings.appTitle,
+    accentHex: branding.accentHex,
+  });
+  const results = await Promise.allSettled(
+    params.recipients.map((to) => deliverBrandedEmail(to, composed, branding))
+  );
+  for (const result of results) {
+    if (result.status === "rejected") {
+      Sentry.captureException(result.reason);
+    }
+  }
 }
