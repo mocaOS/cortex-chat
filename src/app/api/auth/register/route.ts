@@ -86,20 +86,21 @@ export async function POST(request: Request) {
 
   // Best-effort admin notification. The registration is already committed, so a
   // failed or slow send must never surface to the registrant or roll anything
-  // back. No SMTP or an empty recipient list ⇒ nothing sent.
+  // back. No SMTP or an empty recipient list ⇒ nothing sent. The settings read
+  // is inside the try so even a synchronous DB error can't 500 the registrant.
   if (isEmailConfigured()) {
-    const recipients = parseNotifyRecipients(
-      getAppSettings().registrationNotifyEmails
-    );
-    if (recipients.length > 0) {
-      try {
+    try {
+      const recipients = parseNotifyRecipients(
+        getAppSettings().registrationNotifyEmails
+      );
+      if (recipients.length > 0) {
         await sendRegistrationPendingNotification({
           recipients,
           registrantEmail: email,
         });
-      } catch (err) {
-        Sentry.captureException(err);
       }
+    } catch (err) {
+      Sentry.captureException(err);
     }
   }
 
