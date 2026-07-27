@@ -2,7 +2,14 @@ name: Release
 
 on:
   push:
-    tags: ["v*"]
+    # Stable semver only. "v*" would also match a prerelease tag like
+    # v1.0.0-rc.1, and imagetools would then move :latest/:1/:1.0 (plus a junk
+    # :1.0.0-rc tag) and softprops/action-gh-release would publish it as a
+    # full, non-prerelease GitHub Release (it does not auto-detect
+    # prereleases) — cortex-app's selfhost/README.md installer fetches
+    # releases/latest/download/stack.json, so every new install would get the
+    # RC. Prerelease tags are deliberately excluded here.
+    tags: ["v[0-9]+.[0-9]+.[0-9]+"]
 
 permissions:
   contents: write
@@ -64,8 +71,18 @@ jobs:
           context: .
           file: ./Dockerfile
           platforms: linux/${{ matrix.arch }}
-          # All app config is runtime env — the only build args are the
-          # optional GlitchTip source-map upload, which is skipped here.
+          # This published GHCR image is consumed by third-party self-hosters
+          # (selfhost/docker-compose.yml in cortex-app) — their end users'
+          # browser errors must never reach the maintainers' GlitchTip.
+          # NEXT_PUBLIC_SENTRY_DISABLED is inlined into the browser bundle at
+          # build time (see the Dockerfile's builder-stage ARG/ENV), so it is
+          # the only way to turn off client-side reporting; the runtime-only
+          # SENTRY_DISABLED env var cannot reach code already inlined into the
+          # bundle. The maintainers' own Dokploy/Coolify deployments build
+          # straight from this Dockerfile and never pass this arg, so they are
+          # unaffected and keep reporting to the maintainers' GlitchTip.
+          build-args: |
+            NEXT_PUBLIC_SENTRY_DISABLED=1
           cache-from: type=gha,scope=chat-${{ matrix.arch }}
           cache-to: type=gha,mode=max,scope=chat-${{ matrix.arch }}
           outputs: type=image,name=${{ env.IMAGE }},push-by-digest=true,name-canonical=true,push=true

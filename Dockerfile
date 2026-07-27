@@ -17,14 +17,26 @@ COPY . .
 # server-side config (CORTEX_API_URL, BACKEND_ADMIN_API_KEY, APP_ENCRYPTION_KEY,
 # SUPERADMIN_*) is read from the container environment.
 #
-# The only build-time inputs are for GlitchTip source map upload — both
-# optional and scoped to this builder stage (never in the runtime image):
-#   SENTRY_AUTH_TOKEN  enables the upload (skipped cleanly when unset)
-#   SOURCE_COMMIT      release naming; Coolify provides it automatically
+# Build-time inputs, all optional and scoped to this builder stage (never in
+# the runtime image):
+#   SENTRY_AUTH_TOKEN            enables GlitchTip source map upload (skipped
+#                                cleanly when unset)
+#   SOURCE_COMMIT                release naming; Coolify provides it automatically
+#   NEXT_PUBLIC_SENTRY_DISABLED  Next.js inlines only NEXT_PUBLIC_* vars into the
+#                                browser bundle, so this is the ONLY way to turn
+#                                off client-side GlitchTip reporting — the
+#                                runtime-only SENTRY_DISABLED (see glitchtip.ts)
+#                                never reaches the browser. The published GHCR
+#                                release image sets this to 1 (see
+#                                .github/workflows/release.yml); the
+#                                maintainers' own Dokploy/Coolify source builds
+#                                leave it unset and keep reporting.
 ARG SENTRY_AUTH_TOKEN
 ARG SOURCE_COMMIT
+ARG NEXT_PUBLIC_SENTRY_DISABLED
 ENV SENTRY_AUTH_TOKEN=$SENTRY_AUTH_TOKEN \
-    SOURCE_COMMIT=$SOURCE_COMMIT
+    SOURCE_COMMIT=$SOURCE_COMMIT \
+    NEXT_PUBLIC_SENTRY_DISABLED=$NEXT_PUBLIC_SENTRY_DISABLED
 RUN npm run build
 
 # --- Stage 3: Production runner ---
