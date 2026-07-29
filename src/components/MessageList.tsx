@@ -24,6 +24,9 @@ interface Props {
   onManageSouls?: () => void;
   // Server-side TTS configured — read-aloud button on assistant messages.
   ttsEnabled?: boolean;
+  // Ownership gating in multi-user project chats: edit/regenerate only on
+  // own turns; author chips on teammates' messages.
+  currentUserId?: string;
 }
 
 export default function MessageList({
@@ -42,6 +45,7 @@ export default function MessageList({
   onSelectAssistant,
   onManageSouls,
   ttsEnabled,
+  currentUserId,
 }: Props) {
   useLocale();
 
@@ -158,6 +162,13 @@ export default function MessageList({
   }
 
   const lastIdx = messages.length - 1;
+  // A message without authorId predates multi-user chats (or is a personal
+  // chat) — treat it as the viewer's own.
+  const isOwn = (m: ChatMessage) => !m.authorId || m.authorId === currentUserId;
+  // Regenerate rewrites the last exchange — only offered when that exchange
+  // is the viewer's own.
+  const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
+  const canRegenerate = !lastUserMsg || isOwn(lastUserMsg);
 
   return (
     <div className="h-full overflow-y-auto px-4 py-6">
@@ -169,13 +180,18 @@ export default function MessageList({
             onSourceClick={onSourceClick}
             // Regenerate is only offered on the final answer of the thread.
             onRegenerate={
-              i === lastIdx && msg.role === "assistant" && !isLoading
+              i === lastIdx && msg.role === "assistant" && !isLoading && canRegenerate
                 ? onRegenerate
                 : undefined
             }
-            onEditResend={!isLoading ? onEditResend : undefined}
+            onEditResend={!isLoading && isOwn(msg) ? onEditResend : undefined}
             onFeedback={onFeedback}
             ttsEnabled={ttsEnabled}
+            authorLabel={
+              msg.role === "user" && msg.authorName && !isOwn(msg)
+                ? msg.authorName
+                : undefined
+            }
           />
         ))}
       </div>

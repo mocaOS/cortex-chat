@@ -24,11 +24,7 @@ import {
 import { downloadChatMarkdown } from "@/lib/exportChat";
 import { listAssistants } from "@/lib/assistants-client";
 import SoulsModal from "@/components/souls/SoulsModal";
-import {
-  listProjects,
-  deleteProject,
-  duplicateChat,
-} from "@/lib/projects-client";
+import { listProjects, deleteProject } from "@/lib/projects-client";
 import ProjectModal from "@/components/projects/ProjectModal";
 import ProjectShareModal from "@/components/projects/ProjectShareModal";
 import { t } from "@/lib/i18n";
@@ -153,11 +149,11 @@ export default function Home() {
   const [activeAssistantId, setActiveAssistantId] = useState<string | null>(null);
   const [soulsOpen, setSoulsOpen] = useState(false);
   // Team projects. activeProjectId = project context of the ACTIVE chat
-  // (its instructions ride each turn as project_id); readOnlyChat marks a
-  // teammate's chat opened from a shared project.
+  // (its instructions ride each turn as project_id). Project chats are
+  // collaborative: any member can continue any thread, authorship is
+  // server-stamped per message.
   const [projects, setProjects] = useState<ProjectInfo[]>([]);
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
-  const [readOnlyChat, setReadOnlyChat] = useState(false);
   const [projectModal, setProjectModal] = useState<{
     open: boolean;
     project: ProjectInfo | null;
@@ -280,7 +276,6 @@ export default function Home() {
         memoryAtSendRef.current = session.memory;
         setActiveAssistantId(session.assistantId ?? null);
         setActiveProjectId(session.projectId ?? null);
-        setReadOnlyChat(!!session.readOnly);
         setIsLoading(false);
       }
     },
@@ -298,7 +293,6 @@ export default function Home() {
         memoryAtSendRef.current = undefined;
         setActiveAssistantId(null);
         setActiveProjectId(null);
-        setReadOnlyChat(false);
       }
     },
     [activeSessionId, refreshSessions]
@@ -311,7 +305,6 @@ export default function Home() {
     memoryAtSendRef.current = undefined;
     setActiveAssistantId(null);
     setActiveProjectId(null);
-    setReadOnlyChat(false);
     setIsLoading(false);
     // Every new conversation starts in the admin-configured default mode.
     modeTouchedRef.current = false;
@@ -362,9 +355,23 @@ export default function Home() {
     // a truncated prefix without racing the `messages` state update — the
     // override IS the thread the new turn appends to.
     async (question: string, baseOverride?: ChatMessage[]) => {
-      if (!question.trim() || isLoading || readOnlyChat) return;
+      if (!question.trim() || isLoading) return;
 
-      const base = baseOverride ?? messages;
+      let base = baseOverride ?? messages;
+
+      // Shared project chats are multi-writer: re-fetch right before sending
+      // so a teammate's settled turns become the base instead of being
+      // clobbered by our stale copy (persistence is a full replace). Their
+      // latest memory blob comes along for recall continuity. Regenerate /
+      // edit (baseOverride) deliberately operate on the local view.
+      if (!baseOverride && activeProjectId && activeSessionId) {
+        const fresh = await getChat(activeSessionId).catch(() => null);
+        if (fresh?.messages) {
+          base = fresh.messages;
+          setMessages(fresh.messages);
+          memoryRef.current = fresh.memory ?? memoryRef.current;
+        }
+      }
 
       // Create session if none active — bound to the chosen soul/project.
       let sessionId = activeSessionId;
@@ -685,7 +692,7 @@ export default function Home() {
         setIsLoading(false);
       }
     },
-    [isLoading, readOnlyChat, messages, mode, settings, activeSessionId, activeAssistantId, activeProjectId, refreshSessions]
+    [isLoading, messages, mode, settings, activeSessionId, activeAssistantId, activeProjectId, refreshSessions]
   );
 
   const handleStop = useCallback(() => {
@@ -760,18 +767,44 @@ export default function Home() {
     if (session) downloadChatMarkdown(session);
   }, []);
 
-  // "Duplicate to continue": copy a teammate's chat (messages + memory +
-  // soul, stays in the project) into an own, writable session and open it.
-  const handleDuplicate = useCallback(async () => {
-    if (!activeSessionId) return;
-    try {
-      const copyId = await duplicateChat(activeSessionId);
-      await refreshSessions();
-      await handleSelectSession(copyId);
-    } catch {
-      /* duplicate failed — stay on the read-only view */
-    }
-  }, [activeSessionId, refreshSessions, handleSelectSession]);
+  // Realtime for shared project chats: subscribe to the chat's SSE
+  // change-feed and refetch on frames caused by OTHER members. EventSource
+  // auto-reconnects on drops. Suspended while a local turn streams (the
+  // refetch would clobber the in-flight assistant message).
+  useEffect(() => {
+    if (!activeSessionId || !activeProjectId || isLoading || !currentUser) return;
+    const sessionId = activeSessionId;
+    const userId = currentUser.id;
+
+    const adopt = async () => {
+      const fresh = await getChat(sessionId).catch(() => null);
+      if (!fresh?.messages) return;
+      setMessages((prev) => {
+        // Only adopt server state that actually advanced — last id + count
+        // comparison keeps this cheap and avoids pointless re-renders.
+        if (
+          fresh.messages!.length === prev.length &&
+          fresh.messages![fresh.messages!.length - 1]?.id === prev[prev.length - 1]?.id
+        ) {
+          return prev;
+        }
+        justLoadedRef.current = true;
+        memoryRef.current = fresh.memory ?? memoryRef.current;
+        return fresh.messages!;
+      });
+    };
+
+    const es = new EventSource(`/api/me/chats/${sessionId}/events`);
+    es.onmessage = (e) => {
+      try {
+        const event = JSON.parse(e.data) as { by?: string };
+        if (event.by !== userId) adopt();
+      } catch {}
+    };
+    // Catch anything missed while the tab was hidden or the stream was down.
+    adopt();
+    return () => es.close();
+  }, [activeSessionId, activeProjectId, isLoading, currentUser]);
 
   // Drag & drop: move an own chat into a project (or null = flat list).
   // Organizational only — soul/history/memory travel with the chat as-is.
@@ -850,9 +883,10 @@ export default function Home() {
               starterPrompts={starterPrompts}
               onStarterClick={handleSend}
               isLoading={isLoading}
-              onRegenerate={readOnlyChat ? undefined : handleRegenerate}
-              onEditResend={readOnlyChat ? undefined : handleEditResend}
-              onFeedback={readOnlyChat ? undefined : handleFeedback}
+              onRegenerate={handleRegenerate}
+              onEditResend={handleEditResend}
+              onFeedback={handleFeedback}
+              currentUserId={currentUser.id}
               assistants={assistants}
               activeAssistantId={activeAssistantId}
               onSelectAssistant={handleSelectAssistant}
@@ -861,53 +895,26 @@ export default function Home() {
             />
           </main>
 
-          {readOnlyChat ? (
-            /* Teammate's chat from a shared project — read-only with a
-               one-click way to fork it into an own, writable copy. */
-            <div className="px-4 pt-3 pb-5">
-              <div
-                className="max-w-3xl mx-auto flex flex-wrap items-center justify-between gap-3 rounded-[14px] border px-4 py-3"
-                style={{
-                  background: "oklch(0.15 0 0 / 0.75)",
-                  backdropFilter: "blur(24px)",
-                  WebkitBackdropFilter: "blur(24px)",
-                  borderColor: "var(--border)",
-                }}
-              >
-                <span className="text-[13px]" style={{ color: "var(--fg2)" }}>
-                  {t("readOnlyChatNotice")}
-                </span>
-                <button
-                  onClick={handleDuplicate}
-                  className="px-3.5 py-2 rounded-[var(--radius)] text-[13px] font-medium transition-all active:scale-[0.98]"
-                  style={{ background: "var(--accent)", color: "var(--accent-fg)" }}
-                >
-                  {t("duplicateToContinue")}
-                </button>
-              </div>
-            </div>
-          ) : (
-            <ChatInput
-              onSend={handleSend}
-              onStop={handleStop}
-              isLoading={isLoading}
-              mode={mode}
-              defaultMode={defaultMode}
-              onModeChange={handleModeChange}
-              onSettingsClick={() => setShowSettings(!showSettings)}
-              collectionName={
-                settings.collectionId
-                  ? collections.find((c) => c.id === settings.collectionId)?.name ?? null
-                  : null
-              }
-              assistantName={
-                activeAssistantId
-                  ? assistants.find((a) => a.id === activeAssistantId)?.name ?? null
-                  : null
-              }
-              sttEnabled={voice.stt}
-            />
-          )}
+          <ChatInput
+            onSend={handleSend}
+            onStop={handleStop}
+            isLoading={isLoading}
+            mode={mode}
+            defaultMode={defaultMode}
+            onModeChange={handleModeChange}
+            onSettingsClick={() => setShowSettings(!showSettings)}
+            collectionName={
+              settings.collectionId
+                ? collections.find((c) => c.id === settings.collectionId)?.name ?? null
+                : null
+            }
+            assistantName={
+              activeAssistantId
+                ? assistants.find((a) => a.id === activeAssistantId)?.name ?? null
+                : null
+            }
+            sttEnabled={voice.stt}
+          />
         </>
       ) : (
         <main className="flex-1 flex items-center justify-center px-6 text-center">

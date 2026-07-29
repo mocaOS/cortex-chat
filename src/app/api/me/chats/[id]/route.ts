@@ -2,10 +2,11 @@ import { NextResponse } from "next/server";
 import { and, asc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/lib/db/client";
-import { chatMessages, chatSessions } from "@/lib/db/schema";
+import { chatMessages, chatSessions, users } from "@/lib/db/schema";
 import { requireAuth } from "@/lib/auth/session";
 import { newId } from "@/lib/auth/crypto";
 import { canReadChatSession, getAccessibleProject } from "@/lib/projects";
+import { publishChatEvent } from "@/lib/chat-events";
 
 export const dynamic = "force-dynamic";
 
@@ -35,8 +36,17 @@ export async function GET(_: Request, ctx: Ctx) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
   const messages = db
-    .select()
+    .select({
+      id: chatMessages.id,
+      role: chatMessages.role,
+      content: chatMessages.content,
+      metadata: chatMessages.metadata,
+      authorId: chatMessages.userId,
+      authorEmail: users.email,
+      authorUsername: users.username,
+    })
     .from(chatMessages)
+    .leftJoin(users, eq(users.id, chatMessages.userId))
     .where(eq(chatMessages.chatSessionId, id))
     .orderBy(asc(chatMessages.createdAt))
     .all();
@@ -46,7 +56,6 @@ export async function GET(_: Request, ctx: Ctx) {
     pinned: session.pinned,
     assistantId: session.assistantId,
     projectId: session.projectId,
-    readOnly: session.userId !== user.id,
     memory: session.memory ? safeParse(session.memory) : undefined,
     createdAt: session.createdAt,
     updatedAt: session.updatedAt,
@@ -56,6 +65,10 @@ export async function GET(_: Request, ctx: Ctx) {
         id: m.id,
         role: m.role,
         content: m.content,
+        authorId: m.authorId ?? undefined,
+        authorName: m.authorId
+          ? m.authorUsername || m.authorEmail || undefined
+          : undefined,
         ...meta,
       };
     }),
@@ -66,6 +79,10 @@ const MessageSchema = z.object({
   id: z.string(),
   role: z.enum(["user", "assistant"]),
   content: z.string(),
+  // Echoed back by clients after a GET — attribution is server-stamped, so
+  // these are accepted but never trusted (dropped before storage).
+  authorId: z.unknown().optional(),
+  authorName: z.unknown().optional(),
   sources: z.unknown().optional(),
   graphContext: z.unknown().optional(),
   thinking: z.unknown().optional(),
@@ -93,14 +110,30 @@ const PatchBody = z.object({
 export async function PATCH(request: Request, ctx: Ctx) {
   const { user } = await requireAuth();
   const { id } = await ctx.params;
-  const session = await ownedSession(user.id, id);
-  if (!session) {
+  // Shared project chats are collaborative: any member may continue the
+  // thread (messages + memory). Chat administration (title, pin, moving
+  // between projects) stays author-only below.
+  const session = db
+    .select()
+    .from(chatSessions)
+    .where(eq(chatSessions.id, id))
+    .get();
+  if (!session || !canReadChatSession(user, session)) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
+  const isAuthor = session.userId === user.id;
 
   const parsed = PatchBody.safeParse(await request.json().catch(() => ({})));
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+  }
+  if (
+    !isAuthor &&
+    (parsed.data.title !== undefined ||
+      parsed.data.pinned !== undefined ||
+      parsed.data.projectId !== undefined)
+  ) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
   if (parsed.data.title !== undefined) {
@@ -142,17 +175,37 @@ export async function PATCH(request: Request, ctx: Ctx) {
   if (parsed.data.messages) {
     // Replace all messages for this session in a transaction. Fold the memory
     // update in so a settled turn (messages + new memory) persists atomically.
+    // Attribution: existing message ids keep their original author; ids the
+    // server hasn't seen yet are stamped with the caller (never client data).
     const now = Date.now();
     const msgs = parsed.data.messages;
     db.transaction((tx) => {
+      const existingAuthors = new Map(
+        tx
+          .select({ id: chatMessages.id, userId: chatMessages.userId })
+          .from(chatMessages)
+          .where(eq(chatMessages.chatSessionId, id))
+          .all()
+          .map((r) => [r.id, r.userId] as const)
+      );
       tx.delete(chatMessages).where(eq(chatMessages.chatSessionId, id)).run();
       let i = 0;
       for (const m of msgs) {
-        const { id: _id, role, content, isStreaming: _s, ...rest } = m;
+        const {
+          id: _id,
+          role,
+          content,
+          isStreaming: _s,
+          authorId: _a,
+          authorName: _n,
+          ...rest
+        } = m;
+        const messageId = _id || newId();
         tx.insert(chatMessages)
           .values({
-            id: _id || newId(),
+            id: messageId,
             chatSessionId: id,
+            userId: existingAuthors.get(messageId) ?? user.id,
             role,
             content,
             metadata: JSON.stringify(rest),
@@ -167,11 +220,16 @@ export async function PATCH(request: Request, ctx: Ctx) {
         .where(eq(chatSessions.id, id))
         .run();
     });
+    // Realtime: notify members watching this chat (they refetch on frames
+    // not caused by themselves).
+    publishChatEvent(id, { updatedAt: now, by: user.id });
   } else if (hasMemory) {
+    const now = Date.now();
     db.update(chatSessions)
-      .set({ memory: memoryValue, updatedAt: Date.now() })
+      .set({ memory: memoryValue, updatedAt: now })
       .where(eq(chatSessions.id, id))
       .run();
+    publishChatEvent(id, { updatedAt: now, by: user.id });
   }
 
   return NextResponse.json({ ok: true });

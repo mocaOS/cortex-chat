@@ -65,6 +65,9 @@ export interface ChatMessage {
   // Thumbs rating the user gave this answer. Persisted in message metadata
   // (so it survives reload); the analytics event is written separately.
   feedback?: "up" | "down";
+  // Server-stamped author (multi-user project chats). Read-only on clients.
+  authorId?: string;
+  authorName?: string;
   isStreaming?: boolean;
 }
 
@@ -150,11 +153,9 @@ export interface ChatSession {
   pinned?: number;
   // Soul this chat was started with (null = plain Cortex).
   assistantId?: string | null;
-  // Project this chat lives in (null = personal flat list).
+  // Project this chat lives in (null = personal flat list). Project chats
+  // are collaborative: any member can continue any thread.
   projectId?: string | null;
-  // True when the viewer is a project member but not the author — the chat
-  // renders read-only with a "duplicate to continue" affordance.
-  readOnly?: boolean;
   messages?: ChatMessage[];
   // Opaque conversation memory blob, replayed as conversation_memory on the
   // next turn. Persisted server-side so it survives reload/device-switch.

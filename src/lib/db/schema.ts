@@ -197,6 +197,10 @@ export const chatMessages = sqliteTable("chat_messages", {
   chatSessionId: text("chat_session_id")
     .notNull()
     .references(() => chatSessions.id, { onDelete: "cascade" }),
+  // Author of the message — meaningful in shared project chats where any
+  // member can continue the thread. Stamped server-side on first insert and
+  // preserved across message replaces; never trusted from the client.
+  userId: text("user_id").references(() => users.id, { onDelete: "set null" }),
   role: text("role", { enum: ["user", "assistant"] }).notNull(),
   content: text("content").notNull(),
   // JSON-encoded: { sources, graphContext, thinking, subQuestions, retrieval, retrievalStats }

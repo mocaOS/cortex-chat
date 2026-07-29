@@ -19,6 +19,8 @@ interface Props {
   onFeedback?: (messageId: string, rating: "up" | "down") => void;
   // Server-side TTS configured — shows the read-aloud button.
   ttsEnabled?: boolean;
+  // Teammate's name above their user message in shared project chats.
+  authorLabel?: string;
 }
 
 // Small hover-revealed icon button used in the message action rows.
@@ -189,6 +191,7 @@ export default function MessageBubble({
   onEditResend,
   onFeedback,
   ttsEnabled,
+  authorLabel,
 }: Props) {
   useLocale();
   const [thinkingExpanded, setThinkingExpanded] = useState(false);
@@ -293,6 +296,15 @@ export default function MessageBubble({
     return (
       <div className="flex justify-end">
         <div className="group max-w-[85%] md:max-w-[70%] flex flex-col items-end">
+          {authorLabel && (
+            <span
+              className="text-[10.5px] mb-1 px-1 truncate max-w-full"
+              style={{ fontFamily: "var(--font-mono)", color: "var(--fg3)" }}
+              title={authorLabel}
+            >
+              {authorLabel}
+            </span>
+          )}
           <div
             className="rounded-2xl rounded-br-md px-4 py-2.5 text-[14px] leading-[1.55] whitespace-pre-wrap"
             style={{

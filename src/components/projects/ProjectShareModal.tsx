@@ -150,8 +150,9 @@ export default function ProjectShareModal({ open, onClose, project, onSaved }: P
           </div>
         )}
 
-        {/* Search */}
-        <div className="relative">
+        {/* Search — results render IN FLOW below the input (an absolute
+            overlay gets clipped by the modal body's scroll container). */}
+        <div>
           <input
             type="text"
             value={query}
@@ -166,7 +167,7 @@ export default function ProjectShareModal({ open, onClose, project, onSaved }: P
           />
           {results && (results.groups.length > 0 || results.users.length > 0) && (
             <div
-              className="absolute z-10 mt-1 w-full rounded-[var(--radius)] border overflow-hidden shadow-lg"
+              className="mt-1 w-full rounded-[var(--radius)] border overflow-hidden max-h-[220px] overflow-y-auto"
               style={{ background: "var(--popover)", borderColor: "var(--border)" }}
             >
               {results.groups.map((g) => (

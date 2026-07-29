@@ -60,6 +60,8 @@ export async function POST(_: Request, ctx: Ctx) {
         .values({
           id: newId(),
           chatSessionId: copyId,
+          // Original authorship travels with the copy.
+          userId: m.userId,
           role: m.role,
           content: m.content,
           metadata: m.metadata,
