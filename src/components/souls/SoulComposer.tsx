@@ -153,6 +153,31 @@ export default function SoulComposer({ onSubmit }: Props) {
 
       {tab === "write" && (
         <div className="space-y-3">
+          {/* Upload is the primary action; the textarea below is for pasting
+              or hand-editing the loaded file before saving. */}
+          <label
+            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-[var(--radius)] text-[13px] font-medium cursor-pointer transition-all active:scale-[0.98]"
+            style={{ background: "var(--accent)", color: "var(--accent-fg)" }}
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <path d="M17 8l-5-5-5 5" />
+              <path d="M12 3v12" />
+            </svg>
+            {t("soulUploadFile")}
+            <input
+              type="file"
+              accept=".md,.markdown,.txt,text/markdown,text/plain"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) {
+                  f.text().then(setContent);
+                }
+                e.target.value = "";
+              }}
+            />
+          </label>
           <Textarea
             label={t("soulContentLabel")}
             value={content}
@@ -161,26 +186,10 @@ export default function SoulComposer({ onSubmit }: Props) {
             placeholder={t("soulContentPlaceholder")}
             style={{ fontFamily: "var(--font-mono)", fontSize: "12px" }}
           />
-          <div className="flex items-center justify-between gap-2 flex-wrap">
-            <label
-              className="inline-flex items-center px-3.5 py-2 rounded-[var(--radius)] text-[13px] font-medium cursor-pointer transition-all active:scale-[0.98]"
-              style={{ background: "var(--muted)", color: "var(--fg1)" }}
-            >
-              {t("soulUploadFile")}
-              <input
-                type="file"
-                accept=".md,.markdown,.txt,text/markdown,text/plain"
-                className="hidden"
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) {
-                    f.text().then(setContent);
-                  }
-                  e.target.value = "";
-                }}
-              />
-            </label>
+          <div className="flex justify-end">
+            {/* Secondary: the accent in this tab belongs to the upload CTA */}
             <Button
+              variant="secondary"
               onClick={() => save({ content })}
               disabled={!content.trim() || saving}
             >
@@ -297,13 +306,12 @@ export default function SoulComposer({ onSubmit }: Props) {
                 </div>
               )}
 
-              {/* Draft — auto-follows while streaming, full file once done */}
-              {(generating || draft) && (
+              {/* Draft — auto-follows while streaming; once done it becomes
+                  an editable textarea for hand-tuning before saving. */}
+              {generating ? (
                 <div
                   ref={draftScrollRef}
-                  className={`rounded-[var(--radius)] border px-3 py-2.5 text-[12px] whitespace-pre-wrap ${
-                    generating ? "max-h-[40vh] overflow-y-auto" : ""
-                  }`}
+                  className="rounded-[var(--radius)] border px-3 py-2.5 text-[12px] whitespace-pre-wrap max-h-[40vh] overflow-y-auto"
                   style={{
                     background: "var(--bg)",
                     borderColor: "var(--input)",
@@ -313,7 +321,28 @@ export default function SoulComposer({ onSubmit }: Props) {
                 >
                   {draft || "…"}
                 </div>
-              )}
+              ) : draft ? (
+                <Textarea
+                  value={draft}
+                  onChange={(e) => {
+                    // Keep the ref in sync so refine + save use the edits.
+                    draftRef.current = e.target.value;
+                    setDraft(e.target.value);
+                  }}
+                  rows={8}
+                  maxLength={64_000}
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    fontSize: "12px",
+                    // Auto-grow with content: the modal body stays the ONE
+                    // scroll container (no textarea-in-modal double
+                    // scrollbar). Browsers without field-sizing fall back to
+                    // the rows height + inner scroll.
+                    fieldSizing: "content",
+                    minHeight: "160px",
+                  } as React.CSSProperties}
+                />
+              ) : null}
             </div>
           )}
 
@@ -326,7 +355,14 @@ export default function SoulComposer({ onSubmit }: Props) {
           )}
 
           {!generating && draft && (
-            <div className="space-y-3">
+            /* Sticky inside the modal's scroll container: the refine field
+               and actions stay reachable no matter how long the draft is.
+               Negative margins span the modal body's padding; solid popover
+               background so scrolled draft text never shines through. */
+            <div
+              className="sticky bottom-0 -mx-5 -mb-4 px-5 py-3 border-t space-y-3"
+              style={{ background: "var(--popover)", borderColor: "var(--border)" }}
+            >
               <Input
                 label={t("soulRefineLabel")}
                 value={refinement}
