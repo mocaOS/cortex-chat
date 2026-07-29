@@ -372,6 +372,9 @@ export default function SoulComposer({ onSubmit }: Props) {
               <div className="flex items-center justify-end gap-2 flex-wrap">
                 <Button
                   variant="secondary"
+                  // Disabled instead of runGenerate's silent early-return —
+                  // a click that does nothing reads as a crash.
+                  disabled={!prompt.trim()}
                   onClick={() => runGenerate(!!refinement.trim())}
                 >
                   {refinement.trim() ? t("soulRefine") : t("soulRegenerate")}
