@@ -89,7 +89,6 @@ export async function POST(request: Request) {
     description: soul.description,
     soul: content,
     starters: JSON.stringify(soul.starters),
-    mode: soul.mode,
     collectionId: soul.collectionId,
     scope: "user" as const,
     userId: user.id,

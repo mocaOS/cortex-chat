@@ -105,7 +105,6 @@ export interface AssistantSummary {
   name: string;
   description: string;
   starters: string[];
-  mode: "chat" | "deep-research" | null;
   collectionId: string | null;
   scope: "builtin" | "global" | "group" | "user";
   builtinKey: string | null;

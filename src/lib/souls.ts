@@ -1,7 +1,13 @@
 import "server-only";
 import { and, eq, inArray, isNull, or } from "drizzle-orm";
 import { db } from "@/lib/db/client";
-import { assistants, type Assistant, type User } from "@/lib/db/schema";
+import {
+  assistants,
+  chatSessions,
+  projects,
+  type Assistant,
+  type User,
+} from "@/lib/db/schema";
 import { newId } from "@/lib/auth/crypto";
 import { BUILTIN_SOULS } from "@/lib/builtin-souls";
 
@@ -9,7 +15,6 @@ export interface ParsedSoul {
   name: string | null;
   description: string;
   starters: string[];
-  mode: "chat" | "deep-research" | null;
   collectionId: string | null;
   // The persona text that gets injected — the file minus its frontmatter.
   body: string;
@@ -19,16 +24,16 @@ const MAX_STARTERS = 4;
 
 /**
  * Parse a SOUL.md file: optional YAML-ish frontmatter (only the flat keys we
- * define — name, description, mode, collection, and a dash-list `starters:`)
+ * define — name, description, collection, and a dash-list `starters:`)
  * followed by the persona body. Deliberately hand-rolled: no YAML dependency,
- * unknown keys are ignored, and a file without frontmatter is just a body.
+ * unknown keys are ignored (incl. the retired `mode:` — the global default
+ * chat mode always applies), and a file without frontmatter is just a body.
  */
 export function parseSoulFile(content: string): ParsedSoul {
   const result: ParsedSoul = {
     name: null,
     description: "",
     starters: [],
-    mode: null,
     collectionId: null,
     body: content.trim(),
   };
@@ -58,8 +63,6 @@ export function parseSoulFile(content: string): ParsedSoul {
         result.name = value.slice(0, 80);
       } else if (key === "description") {
         result.description = value.slice(0, 300);
-      } else if (key === "mode") {
-        if (value === "chat" || value === "deep-research") result.mode = value;
       } else if (key === "collection" && value) {
         result.collectionId = value.slice(0, 100);
       }
@@ -87,7 +90,6 @@ export function toAssistantSummary(a: Assistant, userId: string) {
     name: a.name,
     description: a.description,
     starters,
-    mode: a.mode,
     collectionId: a.collectionId,
     scope: a.scope,
     builtinKey: a.builtinKey,
@@ -127,18 +129,40 @@ export function getUsableAssistant(user: User, id: string): Assistant | null {
 }
 
 /**
- * Seed repo-shipped souls. Insert-if-missing by builtinKey ONLY — existing
- * rows are never updated or re-enabled, so an admin's "remove" (enabled=0)
- * sticks across restarts while new releases can still add new souls.
+ * Seed repo-shipped souls. Insert-if-missing by builtinKey — existing rows
+ * are never updated or re-enabled, so an admin's "remove" (enabled=0) sticks
+ * across restarts while new releases can still add new souls. Builtins whose
+ * key vanished from BUILTIN_SOULS are deleted (the repo list is the source
+ * of truth for WHICH builtins exist; `enabled` only governs visibility).
  */
 export function seedBuiltinSouls(): void {
+  const currentKeys = new Set(BUILTIN_SOULS.map((s) => s.key));
+  const existingBuiltins = db
+    .select({ id: assistants.id, builtinKey: assistants.builtinKey })
+    .from(assistants)
+    .where(eq(assistants.scope, "builtin"))
+    .all();
+
+  // Retired builtins: detach references explicitly (older deployments' ALTER
+  // TABLE FK columns may lack ON DELETE SET NULL), then delete.
+  for (const row of existingBuiltins) {
+    if (row.builtinKey && currentKeys.has(row.builtinKey)) continue;
+    db.transaction((tx) => {
+      tx.update(chatSessions)
+        .set({ assistantId: null })
+        .where(eq(chatSessions.assistantId, row.id))
+        .run();
+      tx.update(projects)
+        .set({ assistantId: null })
+        .where(eq(projects.assistantId, row.id))
+        .run();
+      tx.delete(assistants).where(eq(assistants.id, row.id)).run();
+    });
+  }
+
+  const existingKeys = new Set(existingBuiltins.map((r) => r.builtinKey));
   for (const entry of BUILTIN_SOULS) {
-    const existing = db
-      .select({ id: assistants.id })
-      .from(assistants)
-      .where(eq(assistants.builtinKey, entry.key))
-      .get();
-    if (existing) continue;
+    if (existingKeys.has(entry.key)) continue;
     const parsed = parseSoulFile(entry.content);
     db.insert(assistants)
       .values({
@@ -148,7 +172,6 @@ export function seedBuiltinSouls(): void {
         description: parsed.description,
         soul: entry.content,
         starters: JSON.stringify(parsed.starters),
-        mode: parsed.mode,
         collectionId: parsed.collectionId,
         scope: "builtin",
         enabled: 1,

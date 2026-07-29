@@ -99,7 +99,6 @@ export async function POST(request: Request) {
     description: soul.description,
     soul: content,
     starters: JSON.stringify(soul.starters),
-    mode: soul.mode,
     collectionId: soul.collectionId,
     scope: parsed.data.scope,
     groupId: parsed.data.scope === "group" ? parsed.data.groupId! : null,

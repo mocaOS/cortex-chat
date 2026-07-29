@@ -364,30 +364,21 @@ export default function Home() {
       setActiveProjectId(project.id);
       if (project.assistantId) {
         setActiveAssistantId(project.assistantId);
-        const soul = assistants.find((a) => a.id === project.assistantId);
-        if (soul?.mode) {
-          modeTouchedRef.current = true;
-          setMode(soul.mode);
-        }
       }
       if (project.collectionId !== undefined) {
         setSettings((s) => ({ ...s, collectionId: project.collectionId }));
       }
     },
-    [handleNewChat, assistants]
+    [handleNewChat]
   );
 
-  // Picking a soul on the empty screen. Advisory defaults from the soul file
-  // (mode, collection scope) are applied here — the user can still change
-  // both before sending.
+  // Picking a soul on the empty screen. The soul's advisory collection scope
+  // is applied; the chat mode always follows the global default (no
+  // per-personality mode — deliberately kept simple).
   const handleSelectAssistant = useCallback(
     (id: string | null) => {
       setActiveAssistantId(id);
       const soul = id ? assistants.find((a) => a.id === id) : null;
-      if (soul?.mode) {
-        modeTouchedRef.current = true;
-        setMode(soul.mode);
-      }
       if (soul?.collectionId) {
         setSettings((s) => ({ ...s, collectionId: soul.collectionId }));
       }

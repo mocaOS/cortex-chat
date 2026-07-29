@@ -116,8 +116,8 @@ export const assistants = sqliteTable("assistants", {
   // JSON array of suggested questions (frontmatter `starters:`); shown on the
   // empty chat screen instead of the global starter prompts.
   starters: text("starters").notNull().default("[]"),
-  // Advisory defaults applied client-side when a chat starts with this soul.
-  mode: text("mode", { enum: ["chat", "deep-research"] }),
+  // Advisory default collection scope applied client-side on selection.
+  // (No per-personality mode — the global default chat mode always applies.)
   collectionId: text("collection_id"),
   // builtin/global = visible to everyone; group = that group only;
   // user = personal to its creator.
