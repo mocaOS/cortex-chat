@@ -3,7 +3,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import * as Sentry from "@sentry/nextjs";
-import { AssistantSummary, ChatMessage, ChatSession, Mode, Settings, Source, GraphContext, RetrievalStats } from "@/types";
+import { AssistantSummary, ChatMessage, ChatSession, Mode, ProjectInfo, Settings, Source, GraphContext, RetrievalStats } from "@/types";
 import { CurrentUser } from "@/types/auth";
 import {
   askQuestion,
@@ -23,6 +23,13 @@ import {
 import { downloadChatMarkdown } from "@/lib/exportChat";
 import { listAssistants } from "@/lib/assistants-client";
 import SoulsModal from "@/components/souls/SoulsModal";
+import {
+  listProjects,
+  deleteProject,
+  duplicateChat,
+} from "@/lib/projects-client";
+import ProjectModal from "@/components/projects/ProjectModal";
+import ProjectShareModal from "@/components/projects/ProjectShareModal";
 import { t } from "@/lib/i18n";
 import { rateLimitMessage } from "@/lib/rate-limit-message";
 import { useLocale } from "@/lib/i18n-client";
@@ -144,6 +151,17 @@ export default function Home() {
   const [assistants, setAssistants] = useState<AssistantSummary[]>([]);
   const [activeAssistantId, setActiveAssistantId] = useState<string | null>(null);
   const [soulsOpen, setSoulsOpen] = useState(false);
+  // Team projects. activeProjectId = project context of the ACTIVE chat
+  // (its instructions ride each turn as project_id); readOnlyChat marks a
+  // teammate's chat opened from a shared project.
+  const [projects, setProjects] = useState<ProjectInfo[]>([]);
+  const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
+  const [readOnlyChat, setReadOnlyChat] = useState(false);
+  const [projectModal, setProjectModal] = useState<{
+    open: boolean;
+    project: ProjectInfo | null;
+  }>({ open: false, project: null });
+  const [shareProject, setShareProject] = useState<ProjectInfo | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const titleGeneratedRef = useRef<Set<string>>(new Set());
   // Opaque conversation_memory blob for the active session. Held in a ref so
@@ -165,6 +183,13 @@ export default function Home() {
       setSessions(list);
     } catch {
       /* leave existing list; 401 handled via /me polling */
+    }
+    // Project chats render under their project — refresh those alongside so
+    // titles/ordering stay in sync after a settled turn.
+    try {
+      setProjects(await listProjects());
+    } catch {
+      /* keep the existing project list */
     }
   }, []);
 
@@ -253,6 +278,8 @@ export default function Home() {
         memoryRef.current = session.memory;
         memoryAtSendRef.current = session.memory;
         setActiveAssistantId(session.assistantId ?? null);
+        setActiveProjectId(session.projectId ?? null);
+        setReadOnlyChat(!!session.readOnly);
         setIsLoading(false);
       }
     },
@@ -269,6 +296,8 @@ export default function Home() {
         memoryRef.current = undefined;
         memoryAtSendRef.current = undefined;
         setActiveAssistantId(null);
+        setActiveProjectId(null);
+        setReadOnlyChat(false);
       }
     },
     [activeSessionId, refreshSessions]
@@ -280,11 +309,34 @@ export default function Home() {
     memoryRef.current = undefined;
     memoryAtSendRef.current = undefined;
     setActiveAssistantId(null);
+    setActiveProjectId(null);
+    setReadOnlyChat(false);
     setIsLoading(false);
     // Every new conversation starts in the admin-configured default mode.
     modeTouchedRef.current = false;
     setMode(defaultMode);
   }, [defaultMode]);
+
+  // New chat inside a project: fresh thread that inherits the project's
+  // soul and collection scope; created (with projectId) on first send.
+  const handleNewChatInProject = useCallback(
+    (project: ProjectInfo) => {
+      handleNewChat();
+      setActiveProjectId(project.id);
+      if (project.assistantId) {
+        setActiveAssistantId(project.assistantId);
+        const soul = assistants.find((a) => a.id === project.assistantId);
+        if (soul?.mode) {
+          modeTouchedRef.current = true;
+          setMode(soul.mode);
+        }
+      }
+      if (project.collectionId !== undefined) {
+        setSettings((s) => ({ ...s, collectionId: project.collectionId }));
+      }
+    },
+    [handleNewChat, assistants]
+  );
 
   // Picking a soul on the empty screen. Advisory defaults from the soul file
   // (mode, collection scope) are applied here — the user can still change
@@ -309,14 +361,19 @@ export default function Home() {
     // a truncated prefix without racing the `messages` state update — the
     // override IS the thread the new turn appends to.
     async (question: string, baseOverride?: ChatMessage[]) => {
-      if (!question.trim() || isLoading) return;
+      if (!question.trim() || isLoading || readOnlyChat) return;
 
       const base = baseOverride ?? messages;
 
-      // Create session if none active — bound to the chosen soul, if any.
+      // Create session if none active — bound to the chosen soul/project.
       let sessionId = activeSessionId;
       if (!sessionId) {
-        const created = await createChat(undefined, undefined, activeAssistantId);
+        const created = await createChat(
+          undefined,
+          undefined,
+          activeAssistantId,
+          activeProjectId
+        );
         sessionId = created.id;
         setActiveSessionId(sessionId);
         refreshSessions();
@@ -367,9 +424,10 @@ export default function Home() {
         use_reranking: true,
         conversation_history: conversationHistory,
         collection_id: settings.collectionId ?? null,
-        // Soul persona — scope-checked and injected server-side by the proxy,
-        // stripped before the request goes upstream.
+        // Soul persona + project context — scope-checked and injected
+        // server-side by the proxy, stripped before going upstream.
         assistant_id: activeAssistantId,
+        project_id: activeProjectId,
         // Replay the opaque memory blob (or {} on turn 1). The backend returns
         // an updated one via memory_update; we never construct or mutate it.
         conversation_memory: memoryRef.current ?? {},
@@ -626,7 +684,7 @@ export default function Home() {
         setIsLoading(false);
       }
     },
-    [isLoading, messages, mode, settings, activeSessionId, activeAssistantId, refreshSessions]
+    [isLoading, readOnlyChat, messages, mode, settings, activeSessionId, activeAssistantId, activeProjectId, refreshSessions]
   );
 
   const handleStop = useCallback(() => {
@@ -701,6 +759,31 @@ export default function Home() {
     if (session) downloadChatMarkdown(session);
   }, []);
 
+  // "Duplicate to continue": copy a teammate's chat (messages + memory +
+  // soul, stays in the project) into an own, writable session and open it.
+  const handleDuplicate = useCallback(async () => {
+    if (!activeSessionId) return;
+    try {
+      const copyId = await duplicateChat(activeSessionId);
+      await refreshSessions();
+      await handleSelectSession(copyId);
+    } catch {
+      /* duplicate failed — stay on the read-only view */
+    }
+  }, [activeSessionId, refreshSessions, handleSelectSession]);
+
+  const handleDeleteProject = useCallback(
+    async (project: ProjectInfo) => {
+      if (!confirm(t("projectDeleteConfirm"))) return;
+      await deleteProject(project.id).catch(() => {});
+      // Chats survive project deletion (project_id nulls out) — if one is
+      // open, just clear its project context.
+      if (activeProjectId === project.id) setActiveProjectId(null);
+      refreshSessions();
+    },
+    [activeProjectId, refreshSessions]
+  );
+
   if (!configReady || !currentUser) {
     return <div className="h-dvh bg-[var(--bg-primary)]" />;
   }
@@ -727,6 +810,12 @@ export default function Home() {
         onDeleteSession={handleDeleteSession}
         onTogglePin={handleTogglePin}
         onExportSession={handleExportSession}
+        projects={projects}
+        onNewProject={() => setProjectModal({ open: true, project: null })}
+        onEditProject={(p) => setProjectModal({ open: true, project: p })}
+        onShareProject={setShareProject}
+        onDeleteProject={handleDeleteProject}
+        onNewChatInProject={handleNewChatInProject}
         logoUrl={logoUrl}
         currentUser={currentUser}
         onSignOut={handleSignOut}
@@ -747,9 +836,9 @@ export default function Home() {
               starterPrompts={starterPrompts}
               onStarterClick={handleSend}
               isLoading={isLoading}
-              onRegenerate={handleRegenerate}
-              onEditResend={handleEditResend}
-              onFeedback={handleFeedback}
+              onRegenerate={readOnlyChat ? undefined : handleRegenerate}
+              onEditResend={readOnlyChat ? undefined : handleEditResend}
+              onFeedback={readOnlyChat ? undefined : handleFeedback}
               assistants={assistants}
               activeAssistantId={activeAssistantId}
               onSelectAssistant={handleSelectAssistant}
@@ -758,26 +847,53 @@ export default function Home() {
             />
           </main>
 
-          <ChatInput
-            onSend={handleSend}
-            onStop={handleStop}
-            isLoading={isLoading}
-            mode={mode}
-            defaultMode={defaultMode}
-            onModeChange={handleModeChange}
-            onSettingsClick={() => setShowSettings(!showSettings)}
-            collectionName={
-              settings.collectionId
-                ? collections.find((c) => c.id === settings.collectionId)?.name ?? null
-                : null
-            }
-            assistantName={
-              activeAssistantId
-                ? assistants.find((a) => a.id === activeAssistantId)?.name ?? null
-                : null
-            }
-            sttEnabled={voice.stt}
-          />
+          {readOnlyChat ? (
+            /* Teammate's chat from a shared project — read-only with a
+               one-click way to fork it into an own, writable copy. */
+            <div className="px-4 pt-3 pb-5">
+              <div
+                className="max-w-3xl mx-auto flex flex-wrap items-center justify-between gap-3 rounded-[14px] border px-4 py-3"
+                style={{
+                  background: "oklch(0.15 0 0 / 0.75)",
+                  backdropFilter: "blur(24px)",
+                  WebkitBackdropFilter: "blur(24px)",
+                  borderColor: "var(--border)",
+                }}
+              >
+                <span className="text-[13px]" style={{ color: "var(--fg2)" }}>
+                  {t("readOnlyChatNotice")}
+                </span>
+                <button
+                  onClick={handleDuplicate}
+                  className="px-3.5 py-2 rounded-[var(--radius)] text-[13px] font-medium transition-all active:scale-[0.98]"
+                  style={{ background: "var(--accent)", color: "var(--accent-fg)" }}
+                >
+                  {t("duplicateToContinue")}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <ChatInput
+              onSend={handleSend}
+              onStop={handleStop}
+              isLoading={isLoading}
+              mode={mode}
+              defaultMode={defaultMode}
+              onModeChange={handleModeChange}
+              onSettingsClick={() => setShowSettings(!showSettings)}
+              collectionName={
+                settings.collectionId
+                  ? collections.find((c) => c.id === settings.collectionId)?.name ?? null
+                  : null
+              }
+              assistantName={
+                activeAssistantId
+                  ? assistants.find((a) => a.id === activeAssistantId)?.name ?? null
+                  : null
+              }
+              sttEnabled={voice.stt}
+            />
+          )}
         </>
       ) : (
         <main className="flex-1 flex items-center justify-center px-6 text-center">
@@ -808,6 +924,22 @@ export default function Home() {
         onClose={() => setSoulsOpen(false)}
         assistants={assistants}
         onChanged={refreshAssistants}
+      />
+
+      <ProjectModal
+        open={projectModal.open}
+        onClose={() => setProjectModal({ open: false, project: null })}
+        project={projectModal.project}
+        assistants={assistants}
+        collections={collections}
+        onSaved={refreshSessions}
+      />
+
+      <ProjectShareModal
+        open={!!shareProject}
+        onClose={() => setShareProject(null)}
+        project={shareProject}
+        onSaved={refreshSessions}
       />
     </div>
   );

@@ -80,6 +80,9 @@ export interface AskRequest {
   // scope-checks it, injects the soul body server-side, and strips the field
   // before forwarding upstream.
   assistant_id?: string | null;
+  // Project context — membership-checked, its instructions injected
+  // server-side, stripped before forwarding upstream.
+  project_id?: string | null;
   // Opaque client-carried memory blob. Sent verbatim each turn, replaced from
   // the memory_update event — never constructed or mutated client-side.
   conversation_memory?: unknown;
@@ -108,6 +111,38 @@ export interface AssistantSummary {
   isOwn: boolean;
 }
 
+export interface ProjectShareEntry {
+  id: string;
+  groupId: string | null;
+  groupName: string | null;
+  userId: string | null;
+  userEmail: string | null;
+  username: string | null;
+}
+
+export interface ProjectChatEntry {
+  id: string;
+  title: string;
+  updatedAt: number;
+  authorId: string;
+  authorName: string;
+  isOwn: boolean;
+}
+
+// A team workspace: groups chats, carries defaults (soul/collection) and
+// server-injected extra instructions. Shares are owner-only in responses.
+export interface ProjectInfo {
+  id: string;
+  name: string;
+  instructions: string;
+  assistantId: string | null;
+  collectionId: string | null;
+  isOwner: boolean;
+  shares?: ProjectShareEntry[];
+  chats: ProjectChatEntry[];
+  updatedAt: number;
+}
+
 export interface ChatSession {
   id: string;
   title: string;
@@ -115,6 +150,11 @@ export interface ChatSession {
   pinned?: number;
   // Soul this chat was started with (null = plain Cortex).
   assistantId?: string | null;
+  // Project this chat lives in (null = personal flat list).
+  projectId?: string | null;
+  // True when the viewer is a project member but not the author — the chat
+  // renders read-only with a "duplicate to continue" affordance.
+  readOnly?: boolean;
   messages?: ChatMessage[];
   // Opaque conversation memory blob, replayed as conversation_memory on the
   // next turn. Persisted server-side so it survives reload/device-switch.

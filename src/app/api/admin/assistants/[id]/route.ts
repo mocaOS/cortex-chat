@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/lib/db/client";
-import { assistants } from "@/lib/db/schema";
+import { assistants, chatSessions, projects } from "@/lib/db/schema";
 import { requireAdmin } from "@/lib/auth/session";
 import { toAssistantSummary } from "@/lib/souls";
 
@@ -77,6 +77,18 @@ export async function DELETE(_: Request, ctx: Ctx) {
       { status: 400 }
     );
   }
-  db.delete(assistants).where(eq(assistants.id, id)).run();
+  // Detach referencing chats/projects explicitly — older deployments' ALTER
+  // TABLE columns may lack the ON DELETE SET NULL action.
+  db.transaction((tx) => {
+    tx.update(chatSessions)
+      .set({ assistantId: null })
+      .where(eq(chatSessions.assistantId, id))
+      .run();
+    tx.update(projects)
+      .set({ assistantId: null })
+      .where(eq(projects.assistantId, id))
+      .run();
+    tx.delete(assistants).where(eq(assistants.id, id)).run();
+  });
   return NextResponse.json({ ok: true });
 }

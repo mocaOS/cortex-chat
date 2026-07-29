@@ -92,6 +92,34 @@ const translations = {
     voiceStopRecording: "Stop recording",
     voiceReadAloud: "Read aloud",
     voiceStopAudio: "Stop audio",
+
+    // Projects
+    projects: "Projects",
+    projectNew: "New project",
+    projectNewChat: "New chat in project",
+    projectShare: "Share project",
+    projectEdit: "Edit project",
+    projectDelete: "Delete project",
+    projectDeleteConfirm:
+      "Delete this project? Chats are kept and move back to their authors' chat lists.",
+    projectNoChats: "No chats yet.",
+    projectNewTitle: "New project",
+    projectEditTitle: "Edit project",
+    projectNameLabel: "Name",
+    projectNamePlaceholder: "e.g. Website relaunch",
+    projectSoulLabel: "Soul",
+    projectCollectionLabel: "Collection",
+    projectInstructionsLabel: "Instructions",
+    projectInstructionsPlaceholder:
+      "Optional context for every chat in this project, e.g. \"Answers relate to the 2026 website relaunch. Prefer the latest concept documents.\"",
+    projectInstructionsHint:
+      "Sent invisibly with every question in this project — like a shared briefing for the assistant.",
+    projectShareTitle: "Share",
+    projectShareHint:
+      "Members see all chats in this project and can add their own. Only you can change the project itself.",
+    projectSharePlaceholder: "Search groups and people…",
+    readOnlyChatNotice: "A teammate's chat — read-only.",
+    duplicateToContinue: "Duplicate to continue",
     researching: "Researching",
     searchingKnowledge: "Searching the knowledge base",
     generatingResponse: "Writing the answer",
@@ -658,6 +686,34 @@ const translations = {
     voiceStopRecording: "Aufnahme stoppen",
     voiceReadAloud: "Vorlesen",
     voiceStopAudio: "Audio stoppen",
+
+    // Projects
+    projects: "Projekte",
+    projectNew: "Neues Projekt",
+    projectNewChat: "Neuer Chat im Projekt",
+    projectShare: "Projekt teilen",
+    projectEdit: "Projekt bearbeiten",
+    projectDelete: "Projekt löschen",
+    projectDeleteConfirm:
+      "Dieses Projekt löschen? Chats bleiben erhalten und wandern zurück in die Chat-Listen ihrer Autoren.",
+    projectNoChats: "Noch keine Chats.",
+    projectNewTitle: "Neues Projekt",
+    projectEditTitle: "Projekt bearbeiten",
+    projectNameLabel: "Name",
+    projectNamePlaceholder: "z. B. Website-Relaunch",
+    projectSoulLabel: "Soul",
+    projectCollectionLabel: "Collection",
+    projectInstructionsLabel: "Anweisungen",
+    projectInstructionsPlaceholder:
+      "Optionaler Kontext für jeden Chat in diesem Projekt, z. B. \"Antworten beziehen sich auf den Website-Relaunch 2026. Bevorzuge die neuesten Konzeptdokumente.\"",
+    projectInstructionsHint:
+      "Wird unsichtbar mit jeder Frage in diesem Projekt mitgesendet — wie ein gemeinsames Briefing für den Assistenten.",
+    projectShareTitle: "Teilen",
+    projectShareHint:
+      "Mitglieder sehen alle Chats in diesem Projekt und können eigene hinzufügen. Nur du kannst das Projekt selbst ändern.",
+    projectSharePlaceholder: "Gruppen und Personen suchen…",
+    readOnlyChatNotice: "Chat einer Kollegin oder eines Kollegen — nur lesbar.",
+    duplicateToContinue: "Duplizieren & fortsetzen",
     researching: "Recherchiert",
     searchingKnowledge: "Durchsucht die Wissensdatenbank",
     generatingResponse: "Schreibt die Antwort",

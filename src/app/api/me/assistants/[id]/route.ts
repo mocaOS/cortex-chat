@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/lib/db/client";
-import { assistants } from "@/lib/db/schema";
+import { assistants, chatSessions, projects } from "@/lib/db/schema";
 import { requireAuth } from "@/lib/auth/session";
 import { getUsableAssistant, toAssistantSummary } from "@/lib/souls";
 
@@ -25,12 +25,15 @@ export async function GET(_: Request, ctx: Ctx) {
   });
 }
 
-// Users can delete only their own personal souls.
+// Users can delete only their own personal souls. References are detached
+// explicitly — older deployments' ALTER TABLE columns may lack the
+// ON DELETE SET NULL action.
 export async function DELETE(_: Request, ctx: Ctx) {
   const { user } = await requireAuth();
   const { id } = await ctx.params;
-  const result = db
-    .delete(assistants)
+  const owned = db
+    .select({ id: assistants.id })
+    .from(assistants)
     .where(
       and(
         eq(assistants.id, id),
@@ -38,9 +41,20 @@ export async function DELETE(_: Request, ctx: Ctx) {
         eq(assistants.userId, user.id)
       )
     )
-    .run();
-  if (result.changes === 0) {
+    .get();
+  if (!owned) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
+  db.transaction((tx) => {
+    tx.update(chatSessions)
+      .set({ assistantId: null })
+      .where(eq(chatSessions.assistantId, id))
+      .run();
+    tx.update(projects)
+      .set({ assistantId: null })
+      .where(eq(projects.assistantId, id))
+      .run();
+    tx.delete(assistants).where(eq(assistants.id, id)).run();
+  });
   return NextResponse.json({ ok: true });
 }

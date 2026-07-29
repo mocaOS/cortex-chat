@@ -11,6 +11,7 @@ import {
   renderCortexAnalytics,
 } from "@/lib/cortex-analytics";
 import { getUsableAssistant, parseSoulFile } from "@/lib/souls";
+import { getAccessibleProject } from "@/lib/projects";
 import { fetchUpstreamWithRetry } from "@/lib/upstream-sse";
 
 export const dynamic = "force-dynamic";
@@ -50,22 +51,35 @@ export async function POST(request: Request) {
       ? (parsedBody.collection_id as string)
       : null;
 
-  // Soul selection rides as `assistant_id` — a chat-app concept, stripped
-  // before the request goes upstream. Scope-checked: users can only inject
-  // souls they are allowed to see (builtin/global, their group's, their own).
+  // Soul selection (`assistant_id`) and project context (`project_id`) are
+  // chat-app concepts, stripped before the request goes upstream. Both are
+  // scope-checked: users can only inject souls they may see and projects
+  // they are members of.
   const assistantId =
     typeof parsedBody?.assistant_id === "string"
       ? (parsedBody.assistant_id as string)
       : null;
+  const projectId =
+    typeof parsedBody?.project_id === "string"
+      ? (parsedBody.project_id as string)
+      : null;
   let forwardBody = body;
-  if (parsedBody && "assistant_id" in parsedBody) {
+  if (parsedBody && ("assistant_id" in parsedBody || "project_id" in parsedBody)) {
     delete parsedBody.assistant_id;
+    delete parsedBody.project_id;
     forwardBody = JSON.stringify(parsedBody);
   }
   let soulBody: string | null = null;
   if (assistantId) {
     const assistant = getUsableAssistant(ctx.user, assistantId);
     if (assistant) soulBody = parseSoulFile(assistant.soul).body || null;
+  }
+  let projectInstructions: string | null = null;
+  if (projectId) {
+    const project = getAccessibleProject(ctx.user, projectId);
+    if (project?.instructions.trim()) {
+      projectInstructions = project.instructions.trim();
+    }
   }
 
   db.insert(usageEvents)
@@ -85,10 +99,11 @@ export async function POST(request: Request) {
     getAppSettings().cortexAnalyticsTemplate,
     ctx.user
   );
-  // Both blocks prepend to conversation_history, so inject the soul first and
-  // the analytics block second — the final order is [analytics, soul, …turns].
-  // Neither is persisted to chat_messages nor ever echoed to the browser.
-  let upstreamBody = injectCortexAnalytics(forwardBody, soulBody);
+  // All blocks prepend to conversation_history, so inject in reverse of the
+  // intended order — final: [analytics, soul, project instructions, …turns].
+  // None are persisted to chat_messages nor ever echoed to the browser.
+  let upstreamBody = injectCortexAnalytics(forwardBody, projectInstructions);
+  upstreamBody = injectCortexAnalytics(upstreamBody, soulBody);
   upstreamBody = injectCortexAnalytics(upstreamBody, rendered);
 
   // Correlation id: reuse the client's, or mint one. The backend echoes and

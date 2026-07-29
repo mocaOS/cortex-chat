@@ -132,6 +132,39 @@ export const assistants = sqliteTable("assistants", {
   updatedAt: integer("updated_at").notNull().default(sql`(unixepoch() * 1000)`),
 });
 
+// Team workspaces: a project groups chats and carries defaults (soul,
+// collection scope, extra instructions) inherited by chats created inside it.
+// Shared via project_shares; members see ALL chats in the project but can
+// only continue/delete their own ("duplicate to continue" for the rest).
+export const projects = sqliteTable("projects", {
+  id: text("id").primaryKey(),
+  ownerId: text("owner_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  // Optional extra instructions, injected server-side per turn (after the
+  // soul block) for every chat in the project. Never shown in the chat UI.
+  instructions: text("instructions").notNull().default(""),
+  assistantId: text("assistant_id").references(() => assistants.id, {
+    onDelete: "set null",
+  }),
+  collectionId: text("collection_id"),
+  createdAt: integer("created_at").notNull().default(sql`(unixepoch() * 1000)`),
+  updatedAt: integer("updated_at").notNull().default(sql`(unixepoch() * 1000)`),
+});
+
+// One row per grant: either a whole group or a single user (exactly one of
+// groupId/userId is set). Owner is implicitly a member.
+export const projectShares = sqliteTable("project_shares", {
+  id: text("id").primaryKey(),
+  projectId: text("project_id")
+    .notNull()
+    .references(() => projects.id, { onDelete: "cascade" }),
+  groupId: text("group_id").references(() => groups.id, { onDelete: "cascade" }),
+  userId: text("user_id").references(() => users.id, { onDelete: "cascade" }),
+  createdAt: integer("created_at").notNull().default(sql`(unixepoch() * 1000)`),
+});
+
 export const chatSessions = sqliteTable("chat_sessions", {
   id: text("id").primaryKey(),
   userId: text("user_id")
@@ -148,6 +181,11 @@ export const chatSessions = sqliteTable("chat_sessions", {
   // assistant_id on every /api/ask/stream turn; this column makes the choice
   // survive reload/device-switch.
   assistantId: text("assistant_id").references(() => assistants.id, {
+    onDelete: "set null",
+  }),
+  // Project this chat lives in (null = personal flat list). Deleting a
+  // project keeps the chats — they fall back to their authors' flat lists.
+  projectId: text("project_id").references(() => projects.id, {
     onDelete: "set null",
   }),
   createdAt: integer("created_at").notNull().default(sql`(unixepoch() * 1000)`),
@@ -194,6 +232,8 @@ export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
 export type Registration = typeof registrations.$inferSelect;
 export type LoginEvent = typeof loginEvents.$inferSelect;
 export type Assistant = typeof assistants.$inferSelect;
+export type Project = typeof projects.$inferSelect;
+export type ProjectShare = typeof projectShares.$inferSelect;
 export type ChatSessionRow = typeof chatSessions.$inferSelect;
 export type ChatMessageRow = typeof chatMessages.$inferSelect;
 export type UsageEvent = typeof usageEvents.$inferSelect;

@@ -5,6 +5,7 @@ import { db } from "@/lib/db/client";
 import { chatMessages, chatSessions } from "@/lib/db/schema";
 import { requireAuth } from "@/lib/auth/session";
 import { newId } from "@/lib/auth/crypto";
+import { canReadChatSession } from "@/lib/projects";
 
 export const dynamic = "force-dynamic";
 
@@ -23,8 +24,14 @@ async function ownedSession(userId: string, id: string) {
 export async function GET(_: Request, ctx: Ctx) {
   const { user } = await requireAuth();
   const { id } = await ctx.params;
-  const session = await ownedSession(user.id, id);
-  if (!session) {
+  // Author, or member of the project the chat lives in (read-only then —
+  // PATCH/DELETE below stay strictly author-only via ownedSession).
+  const session = db
+    .select()
+    .from(chatSessions)
+    .where(eq(chatSessions.id, id))
+    .get();
+  if (!session || !canReadChatSession(user, session)) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
   const messages = db
@@ -38,6 +45,8 @@ export async function GET(_: Request, ctx: Ctx) {
     title: session.title,
     pinned: session.pinned,
     assistantId: session.assistantId,
+    projectId: session.projectId,
+    readOnly: session.userId !== user.id,
     memory: session.memory ? safeParse(session.memory) : undefined,
     createdAt: session.createdAt,
     updatedAt: session.updatedAt,

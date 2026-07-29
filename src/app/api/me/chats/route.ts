@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/lib/db/client";
 import { chatSessions } from "@/lib/db/schema";
 import { requireAuth } from "@/lib/auth/session";
 import { newId } from "@/lib/auth/crypto";
 import { getUsableAssistant } from "@/lib/souls";
+import { getAccessibleProject } from "@/lib/projects";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +22,9 @@ export async function GET() {
       updatedAt: chatSessions.updatedAt,
     })
     .from(chatSessions)
-    .where(eq(chatSessions.userId, user.id))
+    // Project chats render under their project in the sidebar — the flat
+    // list is personal, non-project chats only.
+    .where(and(eq(chatSessions.userId, user.id), isNull(chatSessions.projectId)))
     .orderBy(desc(chatSessions.pinned), desc(chatSessions.updatedAt))
     .all();
   return NextResponse.json({ sessions: rows });
@@ -31,6 +34,7 @@ const Body = z.object({
   id: z.string().min(1).optional(),
   title: z.string().max(200).optional(),
   assistantId: z.string().min(1).optional(),
+  projectId: z.string().min(1).optional(),
 });
 
 export async function POST(request: Request) {
@@ -44,6 +48,10 @@ export async function POST(request: Request) {
   const assistantId = parsed.data.assistantId
     ? (getUsableAssistant(user, parsed.data.assistantId)?.id ?? null)
     : null;
+  // A chat lands in a project only if the caller is actually a member.
+  const projectId = parsed.data.projectId
+    ? (getAccessibleProject(user, parsed.data.projectId)?.id ?? null)
+    : null;
   const id = parsed.data.id || newId();
   const now = Date.now();
   db.insert(chatSessions)
@@ -52,6 +60,7 @@ export async function POST(request: Request) {
       userId: user.id,
       title: parsed.data.title ?? "",
       assistantId,
+      projectId,
       createdAt: now,
       updatedAt: now,
     })
@@ -60,6 +69,7 @@ export async function POST(request: Request) {
     id,
     title: parsed.data.title ?? "",
     assistantId,
+    projectId,
     createdAt: now,
     updatedAt: now,
   });

@@ -20,4 +20,4 @@ CREATE TABLE `assistants` (
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `assistants_builtin_key_unique` ON `assistants` (`builtin_key`);--> statement-breakpoint
-ALTER TABLE `chat_sessions` ADD `assistant_id` text REFERENCES assistants(id);
+ALTER TABLE `chat_sessions` ADD `assistant_id` text REFERENCES assistants(id) ON DELETE SET NULL;

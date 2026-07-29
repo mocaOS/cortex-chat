@@ -29,7 +29,8 @@ export async function getChat(id: string): Promise<ChatSession | null> {
 export async function createChat(
   id?: string,
   title?: string,
-  assistantId?: string | null
+  assistantId?: string | null,
+  projectId?: string | null
 ): Promise<ChatSession> {
   const data = await http<ChatSession>(BASE, {
     method: "POST",
@@ -37,6 +38,7 @@ export async function createChat(
       id,
       title,
       ...(assistantId ? { assistantId } : {}),
+      ...(projectId ? { projectId } : {}),
     }),
   });
   if (!data) throw new Error("Failed to create chat");

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { ChatSession } from "@/types";
+import { ChatSession, ProjectInfo } from "@/types";
 import { CurrentUser } from "@/types/auth";
 import { t } from "@/lib/i18n";
 import { useLocale } from "@/lib/i18n-client";
@@ -17,6 +17,13 @@ interface Props {
   onDeleteSession: (id: string) => void;
   onTogglePin?: (id: string, pinned: boolean) => void;
   onExportSession?: (id: string) => void;
+  // Team projects — collapsible folders above the flat chat list.
+  projects?: ProjectInfo[];
+  onNewProject?: () => void;
+  onEditProject?: (project: ProjectInfo) => void;
+  onShareProject?: (project: ProjectInfo) => void;
+  onDeleteProject?: (project: ProjectInfo) => void;
+  onNewChatInProject?: (project: ProjectInfo) => void;
   logoUrl: string;
   currentUser?: CurrentUser | null;
   onSignOut?: () => void;
@@ -68,12 +75,26 @@ export default function Sidebar({
   onDeleteSession,
   onTogglePin,
   onExportSession,
+  projects,
+  onNewProject,
+  onEditProject,
+  onShareProject,
+  onDeleteProject,
+  onNewChatInProject,
   logoUrl,
   currentUser,
   onSignOut,
 }: Props) {
   useLocale();
   const [query, setQuery] = useState("");
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const toggleExpanded = (id: string) =>
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   const q = query.trim().toLowerCase();
   const filtered = q
     ? sessions.filter((s) =>
@@ -181,6 +202,217 @@ export default function Sidebar({
 
         {/* Session list */}
         <div className="flex-1 overflow-y-auto px-2 pb-3">
+          {/* Projects — collapsible team folders above the personal list */}
+          {(projects?.length || onNewProject) && !q ? (
+            <div className="mb-3">
+              <div className="flex items-center justify-between px-2.5 py-1.5">
+                <span
+                  className="text-[10.5px] font-medium uppercase tracking-[0.08em]"
+                  style={{ color: "var(--fg3)" }}
+                >
+                  {t("projects")}
+                </span>
+                {onNewProject && (
+                  <button
+                    onClick={onNewProject}
+                    className="w-5 h-5 rounded flex items-center justify-center transition-colors"
+                    style={{ color: "var(--fg3)" }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.color = "var(--fg1)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.color = "var(--fg3)";
+                    }}
+                    title={t("projectNew")}
+                    aria-label={t("projectNew")}
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 5v14" />
+                      <path d="M5 12h14" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+              {projects?.map((project) => {
+                const isOpen = expanded.has(project.id);
+                return (
+                  <div key={project.id}>
+                    <div
+                      className="group flex items-center rounded-[var(--radius)] px-2.5 py-2 cursor-pointer transition-colors"
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = "oklch(1 0 0 / 0.04)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = "transparent";
+                      }}
+                      onClick={() => toggleExpanded(project.id)}
+                    >
+                      <svg
+                        className={`w-3 h-3 mr-1.5 flex-shrink-0 transition-transform ${isOpen ? "rotate-90" : ""}`}
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        style={{ color: "var(--fg3)" }}
+                      >
+                        <path d="M9 5l7 7-7 7" />
+                      </svg>
+                      <svg className="w-3.5 h-3.5 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--fg2)" }}>
+                        <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" />
+                      </svg>
+                      <span
+                        className="flex-1 text-[13px] truncate"
+                        style={{ color: "var(--fg1)" }}
+                      >
+                        {project.name}
+                      </span>
+                      {onNewChatInProject && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onNewChatInProject(project);
+                            onClose();
+                          }}
+                          className="opacity-0 group-hover:opacity-100 pointer-coarse:opacity-100 w-6 h-6 flex-shrink-0 flex items-center justify-center rounded transition-all"
+                          style={{ color: "var(--fg3)" }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.color = "var(--fg1)";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.color = "var(--fg3)";
+                          }}
+                          title={t("projectNewChat")}
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M12 5v14" />
+                            <path d="M5 12h14" />
+                          </svg>
+                        </button>
+                      )}
+                      {project.isOwner && onShareProject && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onShareProject(project);
+                          }}
+                          className="opacity-0 group-hover:opacity-100 pointer-coarse:opacity-100 w-6 h-6 flex-shrink-0 flex items-center justify-center rounded transition-all"
+                          style={{ color: "var(--fg3)" }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.color = "var(--fg1)";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.color = "var(--fg3)";
+                          }}
+                          title={t("projectShare")}
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="18" cy="5" r="3" />
+                            <circle cx="6" cy="12" r="3" />
+                            <circle cx="18" cy="19" r="3" />
+                            <path d="M8.59 13.51l6.83 3.98" />
+                            <path d="M15.41 6.51l-6.82 3.98" />
+                          </svg>
+                        </button>
+                      )}
+                      {project.isOwner && onEditProject && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onEditProject(project);
+                          }}
+                          className="opacity-0 group-hover:opacity-100 pointer-coarse:opacity-100 w-6 h-6 flex-shrink-0 flex items-center justify-center rounded transition-all"
+                          style={{ color: "var(--fg3)" }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.color = "var(--fg1)";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.color = "var(--fg3)";
+                          }}
+                          title={t("projectEdit")}
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                          </svg>
+                        </button>
+                      )}
+                      {project.isOwner && onDeleteProject && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDeleteProject(project);
+                          }}
+                          className="opacity-0 group-hover:opacity-100 pointer-coarse:opacity-100 w-6 h-6 flex-shrink-0 flex items-center justify-center rounded transition-all"
+                          style={{ color: "var(--fg3)" }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.color = "var(--destructive)";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.color = "var(--fg3)";
+                          }}
+                          title={t("projectDelete")}
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M3 6h18" />
+                            <path d="M8 6V4a2 2 0 0 1 2 -2h4a2 2 0 0 1 2 2v2" />
+                            <path d="M19 6l-1 14a2 2 0 0 1 -2 2H8a2 2 0 0 1 -2 -2L5 6" />
+                          </svg>
+                        </button>
+                      )}
+                    </div>
+                    {isOpen && (
+                      <div className="ml-5 border-l pl-1.5" style={{ borderColor: "var(--border)" }}>
+                        {project.chats.length === 0 && (
+                          <p className="px-2.5 py-1.5 text-[11.5px]" style={{ color: "var(--fg3)" }}>
+                            {t("projectNoChats")}
+                          </p>
+                        )}
+                        {project.chats.map((chat) => {
+                          const active = chat.id === activeSessionId;
+                          return (
+                            <div
+                              key={chat.id}
+                              className="flex items-center rounded-[var(--radius)] px-2.5 py-1.5 cursor-pointer transition-colors"
+                              style={{ background: active ? "var(--muted)" : "transparent" }}
+                              onMouseEnter={(e) => {
+                                if (!active)
+                                  e.currentTarget.style.background = "oklch(1 0 0 / 0.04)";
+                              }}
+                              onMouseLeave={(e) => {
+                                if (!active) e.currentTarget.style.background = "transparent";
+                              }}
+                              onClick={() => {
+                                onSelectSession(chat.id);
+                                onClose();
+                              }}
+                            >
+                              <span
+                                className="flex-1 text-[12.5px] truncate"
+                                style={{ color: "var(--fg1)" }}
+                              >
+                                {chat.title || t("untitledChat")}
+                              </span>
+                              {!chat.isOwn && (
+                                <span
+                                  className="text-[10px] truncate max-w-[80px] flex-shrink-0 ml-1.5"
+                                  style={{ color: "var(--fg3)", fontFamily: "var(--font-mono)" }}
+                                  title={chat.authorName}
+                                >
+                                  {chat.authorName}
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ) : null}
+
           {q && filtered.length === 0 && (
             <p
               className="px-2.5 py-2 text-[12px]"
