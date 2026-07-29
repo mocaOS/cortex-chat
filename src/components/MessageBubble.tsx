@@ -6,11 +6,145 @@ import remarkGfm from "remark-gfm";
 import { ChatMessage, Source } from "@/types";
 import { t } from "@/lib/i18n";
 import { useLocale } from "@/lib/i18n-client";
+import { fetchSpeech, stripForSpeech } from "@/lib/voice-client";
 import ThinkingIndicator from "./ThinkingIndicator";
 
 interface Props {
   message: ChatMessage;
   onSourceClick: (source: Source) => void;
+  // Present only on the last assistant message while idle.
+  onRegenerate?: () => void;
+  // Present on user messages while idle.
+  onEditResend?: (messageId: string, newContent: string) => void;
+  onFeedback?: (messageId: string, rating: "up" | "down") => void;
+  // Server-side TTS configured — shows the read-aloud button.
+  ttsEnabled?: boolean;
+}
+
+// Small hover-revealed icon button used in the message action rows.
+function ActionButton({
+  label,
+  onClick,
+  active,
+  children,
+}: {
+  label: string;
+  onClick: () => void;
+  active?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      title={label}
+      aria-label={label}
+      className="w-7 h-7 rounded-[var(--radius-sm)] flex items-center justify-center transition-colors cursor-pointer"
+      style={{ color: active ? "var(--accent)" : "var(--fg3)" }}
+      onMouseEnter={(e) => {
+        if (!active) e.currentTarget.style.color = "var(--fg1)";
+        e.currentTarget.style.background = "var(--muted)";
+      }}
+      onMouseLeave={(e) => {
+        if (!active) e.currentTarget.style.color = "var(--fg3)";
+        e.currentTarget.style.background = "transparent";
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+// Read-aloud: fetch TTS once, cache the blob URL for replays, toggle to stop.
+function ReadAloudButton({ text }: { text: string }) {
+  const [state, setState] = useState<"idle" | "loading" | "playing">("idle");
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const urlRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    return () => {
+      audioRef.current?.pause();
+      if (urlRef.current) URL.revokeObjectURL(urlRef.current);
+    };
+  }, []);
+
+  async function toggle() {
+    if (state === "playing") {
+      audioRef.current?.pause();
+      if (audioRef.current) audioRef.current.currentTime = 0;
+      setState("idle");
+      return;
+    }
+    if (state === "loading") return;
+    try {
+      if (!urlRef.current) {
+        setState("loading");
+        const speakable = stripForSpeech(text);
+        if (!speakable) {
+          setState("idle");
+          return;
+        }
+        const blob = await fetchSpeech(speakable);
+        urlRef.current = URL.createObjectURL(blob);
+        const audio = new Audio(urlRef.current);
+        audio.onended = () => setState("idle");
+        audioRef.current = audio;
+      }
+      await audioRef.current!.play();
+      setState("playing");
+    } catch {
+      setState("idle");
+    }
+  }
+
+  return (
+    <ActionButton
+      label={state === "playing" ? t("voiceStopAudio") : t("voiceReadAloud")}
+      active={state === "playing"}
+      onClick={toggle}
+    >
+      {state === "loading" ? (
+        <svg className="w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" d="M12 2a10 10 0 0 1 10 10" />
+        </svg>
+      ) : state === "playing" ? (
+        <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+          <rect x="6" y="6" width="12" height="12" rx="2" />
+        </svg>
+      ) : (
+        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+          <path d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z" />
+          <path d="M16 9a5 5 0 0 1 0 6" />
+          <path d="M19.364 18.364a9 9 0 0 0 0-12.728" />
+        </svg>
+      )}
+    </ActionButton>
+  );
+}
+
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <ActionButton
+      label={copied ? t("copied") : t("copy")}
+      onClick={() => {
+        navigator.clipboard?.writeText(text).then(() => {
+          setCopied(true);
+          setTimeout(() => setCopied(false), 1500);
+        });
+      }}
+    >
+      {copied ? (
+        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--accent)" }}>
+          <path d="M20 6L9 17l-5-5" />
+        </svg>
+      ) : (
+        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+          <rect x="9" y="9" width="13" height="13" rx="2" />
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+        </svg>
+      )}
+    </ActionButton>
+  );
 }
 
 function CitationBadge({
@@ -48,10 +182,19 @@ const CITE_SPLIT = /(\u200Bcite:\d+\u200B)/g;
 // below (`/src_(\d+)/gi`) keeps only the src_N tokens and drops the prose.
 const SRC_GROUP_REGEX = /\[[^\]]*?src_\d+[^\]]*\](?!\()/gi;
 
-export default function MessageBubble({ message, onSourceClick }: Props) {
+export default function MessageBubble({
+  message,
+  onSourceClick,
+  onRegenerate,
+  onEditResend,
+  onFeedback,
+  ttsEnabled,
+}: Props) {
   useLocale();
   const [thinkingExpanded, setThinkingExpanded] = useState(false);
   const [userCollapsed, setUserCollapsed] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState("");
   const thinkingScrollRef = useRef<HTMLDivElement>(null);
   const isUser = message.role === "user";
 
@@ -95,16 +238,87 @@ export default function MessageBubble({ message, onSourceClick }: Props) {
   }, [message.content, message.sources]);
 
   if (isUser) {
+    if (editing) {
+      const submitEdit = () => {
+        const next = draft.trim();
+        setEditing(false);
+        if (next && next !== message.content) {
+          onEditResend?.(message.id, next);
+        }
+      };
+      return (
+        <div className="flex justify-end">
+          <div className="max-w-[85%] md:max-w-[70%] w-full space-y-1.5">
+            <textarea
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  submitEdit();
+                }
+                if (e.key === "Escape") setEditing(false);
+              }}
+              autoFocus
+              rows={Math.min(6, Math.max(2, draft.split("\n").length))}
+              className="w-full rounded-2xl rounded-br-md px-4 py-2.5 text-[14px] leading-[1.55] outline-none border resize-none"
+              style={{
+                background: "var(--card)",
+                borderColor: "var(--ring)",
+                color: "var(--fg1)",
+              }}
+            />
+            <div className="flex justify-end gap-1.5">
+              <button
+                onClick={() => setEditing(false)}
+                className="text-[12px] px-3 py-1.5 rounded-[var(--radius)] transition-colors cursor-pointer"
+                style={{ background: "var(--muted)", color: "var(--fg1)" }}
+              >
+                {t("cancel")}
+              </button>
+              <button
+                onClick={submitEdit}
+                disabled={!draft.trim()}
+                className="text-[12px] px-3 py-1.5 rounded-[var(--radius)] font-medium transition-all active:scale-[0.98] disabled:opacity-40 cursor-pointer"
+                style={{ background: "var(--accent)", color: "var(--accent-fg)" }}
+              >
+                {t("saveAndResend")}
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="flex justify-end">
-        <div
-          className="max-w-[85%] md:max-w-[70%] rounded-2xl rounded-br-md px-4 py-2.5 text-[14px] leading-[1.55] whitespace-pre-wrap"
-          style={{
-            background: "var(--primary)",
-            color: "var(--primary-fg)",
-          }}
-        >
-          {message.content}
+        <div className="group max-w-[85%] md:max-w-[70%] flex flex-col items-end">
+          <div
+            className="rounded-2xl rounded-br-md px-4 py-2.5 text-[14px] leading-[1.55] whitespace-pre-wrap"
+            style={{
+              background: "var(--primary)",
+              color: "var(--primary-fg)",
+            }}
+          >
+            {message.content}
+          </div>
+          {/* Hover action row — copy / edit-and-resend */}
+          <div className="flex gap-0.5 mt-1 opacity-0 group-hover:opacity-100 pointer-coarse:opacity-100 transition-opacity">
+            <CopyButton text={message.content} />
+            {onEditResend && (
+              <ActionButton
+                label={t("editMessage")}
+                onClick={() => {
+                  setDraft(message.content);
+                  setEditing(true);
+                }}
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                </svg>
+              </ActionButton>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -118,7 +332,7 @@ export default function MessageBubble({ message, onSourceClick }: Props) {
 
   return (
     <div className="flex justify-start">
-      <div className="max-w-[85%] md:max-w-[80%] space-y-2 w-full">
+      <div className="group max-w-[85%] md:max-w-[80%] space-y-2 w-full">
         {/* Thinking steps card */}
         {hasThinking && (
           <div
@@ -320,6 +534,67 @@ export default function MessageBubble({ message, onSourceClick }: Props) {
             </div>
           )}
         </div>
+
+        {/* Action row — copy / regenerate / feedback. Hidden while streaming;
+            revealed on hover (always visible on touch devices). */}
+        {!message.isStreaming && message.content && (
+          <div className="flex gap-0.5 -mt-0.5 opacity-0 group-hover:opacity-100 pointer-coarse:opacity-100 transition-opacity">
+            <CopyButton text={message.content} />
+            {ttsEnabled && <ReadAloudButton text={message.content} />}
+            {onRegenerate && (
+              <ActionButton label={t("regenerate")} onClick={onRegenerate}>
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 12a9 9 0 1 1-2.64-6.36" />
+                  <path d="M21 3v6h-6" />
+                </svg>
+              </ActionButton>
+            )}
+            {onFeedback && (
+              <>
+                <ActionButton
+                  label={t("goodResponse")}
+                  active={message.feedback === "up"}
+                  onClick={() => {
+                    if (message.feedback !== "up") onFeedback(message.id, "up");
+                  }}
+                >
+                  <svg
+                    className="w-3.5 h-3.5"
+                    fill={message.feedback === "up" ? "currentColor" : "none"}
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M7 10v12" />
+                    <path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z" />
+                  </svg>
+                </ActionButton>
+                <ActionButton
+                  label={t("badResponse")}
+                  active={message.feedback === "down"}
+                  onClick={() => {
+                    if (message.feedback !== "down") onFeedback(message.id, "down");
+                  }}
+                >
+                  <svg
+                    className="w-3.5 h-3.5"
+                    fill={message.feedback === "down" ? "currentColor" : "none"}
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M17 14V2" />
+                    <path d="M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a3.13 3.13 0 0 1-3-3.88Z" />
+                  </svg>
+                </ActionButton>
+              </>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

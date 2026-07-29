@@ -100,6 +100,38 @@ export const loginEvents = sqliteTable("login_events", {
   createdAt: integer("created_at").notNull().default(sql`(unixepoch() * 1000)`),
 });
 
+// Assistant personas ("souls"). A soul IS a SOUL.md file — `soul` stores the
+// verbatim file (optional frontmatter + persona body). Name / description /
+// starters / mode / collection are parsed from the frontmatter at save time
+// (src/lib/souls.ts) and cached in columns for listing without re-parsing.
+export const assistants = sqliteTable("assistants", {
+  id: text("id").primaryKey(),
+  // Set only for repo-shipped souls (src/lib/builtin-souls.ts). Seeding
+  // inserts missing keys only, so a "removed" (disabled) builtin is never
+  // resurrected on restart — restore = re-enable the existing row.
+  builtinKey: text("builtin_key").unique(),
+  name: text("name").notNull(),
+  description: text("description").notNull().default(""),
+  soul: text("soul").notNull(),
+  // JSON array of suggested questions (frontmatter `starters:`); shown on the
+  // empty chat screen instead of the global starter prompts.
+  starters: text("starters").notNull().default("[]"),
+  // Advisory defaults applied client-side when a chat starts with this soul.
+  mode: text("mode", { enum: ["chat", "deep-research"] }),
+  collectionId: text("collection_id"),
+  // builtin/global = visible to everyone; group = that group only;
+  // user = personal to its creator.
+  scope: text("scope", { enum: ["builtin", "global", "group", "user"] }).notNull(),
+  groupId: text("group_id").references(() => groups.id, { onDelete: "cascade" }),
+  userId: text("user_id").references(() => users.id, { onDelete: "cascade" }),
+  enabled: integer("enabled").notNull().default(1),
+  // Import provenance (soulweaver): source URL + recovered EIP-191 signer.
+  sourceUrl: text("source_url"),
+  verifiedSigner: text("verified_signer"),
+  createdAt: integer("created_at").notNull().default(sql`(unixepoch() * 1000)`),
+  updatedAt: integer("updated_at").notNull().default(sql`(unixepoch() * 1000)`),
+});
+
 export const chatSessions = sqliteTable("chat_sessions", {
   id: text("id").primaryKey(),
   userId: text("user_id")
@@ -109,6 +141,15 @@ export const chatSessions = sqliteTable("chat_sessions", {
   // Opaque conversation_memory blob (JSON string) replayed to the backend on
   // each turn. Nullable — null/absent means "no memory yet" (turn 1 behavior).
   memory: text("memory"),
+  // Pinned chats sort above the time-grouped list in the sidebar. Toggling
+  // pinned deliberately does NOT bump updatedAt (would reorder the list).
+  pinned: integer("pinned").notNull().default(0),
+  // Soul this chat was started with (null = plain Cortex). The client sends
+  // assistant_id on every /api/ask/stream turn; this column makes the choice
+  // survive reload/device-switch.
+  assistantId: text("assistant_id").references(() => assistants.id, {
+    onDelete: "set null",
+  }),
   createdAt: integer("created_at").notNull().default(sql`(unixepoch() * 1000)`),
   updatedAt: integer("updated_at").notNull().default(sql`(unixepoch() * 1000)`),
 });
@@ -128,7 +169,9 @@ export const chatMessages = sqliteTable("chat_messages", {
 export const usageEvents = sqliteTable("usage_events", {
   id: text("id").primaryKey(),
   userId: text("user_id").references(() => users.id, { onDelete: "set null" }),
-  kind: text("kind", { enum: ["message", "upload", "login"] }).notNull(),
+  // "feedback" rows carry {sessionId, messageId, rating: "up"|"down"} in
+  // metadata — written by POST /api/me/feedback, surfaced in admin analytics.
+  kind: text("kind", { enum: ["message", "upload", "login", "feedback"] }).notNull(),
   collectionId: text("collection_id"),
   // JSON-encoded payload (e.g. filename, token counts, mode).
   metadata: text("metadata").notNull().default("{}"),
@@ -150,6 +193,7 @@ export type Session = typeof sessions.$inferSelect;
 export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
 export type Registration = typeof registrations.$inferSelect;
 export type LoginEvent = typeof loginEvents.$inferSelect;
+export type Assistant = typeof assistants.$inferSelect;
 export type ChatSessionRow = typeof chatSessions.$inferSelect;
 export type ChatMessageRow = typeof chatMessages.$inferSelect;
 export type UsageEvent = typeof usageEvents.$inferSelect;

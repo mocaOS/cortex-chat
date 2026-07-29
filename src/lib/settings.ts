@@ -13,6 +13,9 @@ export const DEFAULT_CORTEX_ANALYTICS_TEMPLATE = "";
 export const DEFAULT_SUPPORT_URL = "";
 export const DEFAULT_SUPPORT_LABEL = "";
 export const DEFAULT_REGISTRATION_NOTIFY_EMAILS = "";
+// Newline-separated suggested questions shown as cards on the empty chat
+// screen. Empty default — no cards unless an admin adds some.
+export const DEFAULT_STARTER_PROMPTS = "";
 // MOCA design-system accent (warm yellow-green). Single source of truth —
 // duplicated nowhere except the hardcoded client-side fetch-failure fallback.
 export const DEFAULT_ACCENT_COLOR = "oklch(0.79 0.18 70.67)";
@@ -39,6 +42,7 @@ const TEXT_KEYS = [
   "supportUrl",
   "supportLabel",
   "registrationNotifyEmails",
+  "starterPrompts",
 ] as const;
 const LOCALE_KEY = "locale";
 const CHAT_MODE_KEY = "defaultChatMode";
@@ -60,6 +64,7 @@ export interface AppSettings {
   supportUrl: string;
   supportLabel: string;
   registrationNotifyEmails: string;
+  starterPrompts: string;
   locale: Locale;
   defaultChatMode: ChatMode;
   logoFile: string | null;
@@ -90,6 +95,7 @@ export function getAppSettings(): AppSettings {
     registrationNotifyEmails:
       map.get("registrationNotifyEmails") ||
       DEFAULT_REGISTRATION_NOTIFY_EMAILS,
+    starterPrompts: map.get("starterPrompts") || DEFAULT_STARTER_PROMPTS,
     locale: normalizeLocale(map.get(LOCALE_KEY)),
     defaultChatMode: normalizeChatMode(map.get(CHAT_MODE_KEY)),
     logoFile: map.get(LOGO_KEY) || null,
@@ -108,6 +114,7 @@ export function setTextSettings(
       | "supportUrl"
       | "supportLabel"
       | "registrationNotifyEmails"
+      | "starterPrompts"
     >
   >
 ) {
@@ -175,6 +182,17 @@ export function setLogoFile(filename: string | null) {
         .run();
     }
   });
+}
+
+// Shared by /api/config, the layout seed, and the admin validator so they can
+// never disagree on what renders. One prompt per line; the empty-state UI
+// shows at most 4 cards, so the parser caps there.
+export function parseStarterPrompts(raw: string): string[] {
+  return raw
+    .split(/\n/)
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .slice(0, 4);
 }
 
 // Tokenizer shared by the settings validator and the registration-notify send

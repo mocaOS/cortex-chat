@@ -10,10 +10,12 @@ import {
   DEFAULT_CORTEX_ANALYTICS_TEMPLATE,
   DEFAULT_LOCALE,
   DEFAULT_REGISTRATION_NOTIFY_EMAILS,
+  DEFAULT_STARTER_PROMPTS,
   DEFAULT_SUPPORT_LABEL,
   DEFAULT_SUPPORT_URL,
   getAppSettings,
   parseNotifyRecipients,
+  parseStarterPrompts,
   setDefaultChatMode,
   setLocale,
   setTextSettings,
@@ -33,6 +35,7 @@ function serialize() {
     supportUrl: s.supportUrl,
     supportLabel: s.supportLabel,
     registrationNotifyEmails: s.registrationNotifyEmails,
+    starterPrompts: s.starterPrompts,
     emailConfigured: isEmailConfigured(),
     locale: s.locale,
     defaultChatMode: s.defaultChatMode,
@@ -59,6 +62,7 @@ export async function GET() {
       locale: DEFAULT_LOCALE,
       defaultChatMode: DEFAULT_CHAT_MODE,
       registrationNotifyEmails: DEFAULT_REGISTRATION_NOTIFY_EMAILS,
+      starterPrompts: DEFAULT_STARTER_PROMPTS,
     },
     cortexAnalyticsVariables: CORTEX_ANALYTICS_VARIABLES,
   });
@@ -95,6 +99,9 @@ const Body = z.object({
   // Newline/comma-separated recipient list. Validated + normalized in the
   // handler so we can return a 400 that names the offending address.
   registrationNotifyEmails: z.string().max(4000).optional(),
+  // Newline-separated suggested questions for the empty chat screen. The UI
+  // renders at most 4; each line is length-capped in the handler.
+  starterPrompts: z.string().max(2000).optional(),
   locale: z.enum(["en", "de"]).optional(),
   defaultChatMode: z.enum(["chat", "deep-research"]).optional(),
 });
@@ -131,6 +138,21 @@ export async function PATCH(request: Request) {
     }
     // Persist the cleaned form (trimmed / lowercased / deduped / newline-joined).
     text.registrationNotifyEmails = recipients.join("\n");
+  }
+
+  // Normalize starter prompts with the same parser the render path uses, so
+  // what the admin saved is exactly what the empty state shows (max 4 lines).
+  if (text.starterPrompts !== undefined && text.starterPrompts !== "") {
+    const prompts = parseStarterPrompts(text.starterPrompts);
+    for (const p of prompts) {
+      if (p.length > 200) {
+        return NextResponse.json(
+          { error: "Starter prompts must be at most 200 characters each." },
+          { status: 400 }
+        );
+      }
+    }
+    text.starterPrompts = prompts.join("\n");
   }
 
   setTextSettings(text);

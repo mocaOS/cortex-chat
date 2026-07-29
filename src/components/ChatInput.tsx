@@ -4,6 +4,7 @@ import { useState, useRef } from "react";
 import { Mode } from "@/types";
 import { t } from "@/lib/i18n";
 import { useLocale } from "@/lib/i18n-client";
+import { transcribeAudio } from "@/lib/voice-client";
 
 interface Props {
   onSend: (message: string) => void;
@@ -15,6 +16,10 @@ interface Props {
   onModeChange: (mode: Mode) => void;
   onSettingsClick: () => void;
   collectionName: string | null;
+  // Active soul name — shown as a chip so an ongoing chat reveals its persona.
+  assistantName?: string | null;
+  // Server-side STT configured — shows the dictation mic.
+  sttEnabled?: boolean;
 }
 
 export default function ChatInput({
@@ -26,10 +31,59 @@ export default function ChatInput({
   onModeChange,
   onSettingsClick,
   collectionName,
+  assistantName,
+  sttEnabled,
 }: Props) {
   useLocale();
   const [input, setInput] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Dictation: MediaRecorder → /api/voice/transcribe → append to the input.
+  const [recording, setRecording] = useState(false);
+  const [transcribing, setTranscribing] = useState(false);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+
+  async function toggleRecording() {
+    if (recording) {
+      recorderRef.current?.stop();
+      return;
+    }
+    if (transcribing) return;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mime = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+        ? "audio/webm;codecs=opus"
+        : undefined;
+      const rec = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+      chunksRef.current = [];
+      rec.ondataavailable = (e) => {
+        if (e.data.size) chunksRef.current.push(e.data);
+      };
+      rec.onstop = async () => {
+        stream.getTracks().forEach((track) => track.stop());
+        setRecording(false);
+        const blob = new Blob(chunksRef.current, {
+          type: rec.mimeType || "audio/webm",
+        });
+        if (blob.size < 200) return; // tap without speech — nothing to send
+        setTranscribing(true);
+        try {
+          const text = await transcribeAudio(blob);
+          if (text) setInput((prev) => (prev ? `${prev} ${text}` : text));
+        } catch {
+          /* transcription failed — leave the input untouched */
+        }
+        setTranscribing(false);
+        inputRef.current?.focus();
+      };
+      recorderRef.current = rec;
+      rec.start();
+      setRecording(true);
+    } catch {
+      /* mic permission denied or unavailable */
+    }
+  }
 
   const handleSubmit = () => {
     if (!input.trim() || isLoading) return;
@@ -123,6 +177,28 @@ export default function ChatInput({
               className="flex-1 bg-transparent outline-none text-sm text-[var(--fg1)] placeholder:text-[var(--fg3)] px-2"
             />
 
+            {assistantName && (
+              <span
+                className="hidden sm:inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] text-[var(--fg2)] whitespace-nowrap"
+                style={{ background: "var(--muted)" }}
+                title={`${t("soulActive")}: ${assistantName}`}
+              >
+                <svg
+                  className="w-3 h-3 flex-shrink-0"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  style={{ color: "var(--accent)" }}
+                >
+                  <path d="M12 3l1.9 5.8L20 10l-5.8 1.9L12 18l-1.9-5.8L4 10l6.1-1.2L12 3z" />
+                </svg>
+                <span className="truncate max-w-[110px]">{assistantName}</span>
+              </span>
+            )}
+
             <span
               className="hidden sm:inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] text-[var(--fg2)] whitespace-nowrap"
               style={{ background: "var(--muted)" }}
@@ -140,6 +216,47 @@ export default function ChatInput({
                 {collectionName || t("allCollections")}
               </span>
             </span>
+
+            {sttEnabled && !isLoading && (
+              <button
+                onClick={toggleRecording}
+                disabled={transcribing}
+                className={`flex-shrink-0 w-8 h-8 rounded-[var(--radius-md)] flex items-center justify-center transition-colors ${recording ? "animate-pulse" : ""}`}
+                style={
+                  recording
+                    ? {
+                        background:
+                          "color-mix(in oklch, var(--destructive) 18%, transparent)",
+                        color: "var(--destructive)",
+                      }
+                    : { color: "var(--fg2)" }
+                }
+                onMouseEnter={(e) => {
+                  if (!recording) e.currentTarget.style.color = "var(--fg1)";
+                }}
+                onMouseLeave={(e) => {
+                  if (!recording) e.currentTarget.style.color = "var(--fg2)";
+                }}
+                title={recording ? t("voiceStopRecording") : t("voiceDictate")}
+                aria-label={recording ? t("voiceStopRecording") : t("voiceDictate")}
+              >
+                {transcribing ? (
+                  <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" d="M12 2a10 10 0 0 1 10 10" />
+                  </svg>
+                ) : recording ? (
+                  <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+                    <rect x="6" y="6" width="12" height="12" rx="2" />
+                  </svg>
+                ) : (
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                    <path d="M12 19v3" />
+                  </svg>
+                )}
+              </button>
+            )}
 
             {isLoading ? (
               <button

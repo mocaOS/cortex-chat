@@ -1,0 +1,1 @@
+ALTER TABLE `chat_sessions` ADD `pinned` integer DEFAULT 0 NOT NULL;

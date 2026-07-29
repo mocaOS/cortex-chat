@@ -1,0 +1,46 @@
+import { NextResponse } from "next/server";
+import { and, eq } from "drizzle-orm";
+import { db } from "@/lib/db/client";
+import { assistants } from "@/lib/db/schema";
+import { requireAuth } from "@/lib/auth/session";
+import { getUsableAssistant, toAssistantSummary } from "@/lib/souls";
+
+export const dynamic = "force-dynamic";
+
+interface Ctx {
+  params: Promise<{ id: string }>;
+}
+
+// Full soul (including the file content) — used by the export button. Any
+// soul the user can chat with can also be exported; portability is the point.
+export async function GET(_: Request, ctx: Ctx) {
+  const { user } = await requireAuth();
+  const { id } = await ctx.params;
+  const a = getUsableAssistant(user, id);
+  if (!a) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+  return NextResponse.json({
+    assistant: { ...toAssistantSummary(a, user.id), soul: a.soul },
+  });
+}
+
+// Users can delete only their own personal souls.
+export async function DELETE(_: Request, ctx: Ctx) {
+  const { user } = await requireAuth();
+  const { id } = await ctx.params;
+  const result = db
+    .delete(assistants)
+    .where(
+      and(
+        eq(assistants.id, id),
+        eq(assistants.scope, "user"),
+        eq(assistants.userId, user.id)
+      )
+    )
+    .run();
+  if (result.changes === 0) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+  return NextResponse.json({ ok: true });
+}

@@ -1,6 +1,6 @@
 "use client";
 
-import { ChatMessage, Source } from "@/types";
+import { AssistantSummary, ChatMessage, Source } from "@/types";
 import { t } from "@/lib/i18n";
 import { useLocale } from "@/lib/i18n-client";
 import MessageBubble from "./MessageBubble";
@@ -10,6 +10,20 @@ interface Props {
   onSourceClick: (source: Source) => void;
   emptyTitle?: string;
   emptyDescription?: string;
+  // Admin-curated suggested questions rendered as cards on the empty state.
+  starterPrompts?: string[];
+  onStarterClick?: (question: string) => void;
+  isLoading?: boolean;
+  onRegenerate?: () => void;
+  onEditResend?: (messageId: string, newContent: string) => void;
+  onFeedback?: (messageId: string, rating: "up" | "down") => void;
+  // Souls: picker on the empty state. null = plain Cortex.
+  assistants?: AssistantSummary[];
+  activeAssistantId?: string | null;
+  onSelectAssistant?: (id: string | null) => void;
+  onManageSouls?: () => void;
+  // Server-side TTS configured — read-aloud button on assistant messages.
+  ttsEnabled?: boolean;
 }
 
 export default function MessageList({
@@ -17,8 +31,27 @@ export default function MessageList({
   onSourceClick,
   emptyTitle,
   emptyDescription,
+  starterPrompts,
+  onStarterClick,
+  isLoading,
+  onRegenerate,
+  onEditResend,
+  onFeedback,
+  assistants,
+  activeAssistantId,
+  onSelectAssistant,
+  onManageSouls,
+  ttsEnabled,
 }: Props) {
   useLocale();
+
+  // Per-soul starters replace the global cards when a soul is selected.
+  const activeAssistant =
+    (activeAssistantId && assistants?.find((a) => a.id === activeAssistantId)) ||
+    null;
+  const effectiveStarters = activeAssistant?.starters.length
+    ? activeAssistant.starters
+    : starterPrompts;
 
   if (messages.length === 0) {
     return (
@@ -48,23 +81,145 @@ export default function MessageList({
           {emptyTitle || t("emptyTitle")}
         </h2>
         <p className="text-[13px] max-w-md" style={{ color: "var(--fg2)" }}>
-          {emptyDescription || t("emptyDescription")}
+          {activeAssistant?.description || emptyDescription || t("emptyDescription")}
         </p>
+
+        {/* Soul picker — "Cortex" default + every soul the user can use */}
+        {onSelectAssistant && (assistants?.length || onManageSouls) ? (
+          <div className="flex flex-wrap items-center justify-center gap-1.5 mt-5 max-w-xl">
+            <SoulChip
+              label={t("soulDefaultCortex")}
+              active={!activeAssistantId}
+              onClick={() => onSelectAssistant(null)}
+            />
+            {assistants?.map((a) => (
+              <SoulChip
+                key={a.id}
+                label={a.name}
+                title={a.description || undefined}
+                active={a.id === activeAssistantId}
+                onClick={() => onSelectAssistant(a.id)}
+              />
+            ))}
+            {onManageSouls && (
+              <button
+                onClick={onManageSouls}
+                className="w-7 h-7 rounded-full border flex items-center justify-center transition-colors cursor-pointer"
+                style={{ borderColor: "var(--border)", color: "var(--fg2)" }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = "var(--fg1)";
+                  e.currentTarget.style.background = "var(--muted)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = "var(--fg2)";
+                  e.currentTarget.style.background = "transparent";
+                }}
+                title={t("soulsManage")}
+                aria-label={t("soulsManage")}
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 5v14" />
+                  <path d="M5 12h14" />
+                </svg>
+              </button>
+            )}
+          </div>
+        ) : null}
+
+        {/* Starter prompt cards — one click submits the question */}
+        {effectiveStarters && effectiveStarters.length > 0 && onStarterClick && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-6 w-full max-w-xl">
+            {effectiveStarters.slice(0, 4).map((prompt) => (
+              <button
+                key={prompt}
+                onClick={() => onStarterClick(prompt)}
+                className="text-left text-[12.5px] leading-snug rounded-[var(--radius)] border px-3.5 py-3 transition-colors cursor-pointer"
+                style={{
+                  background: "var(--card)",
+                  borderColor: "var(--border)",
+                  color: "var(--fg1)",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = "var(--ring)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = "var(--border)";
+                }}
+              >
+                {prompt}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     );
   }
 
+  const lastIdx = messages.length - 1;
+
   return (
     <div className="h-full overflow-y-auto px-4 py-6">
       <div className="max-w-3xl mx-auto space-y-4 pb-8">
-        {messages.map((msg) => (
+        {messages.map((msg, i) => (
           <MessageBubble
             key={msg.id}
             message={msg}
             onSourceClick={onSourceClick}
+            // Regenerate is only offered on the final answer of the thread.
+            onRegenerate={
+              i === lastIdx && msg.role === "assistant" && !isLoading
+                ? onRegenerate
+                : undefined
+            }
+            onEditResend={!isLoading ? onEditResend : undefined}
+            onFeedback={onFeedback}
+            ttsEnabled={ttsEnabled}
           />
         ))}
       </div>
     </div>
+  );
+}
+
+// Pill-shaped soul selector chip. Accent marks the active persona (a "live"
+// state per the design system).
+function SoulChip({
+  label,
+  title,
+  active,
+  onClick,
+}: {
+  label: string;
+  title?: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      className="px-3 py-1.5 rounded-full border text-[12px] font-medium transition-colors cursor-pointer max-w-[180px] truncate"
+      style={
+        active
+          ? {
+              background: "var(--accent)",
+              borderColor: "var(--accent)",
+              color: "var(--accent-fg)",
+            }
+          : {
+              background: "var(--card)",
+              borderColor: "var(--border)",
+              color: "var(--fg1)",
+            }
+      }
+      onMouseEnter={(e) => {
+        if (!active) e.currentTarget.style.borderColor = "var(--ring)";
+      }}
+      onMouseLeave={(e) => {
+        if (!active) e.currentTarget.style.borderColor = "var(--border)";
+      }}
+    >
+      {label}
+    </button>
   );
 }

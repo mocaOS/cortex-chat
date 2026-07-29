@@ -29,6 +29,7 @@ interface Settings {
   locale: Locale;
   defaultChatMode: ChatMode;
   registrationNotifyEmails: string;
+  starterPrompts: string;
   hasCustomLogo: boolean;
   logoUrl: string;
   emailConfigured: boolean;
@@ -44,6 +45,7 @@ interface Defaults {
   locale: Locale;
   defaultChatMode: ChatMode;
   registrationNotifyEmails: string;
+  starterPrompts: string;
 }
 
 export default function AdminSettingsPage() {
@@ -62,6 +64,7 @@ export default function AdminSettingsPage() {
   const [locale, setLocaleState] = useState<Locale>("en");
   const [defaultChatMode, setDefaultChatMode] = useState<ChatMode>("chat");
   const [registrationNotifyEmails, setRegistrationNotifyEmails] = useState("");
+  const [starterPrompts, setStarterPrompts] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [logoBusy, setLogoBusy] = useState(false);
@@ -89,6 +92,7 @@ export default function AdminSettingsPage() {
       setLocaleState(data.settings.locale);
       setDefaultChatMode(data.settings.defaultChatMode ?? "chat");
       setRegistrationNotifyEmails(data.settings.registrationNotifyEmails ?? "");
+      setStarterPrompts(data.settings.starterPrompts ?? "");
     } catch (err) {
       setError(err instanceof Error ? err.message : t("failedToLoad"));
     } finally {
@@ -109,6 +113,7 @@ export default function AdminSettingsPage() {
       supportUrl: string;
       supportLabel: string;
       registrationNotifyEmails: string;
+      starterPrompts: string;
       locale: Locale;
       defaultChatMode: ChatMode;
     }>
@@ -134,6 +139,7 @@ export default function AdminSettingsPage() {
       setLocaleState(data.settings.locale);
       setDefaultChatMode(data.settings.defaultChatMode ?? "chat");
       setRegistrationNotifyEmails(data.settings.registrationNotifyEmails ?? "");
+      setStarterPrompts(data.settings.starterPrompts ?? "");
       setI18nLocale(data.settings.locale);
       if (data.settings.accentColor) {
         document.documentElement.style.setProperty(
@@ -159,6 +165,7 @@ export default function AdminSettingsPage() {
       supportUrl,
       supportLabel,
       registrationNotifyEmails,
+      starterPrompts,
       locale,
       defaultChatMode,
     });
@@ -428,6 +435,26 @@ export default function AdminSettingsPage() {
               style={{ color: "var(--fg2)" }}
             >
               {t("defaultChatModeHint")}
+            </p>
+
+            <div
+              className="pt-2 mt-2 border-t"
+              style={{ borderColor: "var(--border)" }}
+            />
+
+            <Textarea
+              label={t("starterPromptsLabel")}
+              value={starterPrompts}
+              onChange={(e) => setStarterPrompts(e.target.value)}
+              maxLength={2000}
+              rows={4}
+              placeholder={t("starterPromptsPlaceholder")}
+            />
+            <p
+              className="text-[11.5px] -mt-2"
+              style={{ color: "var(--fg2)" }}
+            >
+              {t("starterPromptsHint")}
             </p>
 
             <div

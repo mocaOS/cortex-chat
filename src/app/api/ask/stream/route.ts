@@ -10,51 +10,10 @@ import {
   injectCortexAnalytics,
   renderCortexAnalytics,
 } from "@/lib/cortex-analytics";
+import { getUsableAssistant, parseSoulFile } from "@/lib/souls";
+import { fetchUpstreamWithRetry } from "@/lib/upstream-sse";
 
 export const dynamic = "force-dynamic";
-
-// Transient upstream failures (backend restarting, Neo4j blip -> 503 with
-// Retry-After, proxy hiccup -> 502/504, connect refused) are retried here,
-// server-side, BEFORE any SSE bytes have flowed — the browser client treats
-// every non-ok status as terminal, so retrying past the blip must happen in
-// this route. Auth verdicts (401/403) are authoritative and never retried.
-const UPSTREAM_RETRIES = 2;
-const RETRY_DELAY_MS = [750, 1500];
-const MAX_RETRY_AFTER_MS = 3000;
-
-function retryDelayMs(res: Response | null, attempt: number): number {
-  const fallback = RETRY_DELAY_MS[attempt] ?? 1500;
-  const raw = res?.headers.get("Retry-After");
-  if (!raw) return fallback;
-  const secs = Number(raw);
-  if (!Number.isFinite(secs)) return fallback;
-  return Math.min(Math.max(secs * 1000, fallback), MAX_RETRY_AFTER_MS);
-}
-
-async function fetchUpstreamWithRetry(
-  url: string,
-  init: RequestInit,
-  signal: AbortSignal
-): Promise<Response> {
-  let lastResponse: Response | null = null;
-  for (let attempt = 0; ; attempt++) {
-    try {
-      lastResponse = await fetch(url, init);
-    } catch (err) {
-      // Connect failure — nothing was streamed, safe to retry the POST.
-      if (attempt >= UPSTREAM_RETRIES || signal.aborted) throw err;
-      await new Promise((r) => setTimeout(r, retryDelayMs(null, attempt)));
-      continue;
-    }
-    const transient = [502, 503, 504].includes(lastResponse.status);
-    if (!transient || attempt >= UPSTREAM_RETRIES || signal.aborted) {
-      return lastResponse;
-    }
-    await new Promise((r) =>
-      setTimeout(r, retryDelayMs(lastResponse, attempt))
-    );
-  }
-}
 
 /**
  * SSE streaming proxy with per-user key injection.
@@ -82,17 +41,43 @@ export async function POST(request: Request) {
   const apiUrl = getBackendUrl();
   const body = await request.text();
 
-  let collectionId: string | null = null;
+  let parsedBody: Record<string, unknown> | null = null;
   try {
-    collectionId = JSON.parse(body)?.collection_id ?? null;
+    parsedBody = JSON.parse(body);
   } catch {}
+  const collectionId =
+    typeof parsedBody?.collection_id === "string"
+      ? (parsedBody.collection_id as string)
+      : null;
+
+  // Soul selection rides as `assistant_id` — a chat-app concept, stripped
+  // before the request goes upstream. Scope-checked: users can only inject
+  // souls they are allowed to see (builtin/global, their group's, their own).
+  const assistantId =
+    typeof parsedBody?.assistant_id === "string"
+      ? (parsedBody.assistant_id as string)
+      : null;
+  let forwardBody = body;
+  if (parsedBody && "assistant_id" in parsedBody) {
+    delete parsedBody.assistant_id;
+    forwardBody = JSON.stringify(parsedBody);
+  }
+  let soulBody: string | null = null;
+  if (assistantId) {
+    const assistant = getUsableAssistant(ctx.user, assistantId);
+    if (assistant) soulBody = parseSoulFile(assistant.soul).body || null;
+  }
+
   db.insert(usageEvents)
     .values({
       id: newId(),
       userId: ctx.user.id,
       kind: "message",
       collectionId,
-      metadata: JSON.stringify({ path: "/api/ask/stream" }),
+      metadata: JSON.stringify({
+        path: "/api/ask/stream",
+        ...(assistantId ? { assistantId } : {}),
+      }),
     })
     .run();
 
@@ -100,7 +85,11 @@ export async function POST(request: Request) {
     getAppSettings().cortexAnalyticsTemplate,
     ctx.user
   );
-  const upstreamBody = injectCortexAnalytics(body, rendered);
+  // Both blocks prepend to conversation_history, so inject the soul first and
+  // the analytics block second — the final order is [analytics, soul, …turns].
+  // Neither is persisted to chat_messages nor ever echoed to the browser.
+  let upstreamBody = injectCortexAnalytics(forwardBody, soulBody);
+  upstreamBody = injectCortexAnalytics(upstreamBody, rendered);
 
   // Correlation id: reuse the client's, or mint one. The backend echoes and
   // forwards it to cortex-helper, so all three services log the same id.

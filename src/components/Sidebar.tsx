@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { ChatSession } from "@/types";
 import { CurrentUser } from "@/types/auth";
 import { t } from "@/lib/i18n";
@@ -14,6 +15,8 @@ interface Props {
   onSelectSession: (id: string) => void;
   onNewChat: () => void;
   onDeleteSession: (id: string) => void;
+  onTogglePin?: (id: string, pinned: boolean) => void;
+  onExportSession?: (id: string) => void;
   logoUrl: string;
   currentUser?: CurrentUser | null;
   onSignOut?: () => void;
@@ -36,7 +39,14 @@ function groupSessions(sessions: ChatSession[]) {
   const groups: { label: string; sessions: ChatSession[] }[] = [];
   const map = new Map<string, ChatSession[]>();
 
+  // Pinned chats form their own group above the time-grouped rest.
+  const pinned = sessions.filter((s) => s.pinned);
+  if (pinned.length > 0) {
+    groups.push({ label: t("pinned"), sessions: pinned });
+  }
+
   for (const s of sessions) {
+    if (s.pinned) continue;
     const label = timeLabel(s.updatedAt);
     if (!map.has(label)) {
       map.set(label, []);
@@ -56,12 +66,21 @@ export default function Sidebar({
   onSelectSession,
   onNewChat,
   onDeleteSession,
+  onTogglePin,
+  onExportSession,
   logoUrl,
   currentUser,
   onSignOut,
 }: Props) {
   useLocale();
-  const groups = groupSessions(sessions);
+  const [query, setQuery] = useState("");
+  const q = query.trim().toLowerCase();
+  const filtered = q
+    ? sessions.filter((s) =>
+        (s.title || t("untitledChat")).toLowerCase().includes(q)
+      )
+    : sessions;
+  const groups = groupSessions(filtered);
 
   return (
     <>
@@ -128,10 +147,48 @@ export default function Sidebar({
             </svg>
             {t("newChat")}
           </button>
+
+          {/* Title search */}
+          <div
+            className="mt-2 flex items-center gap-2 rounded-[var(--radius)] border px-2.5 h-8"
+            style={{ borderColor: "var(--border)", background: "transparent" }}
+          >
+            <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--fg3)" }}>
+              <circle cx="11" cy="11" r="8" />
+              <path d="M21 21l-4.35-4.35" />
+            </svg>
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={t("searchChats")}
+              className="flex-1 bg-transparent outline-none text-[12.5px] text-[var(--fg1)] placeholder:text-[var(--fg3)] min-w-0"
+            />
+            {query && (
+              <button
+                onClick={() => setQuery("")}
+                className="flex-shrink-0"
+                style={{ color: "var(--fg3)" }}
+                aria-label={t("close")}
+              >
+                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Session list */}
         <div className="flex-1 overflow-y-auto px-2 pb-3">
+          {q && filtered.length === 0 && (
+            <p
+              className="px-2.5 py-2 text-[12px]"
+              style={{ color: "var(--fg3)" }}
+            >
+              {t("noChatsFound")}
+            </p>
+          )}
           {groups.map((group) => (
             <div key={group.label} className="mb-3">
               <div
@@ -166,6 +223,65 @@ export default function Sidebar({
                     >
                       {session.title || t("untitledChat")}
                     </span>
+                    {onTogglePin && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onTogglePin(session.id, !session.pinned);
+                        }}
+                        className={`${
+                          session.pinned
+                            ? ""
+                            : "opacity-0 group-hover:opacity-100 pointer-coarse:opacity-100"
+                        } w-6 h-6 flex-shrink-0 flex items-center justify-center rounded transition-all`}
+                        style={{ color: session.pinned ? "var(--fg2)" : "var(--fg3)" }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.color = "var(--fg1)";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.color = session.pinned
+                            ? "var(--fg2)"
+                            : "var(--fg3)";
+                        }}
+                        title={session.pinned ? t("unpinChat") : t("pinChat")}
+                      >
+                        <svg
+                          className="w-3.5 h-3.5"
+                          fill={session.pinned ? "currentColor" : "none"}
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth={2}
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M12 17v5" />
+                          <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z" />
+                        </svg>
+                      </button>
+                    )}
+                    {onExportSession && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onExportSession(session.id);
+                        }}
+                        className="opacity-0 group-hover:opacity-100 pointer-coarse:opacity-100 w-6 h-6 flex-shrink-0 flex items-center justify-center rounded transition-all"
+                        style={{ color: "var(--fg3)" }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.color = "var(--fg1)";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.color = "var(--fg3)";
+                        }}
+                        title={t("exportChat")}
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                          <path d="M7 10l5 5 5-5" />
+                          <path d="M12 15V3" />
+                        </svg>
+                      </button>
+                    )}
                     <button
                       onClick={(e) => {
                         e.stopPropagation();

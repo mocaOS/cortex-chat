@@ -36,6 +36,8 @@ export async function GET(_: Request, ctx: Ctx) {
   return NextResponse.json({
     id: session.id,
     title: session.title,
+    pinned: session.pinned,
+    assistantId: session.assistantId,
     memory: session.memory ? safeParse(session.memory) : undefined,
     createdAt: session.createdAt,
     updatedAt: session.updatedAt,
@@ -61,6 +63,10 @@ const MessageSchema = z.object({
   subQuestions: z.unknown().optional(),
   retrieval: z.unknown().optional(),
   retrievalStats: z.unknown().optional(),
+  // "up" | "down" once the user rated the answer — rides in metadata so the
+  // thumb state survives reload. The analytics row is written separately by
+  // POST /api/me/feedback.
+  feedback: z.unknown().optional(),
   isStreaming: z.boolean().optional(),
 });
 
@@ -69,6 +75,7 @@ const PatchBody = z.object({
   messages: z.array(MessageSchema).optional(),
   // Opaque memory blob — stored verbatim as a JSON string, never inspected.
   memory: z.unknown().optional(),
+  pinned: z.boolean().optional(),
 });
 
 export async function PATCH(request: Request, ctx: Ctx) {
@@ -87,6 +94,15 @@ export async function PATCH(request: Request, ctx: Ctx) {
   if (parsed.data.title !== undefined) {
     db.update(chatSessions)
       .set({ title: parsed.data.title, updatedAt: Date.now() })
+      .where(eq(chatSessions.id, id))
+      .run();
+  }
+
+  // Pin toggle deliberately does NOT bump updatedAt — pinning must not
+  // reorder the recency-grouped part of the sidebar.
+  if (parsed.data.pinned !== undefined) {
+    db.update(chatSessions)
+      .set({ pinned: parsed.data.pinned ? 1 : 0 })
       .where(eq(chatSessions.id, id))
       .run();
   }

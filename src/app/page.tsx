@@ -3,7 +3,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import * as Sentry from "@sentry/nextjs";
-import { ChatMessage, ChatSession, Mode, Settings, Source, GraphContext, RetrievalStats } from "@/types";
+import { AssistantSummary, ChatMessage, ChatSession, Mode, Settings, Source, GraphContext, RetrievalStats } from "@/types";
 import { CurrentUser } from "@/types/auth";
 import {
   askQuestion,
@@ -17,8 +17,12 @@ import {
   createChat,
   updateChatMessages,
   updateChatTitle,
+  setChatPinned,
   deleteChat,
 } from "@/lib/chatHistory";
+import { downloadChatMarkdown } from "@/lib/exportChat";
+import { listAssistants } from "@/lib/assistants-client";
+import SoulsModal from "@/components/souls/SoulsModal";
 import { t } from "@/lib/i18n";
 import { rateLimitMessage } from "@/lib/rate-limit-message";
 import { useLocale } from "@/lib/i18n-client";
@@ -123,11 +127,23 @@ export default function Home() {
   const [emptyDescription, setEmptyDescription] = useState<string | undefined>(
     () => getCachedConfig()?.appDescription
   );
+  const [starterPrompts, setStarterPrompts] = useState<string[]>(
+    () => getCachedConfig()?.starterPrompts ?? []
+  );
+  const [voice, setVoice] = useState<{ stt: boolean; tts: boolean }>(
+    () => getCachedConfig()?.voice ?? { stt: false, tts: false }
+  );
   const [configReady, setConfigReady] = useState(() => !!getCachedConfig());
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  // Souls (assistant personas). The active soul is fixed per chat: chosen on
+  // the empty screen, bound at chat creation, replayed per turn as
+  // assistant_id (the proxy injects the persona server-side).
+  const [assistants, setAssistants] = useState<AssistantSummary[]>([]);
+  const [activeAssistantId, setActiveAssistantId] = useState<string | null>(null);
+  const [soulsOpen, setSoulsOpen] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const titleGeneratedRef = useRef<Set<string>>(new Set());
   // Opaque conversation_memory blob for the active session. Held in a ref so
@@ -135,6 +151,13 @@ export default function Home() {
   // so updating it mid-stream doesn't trigger a re-render. Replayed verbatim on
   // each turn, replaced from the memory_update event, persisted with messages.
   const memoryRef = useRef<unknown>(undefined);
+  // One-turn snapshot: the blob as it was when the last question was SENT.
+  // The blob is server-compacted and can't be rewound, so regenerate (and
+  // editing the last question) replays this snapshot instead of the post-turn
+  // blob — otherwise the regenerated answer would "remember" the answer it is
+  // replacing. After a session load the best available value is the stored
+  // blob itself (slightly degraded, but honest).
+  const memoryAtSendRef = useRef<unknown>(undefined);
 
   const refreshSessions = useCallback(async () => {
     try {
@@ -145,12 +168,22 @@ export default function Home() {
     }
   }, []);
 
+  const refreshAssistants = useCallback(async () => {
+    try {
+      setAssistants(await listAssistants());
+    } catch {
+      /* souls are progressive enhancement — a failed load hides the picker */
+    }
+  }, []);
+
   // Load config, auth, collections, sessions on mount.
   useEffect(() => {
     getConfig().then((cfg) => {
       setLogoUrl(cfg.logoUrl || "/logo.png");
       setEmptyTitle(cfg.appTitle);
       setEmptyDescription(cfg.appDescription);
+      setStarterPrompts(cfg.starterPrompts ?? []);
+      setVoice(cfg.voice ?? { stt: false, tts: false });
       // When config wasn't seeded (direct fetch), apply the admin default —
       // unless the user already toggled the mode by hand.
       const dm = cfg.defaultChatMode ?? "chat";
@@ -176,13 +209,14 @@ export default function Home() {
             username: me.username || undefined,
           });
           refreshSessions();
+          refreshAssistants();
         }
       })
       .catch(() => {});
     fetchCollections()
       .then(setCollections)
       .catch(() => {});
-  }, [router, refreshSessions]);
+  }, [router, refreshSessions, refreshAssistants]);
 
   const handleSignOut = useCallback(async () => {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -217,6 +251,8 @@ export default function Home() {
         setActiveSessionId(id);
         setMessages(session.messages ?? []);
         memoryRef.current = session.memory;
+        memoryAtSendRef.current = session.memory;
+        setActiveAssistantId(session.assistantId ?? null);
         setIsLoading(false);
       }
     },
@@ -231,6 +267,8 @@ export default function Home() {
         setActiveSessionId(null);
         setMessages([]);
         memoryRef.current = undefined;
+        memoryAtSendRef.current = undefined;
+        setActiveAssistantId(null);
       }
     },
     [activeSessionId, refreshSessions]
@@ -240,26 +278,51 @@ export default function Home() {
     setActiveSessionId(null);
     setMessages([]);
     memoryRef.current = undefined;
+    memoryAtSendRef.current = undefined;
+    setActiveAssistantId(null);
     setIsLoading(false);
     // Every new conversation starts in the admin-configured default mode.
     modeTouchedRef.current = false;
     setMode(defaultMode);
   }, [defaultMode]);
 
+  // Picking a soul on the empty screen. Advisory defaults from the soul file
+  // (mode, collection scope) are applied here — the user can still change
+  // both before sending.
+  const handleSelectAssistant = useCallback(
+    (id: string | null) => {
+      setActiveAssistantId(id);
+      const soul = id ? assistants.find((a) => a.id === id) : null;
+      if (soul?.mode) {
+        modeTouchedRef.current = true;
+        setMode(soul.mode);
+      }
+      if (soul?.collectionId) {
+        setSettings((s) => ({ ...s, collectionId: soul.collectionId }));
+      }
+    },
+    [assistants]
+  );
+
   const handleSend = useCallback(
-    async (question: string) => {
+    // `baseOverride` lets regenerate / edit-and-resend rebuild the thread from
+    // a truncated prefix without racing the `messages` state update — the
+    // override IS the thread the new turn appends to.
+    async (question: string, baseOverride?: ChatMessage[]) => {
       if (!question.trim() || isLoading) return;
 
-      // Create session if none active
+      const base = baseOverride ?? messages;
+
+      // Create session if none active — bound to the chosen soul, if any.
       let sessionId = activeSessionId;
       if (!sessionId) {
-        const created = await createChat();
+        const created = await createChat(undefined, undefined, activeAssistantId);
         sessionId = created.id;
         setActiveSessionId(sessionId);
         refreshSessions();
       }
 
-      const isFirstMessage = messages.length === 0;
+      const isFirstMessage = base.length === 0;
 
       const userMsg: ChatMessage = {
         id: uid(),
@@ -284,14 +347,18 @@ export default function Home() {
         updateChatTitle(sessionId, question).then(refreshSessions).catch(() => {});
       }
 
-      setMessages((prev) => [...prev, userMsg, assistantMsg]);
+      setMessages([...base, userMsg, assistantMsg]);
       setIsLoading(true);
 
-      const conversationHistory = messages
+      const conversationHistory = base
         .filter((m) => !m.isStreaming)
         .map((m) => ({ role: m.role, content: m.content }));
 
       const useAgentic = mode === "deep-research";
+
+      // Snapshot the blob being replayed this turn — regenerate / edit-last
+      // restore it so the redo doesn't "remember" the answer it replaces.
+      memoryAtSendRef.current = memoryRef.current;
 
       const request = {
         question,
@@ -300,6 +367,9 @@ export default function Home() {
         use_reranking: true,
         conversation_history: conversationHistory,
         collection_id: settings.collectionId ?? null,
+        // Soul persona — scope-checked and injected server-side by the proxy,
+        // stripped before the request goes upstream.
+        assistant_id: activeAssistantId,
         // Replay the opaque memory blob (or {} on turn 1). The backend returns
         // an updated one via memory_update; we never construct or mutate it.
         conversation_memory: memoryRef.current ?? {},
@@ -556,12 +626,79 @@ export default function Home() {
         setIsLoading(false);
       }
     },
-    [isLoading, messages, mode, settings, activeSessionId, refreshSessions]
+    [isLoading, messages, mode, settings, activeSessionId, activeAssistantId, refreshSessions]
   );
 
   const handleStop = useCallback(() => {
     abortRef.current?.abort();
     abortRef.current = null;
+  }, []);
+
+  // Re-ask the last question: drop the last exchange, restore the pre-turn
+  // memory snapshot, resend. New X-Request-ID (new user action) — unlike the
+  // shutdown-reconnect replay, which reuses the id.
+  const handleRegenerate = useCallback(() => {
+    if (isLoading) return;
+    let lastUserIdx = -1;
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role === "user") {
+        lastUserIdx = i;
+        break;
+      }
+    }
+    if (lastUserIdx === -1) return;
+    memoryRef.current = memoryAtSendRef.current;
+    handleSend(messages[lastUserIdx].content, messages.slice(0, lastUserIdx));
+  }, [messages, isLoading, handleSend]);
+
+  // Edit a user message and resend: forks the thread at that point (everything
+  // after is dropped). Editing the LAST question replays the pre-turn memory
+  // snapshot; editing an earlier one resets memory to {} — the opaque blob
+  // can't be rewound further back, so cross-turn recall restarts from there.
+  const handleEditResend = useCallback(
+    (messageId: string, newContent: string) => {
+      if (isLoading || !newContent.trim()) return;
+      const idx = messages.findIndex((m) => m.id === messageId);
+      if (idx === -1 || messages[idx].role !== "user") return;
+      const isLastUser = !messages
+        .slice(idx + 1)
+        .some((m) => m.role === "user");
+      memoryRef.current = isLastUser ? memoryAtSendRef.current : undefined;
+      handleSend(newContent, messages.slice(0, idx));
+    },
+    [messages, isLoading, handleSend]
+  );
+
+  // Thumbs rating: stamp the message (persisted via the settle effect) and
+  // fire the analytics event. Best-effort — a failed event never blocks the UI.
+  const handleFeedback = useCallback(
+    (messageId: string, rating: "up" | "down") => {
+      if (!activeSessionId) return;
+      setMessages((prev) =>
+        prev.map((m) => (m.id === messageId ? { ...m, feedback: rating } : m))
+      );
+      fetch("/api/me/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId: activeSessionId, messageId, rating }),
+      }).catch(() => {});
+    },
+    [activeSessionId]
+  );
+
+  const handleTogglePin = useCallback(
+    async (id: string, pinned: boolean) => {
+      await setChatPinned(id, pinned).catch(() => {});
+      refreshSessions();
+    },
+    [refreshSessions]
+  );
+
+  // Export a chat as a Markdown download. Fetches the full session so it
+  // works from the sidebar for chats that aren't currently open.
+  const handleExportSession = useCallback(async (id: string) => {
+    const session = await getChat(id).catch(() => null);
+    if (session) downloadChatMarkdown(session);
   }, []);
 
   if (!configReady || !currentUser) {
@@ -588,6 +725,8 @@ export default function Home() {
           setSidebarOpen(false);
         }}
         onDeleteSession={handleDeleteSession}
+        onTogglePin={handleTogglePin}
+        onExportSession={handleExportSession}
         logoUrl={logoUrl}
         currentUser={currentUser}
         onSignOut={handleSignOut}
@@ -605,6 +744,17 @@ export default function Home() {
               onSourceClick={setSelectedSource}
               emptyTitle={emptyTitle}
               emptyDescription={emptyDescription}
+              starterPrompts={starterPrompts}
+              onStarterClick={handleSend}
+              isLoading={isLoading}
+              onRegenerate={handleRegenerate}
+              onEditResend={handleEditResend}
+              onFeedback={handleFeedback}
+              assistants={assistants}
+              activeAssistantId={activeAssistantId}
+              onSelectAssistant={handleSelectAssistant}
+              onManageSouls={() => setSoulsOpen(true)}
+              ttsEnabled={voice.tts}
             />
           </main>
 
@@ -621,6 +771,12 @@ export default function Home() {
                 ? collections.find((c) => c.id === settings.collectionId)?.name ?? null
                 : null
             }
+            assistantName={
+              activeAssistantId
+                ? assistants.find((a) => a.id === activeAssistantId)?.name ?? null
+                : null
+            }
+            sttEnabled={voice.stt}
           />
         </>
       ) : (
@@ -646,6 +802,13 @@ export default function Home() {
           onClose={() => setSelectedSource(null)}
         />
       )}
+
+      <SoulsModal
+        open={soulsOpen}
+        onClose={() => setSoulsOpen(false)}
+        assistants={assistants}
+        onChanged={refreshAssistants}
+      />
     </div>
   );
 }

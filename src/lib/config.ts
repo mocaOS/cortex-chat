@@ -10,6 +10,11 @@ export interface ClientConfig {
   supportUrl: string;
   supportLabel: string;
   defaultChatMode: "chat" | "deep-research";
+  // Admin-curated suggested questions rendered as cards on the empty chat
+  // screen; clicking one submits it. Empty array = no cards.
+  starterPrompts: string[];
+  // Server-side voice endpoints configured? Gates mic + read-aloud buttons.
+  voice: { stt: boolean; tts: boolean };
   emailConfigured: boolean;
   registrationEnabled: boolean;
   maxUploadBytes: number;
@@ -52,6 +57,8 @@ export async function getConfig(): Promise<ClientConfig> {
       supportUrl: "",
       supportLabel: "",
       defaultChatMode: "chat",
+      starterPrompts: [],
+      voice: { stt: false, tts: false },
       emailConfigured: false,
       registrationEnabled: false,
       maxUploadBytes: MAX_UPLOAD_BYTES,

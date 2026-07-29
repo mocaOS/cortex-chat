@@ -68,6 +68,23 @@ export async function GET(request: Request) {
   const messageSeries = seriesByKind("message");
   const uploadSeries = seriesByKind("upload");
 
+  // Thumbs feedback (kind: "feedback") — rating lives in the metadata JSON.
+  const feedbackRows = db
+    .select({
+      rating: sql<string>`json_extract(${usageEvents.metadata}, '$.rating')`.as(
+        "rating"
+      ),
+      n: sql<number>`count(*)`.as("n"),
+    })
+    .from(usageEvents)
+    .where(
+      sql`${usageEvents.createdAt} >= ${since} AND ${usageEvents.kind} = 'feedback'`
+    )
+    .groupBy(sql`rating`)
+    .all() as { rating: string | null; n: number }[];
+  const feedbackUp = feedbackRows.find((r) => r.rating === "up")?.n ?? 0;
+  const feedbackDown = feedbackRows.find((r) => r.rating === "down")?.n ?? 0;
+
   const perUser = db
     .select({
       userId: usageEvents.userId,
@@ -116,6 +133,8 @@ export async function GET(request: Request) {
       logins: totalN(loginSeries),
       messages: totalN(messageSeries),
       uploads: totalN(uploadSeries),
+      feedbackUp,
+      feedbackDown,
       activeUsers: await distinctUsers(since),
     },
     series: merged,

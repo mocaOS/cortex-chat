@@ -17,6 +17,7 @@ const NAV: { href: string; labelKey: TranslationKey }[] = [
   { href: "/admin/users", labelKey: "adminNavUsers" },
   { href: "/admin/groups", labelKey: "adminNavGroups" },
   { href: "/admin/content-roles", labelKey: "adminNavContentRoles" },
+  { href: "/admin/assistants", labelKey: "adminNavAssistants" },
   { href: "/admin/settings", labelKey: "adminNavSettings" },
 ];
 

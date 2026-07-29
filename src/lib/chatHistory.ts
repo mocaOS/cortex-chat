@@ -28,11 +28,16 @@ export async function getChat(id: string): Promise<ChatSession | null> {
 
 export async function createChat(
   id?: string,
-  title?: string
+  title?: string,
+  assistantId?: string | null
 ): Promise<ChatSession> {
   const data = await http<ChatSession>(BASE, {
     method: "POST",
-    body: JSON.stringify({ id, title }),
+    body: JSON.stringify({
+      id,
+      title,
+      ...(assistantId ? { assistantId } : {}),
+    }),
   });
   if (!data) throw new Error("Failed to create chat");
   return data;
@@ -50,6 +55,13 @@ export function updateChatMessages(
   return http(`${BASE}/${id}`, {
     method: "PATCH",
     body: JSON.stringify(body),
+  }).then(() => undefined);
+}
+
+export function setChatPinned(id: string, pinned: boolean): Promise<void> {
+  return http(`${BASE}/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ pinned }),
   }).then(() => undefined);
 }
 

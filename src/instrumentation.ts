@@ -1,4 +1,5 @@
 import * as Sentry from "@sentry/nextjs";
+import { validateVoiceEnv } from "@/lib/voice";
 
 export async function register() {
   if (process.env.NEXT_RUNTIME === "edge") {
@@ -37,6 +38,10 @@ export async function register() {
   const { bootstrapDefaultGroup } = await import("@/lib/default-group-bootstrap");
   runMigrations();
   await bootstrapSuperadmin();
+  // Repo-shipped souls: insert-if-missing by builtin key (admin removals
+  // stick; new releases add new souls). Purely local DB work — never blocks.
+  const { seedBuiltinSouls } = await import("@/lib/souls");
+  seedBuiltinSouls();
   // Fire-and-forget: needs the Cortex backend (to mint the group's chat key),
   // which may still be starting — retries in the background, never blocks boot.
   bootstrapDefaultGroup();
@@ -125,6 +130,10 @@ function validateRequiredEnv(): void {
       errors.push("APP_BASE_URL must start with http:// or https://.");
     }
   }
+
+  // Voice is optional (feature-gated on VOICE_*_BASE_URL); when a base URL is
+  // set, the matching model must be too.
+  errors.push(...validateVoiceEnv());
 
   if (errors.length > 0) {
     const header =

@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
-import { getAppSettings } from "@/lib/settings";
+import { getAppSettings, parseStarterPrompts } from "@/lib/settings";
 import { resolveLogoUrl } from "@/lib/branding-url";
 import { MAX_UPLOAD_BYTES } from "@/lib/upload-limits";
 import { isEmailConfigured } from "@/lib/email/config";
 import { isRegistrationEnabled } from "@/lib/registration";
+import { getSttConfig, getTtsConfig } from "@/lib/voice";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +21,8 @@ export function GET() {
     supportUrl: settings.supportUrl,
     supportLabel: settings.supportLabel,
     defaultChatMode: settings.defaultChatMode,
+    starterPrompts: parseStarterPrompts(settings.starterPrompts),
+    voice: { stt: !!getSttConfig(), tts: !!getTtsConfig() },
     emailConfigured: isEmailConfigured(),
     registrationEnabled: isRegistrationEnabled(),
     maxUploadBytes: MAX_UPLOAD_BYTES,

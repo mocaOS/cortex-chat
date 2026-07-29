@@ -44,6 +44,8 @@ interface Analytics {
     logins: number;
     messages: number;
     uploads: number;
+    feedbackUp: number;
+    feedbackDown: number;
     activeUsers: number;
   };
   series: SeriesPoint[];
@@ -181,7 +183,7 @@ export default function AdminDashboard() {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
             <Kpi label={t("kpiUsers")} value={counts.users} />
             <Kpi label={t("kpiGroups")} value={counts.groups} />
             <Kpi label={t("kpiUploaders")} value={counts.uploaders} />
@@ -189,6 +191,10 @@ export default function AdminDashboard() {
             <Kpi label={t("kpiLogins")} value={analytics.totals.logins} />
             <Kpi label={t("kpiMessages")} value={analytics.totals.messages} />
             <Kpi label={t("kpiUploads")} value={analytics.totals.uploads} />
+            <Kpi
+              label={t("kpiFeedback")}
+              value={`${analytics.totals.feedbackUp ?? 0} / ${analytics.totals.feedbackDown ?? 0}`}
+            />
           </div>
 
           <section

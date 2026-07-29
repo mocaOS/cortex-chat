@@ -62,6 +62,9 @@ export interface ChatMessage {
   retrieval?: string[];
   retrievalStats?: RetrievalStats;
   status?: StreamStatus;
+  // Thumbs rating the user gave this answer. Persisted in message metadata
+  // (so it survives reload); the analytics event is written separately.
+  feedback?: "up" | "down";
   isStreaming?: boolean;
 }
 
@@ -73,6 +76,10 @@ export interface AskRequest {
   use_agentic?: boolean;
   conversation_history?: { role: "user" | "assistant"; content: string }[];
   collection_id?: string | null;
+  // Soul (assistant persona) for this chat. Chat-app concept: the proxy
+  // scope-checks it, injects the soul body server-side, and strips the field
+  // before forwarding upstream.
+  assistant_id?: string | null;
   // Opaque client-carried memory blob. Sent verbatim each turn, replaced from
   // the memory_update event — never constructed or mutated client-side.
   conversation_memory?: unknown;
@@ -85,9 +92,29 @@ export interface Settings {
   collectionId: string | null;
 }
 
+// A soul (assistant persona) as the client sees it. The soul file content is
+// only included by endpoints that need it (export, admin editing).
+export interface AssistantSummary {
+  id: string;
+  name: string;
+  description: string;
+  starters: string[];
+  mode: "chat" | "deep-research" | null;
+  collectionId: string | null;
+  scope: "builtin" | "global" | "group" | "user";
+  builtinKey: string | null;
+  enabled: boolean;
+  verifiedSigner: string | null;
+  isOwn: boolean;
+}
+
 export interface ChatSession {
   id: string;
   title: string;
+  // 0/1 from SQLite. Pinned chats sort above the time-grouped sidebar list.
+  pinned?: number;
+  // Soul this chat was started with (null = plain Cortex).
+  assistantId?: string | null;
   messages?: ChatMessage[];
   // Opaque conversation memory blob, replayed as conversation_memory on the
   // next turn. Persisted server-side so it survives reload/device-switch.
