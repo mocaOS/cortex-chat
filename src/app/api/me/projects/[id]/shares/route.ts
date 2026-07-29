@@ -6,6 +6,7 @@ import { groups, projects, projectShares, users } from "@/lib/db/schema";
 import { requireAuth } from "@/lib/auth/session";
 import { newId } from "@/lib/auth/crypto";
 import { listProjectShares } from "@/lib/projects";
+import { publishChannel } from "@/lib/chat-events";
 
 export const dynamic = "force-dynamic";
 
@@ -93,6 +94,13 @@ export async function PUT(request: Request, ctx: Ctx) {
     }
     tx.update(projects).set({ updatedAt: now }).where(eq(projects.id, id)).run();
   });
+
+  // Tell the sharees a project just appeared for them (their user-feed
+  // reopens with the new project channel after the refresh).
+  const event = { updatedAt: now, by: user.id };
+  for (const uid of userIds) publishChannel(`user:${uid}`, event);
+  for (const gid of groupIds) publishChannel(`group:${gid}`, event);
+  publishChannel(`project:${id}`, event);
 
   return NextResponse.json({ shares: listProjectShares(id) });
 }

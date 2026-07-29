@@ -6,7 +6,7 @@ import { chatMessages, chatSessions, users } from "@/lib/db/schema";
 import { requireAuth } from "@/lib/auth/session";
 import { newId } from "@/lib/auth/crypto";
 import { canReadChatSession, getAccessibleProject } from "@/lib/projects";
-import { publishChatEvent } from "@/lib/chat-events";
+import { publishChannel, publishChatEvent } from "@/lib/chat-events";
 
 export const dynamic = "force-dynamic";
 
@@ -163,6 +163,11 @@ export async function PATCH(request: Request, ctx: Ctx) {
         .set({ projectId: target })
         .where(eq(chatSessions.id, id))
         .run();
+      // Both affected project folders change for teammates.
+      const now = Date.now();
+      if (session.projectId)
+        publishChannel(`project:${session.projectId}`, { updatedAt: now, by: user.id });
+      if (target) publishChannel(`project:${target}`, { updatedAt: now, by: user.id });
     } else {
       return NextResponse.json({ error: "Unknown project" }, { status: 400 });
     }
@@ -221,8 +226,11 @@ export async function PATCH(request: Request, ctx: Ctx) {
         .run();
     });
     // Realtime: notify members watching this chat (they refetch on frames
-    // not caused by themselves).
+    // not caused by themselves) + the project folder (sidebar previews).
     publishChatEvent(id, { updatedAt: now, by: user.id });
+    if (session.projectId) {
+      publishChannel(`project:${session.projectId}`, { updatedAt: now, by: user.id });
+    }
   } else if (hasMemory) {
     const now = Date.now();
     db.update(chatSessions)
@@ -243,6 +251,12 @@ export async function DELETE(_: Request, ctx: Ctx) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
   db.delete(chatSessions).where(eq(chatSessions.id, id)).run();
+  if (session.projectId) {
+    publishChannel(`project:${session.projectId}`, {
+      updatedAt: Date.now(),
+      by: user.id,
+    });
+  }
   return NextResponse.json({ ok: true });
 }
 

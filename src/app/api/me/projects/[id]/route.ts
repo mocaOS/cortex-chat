@@ -5,6 +5,7 @@ import { db } from "@/lib/db/client";
 import { chatSessions, projects } from "@/lib/db/schema";
 import { requireAuth } from "@/lib/auth/session";
 import { getUsableAssistant } from "@/lib/souls";
+import { publishChannel } from "@/lib/chat-events";
 
 export const dynamic = "force-dynamic";
 
@@ -49,6 +50,7 @@ export async function PATCH(request: Request, ctx: Ctx) {
     patch.collectionId = parsed.data.collectionId;
 
   db.update(projects).set(patch).where(eq(projects.id, id)).run();
+  publishChannel(`project:${id}`, { updatedAt: Date.now(), by: user.id });
   return NextResponse.json({ ok: true });
 }
 
@@ -73,5 +75,6 @@ export async function DELETE(_: Request, ctx: Ctx) {
       .run();
     tx.delete(projects).where(eq(projects.id, id)).run();
   });
+  publishChannel(`project:${id}`, { updatedAt: Date.now(), by: user.id });
   return NextResponse.json({ ok: true });
 }

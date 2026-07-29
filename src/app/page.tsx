@@ -436,6 +436,8 @@ export default function Home() {
         // server-side by the proxy, stripped before going upstream.
         assistant_id: activeAssistantId,
         project_id: activeProjectId,
+        // Live-turn relay target: lets project members watch this turn.
+        session_id: sessionId,
         // Replay the opaque memory blob (or {} on turn 1). The backend returns
         // an updated one via memory_update; we never construct or mutate it.
         conversation_memory: memoryRef.current ?? {},
@@ -767,6 +769,35 @@ export default function Home() {
     if (session) downloadChatMarkdown(session);
   }, []);
 
+  // Sidebar freshness: one user-scoped feed multiplexing every project the
+  // user can access (+ their user/group channels for new shares). Any frame
+  // from someone else refreshes the lists. Reopened when the accessible
+  // project set changes so newly shared projects get subscribed.
+  const projectIdsKey = projects
+    .map((p) => p.id)
+    .sort()
+    .join(",");
+  useEffect(() => {
+    if (!currentUser) return;
+    const userId = currentUser.id;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const es = new EventSource("/api/me/events");
+    es.onmessage = (e) => {
+      try {
+        const event = JSON.parse(e.data) as { by?: string };
+        if (event.by === userId) return;
+        // Debounce bursts (token relays also land on project channels? they
+        // don't — but settled turns + creates can cluster).
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(() => refreshSessions(), 400);
+      } catch {}
+    };
+    return () => {
+      if (timer) clearTimeout(timer);
+      es.close();
+    };
+  }, [currentUser, projectIdsKey, refreshSessions]);
+
   // Realtime for shared project chats: subscribe to the chat's SSE
   // change-feed and refetch on frames caused by OTHER members. EventSource
   // auto-reconnects on drops. Suspended while a local turn streams (the
@@ -794,11 +825,54 @@ export default function Home() {
       });
     };
 
+    // Live-turn view: a teammate's question + streaming answer render as
+    // ephemeral messages; turn_done swaps them for the settled, attributed
+    // state via adopt().
+    let liveAssistantId: string | null = null;
     const es = new EventSource(`/api/me/chats/${sessionId}/events`);
     es.onmessage = (e) => {
       try {
-        const event = JSON.parse(e.data) as { by?: string };
-        if (event.by !== userId) adopt();
+        const event = JSON.parse(e.data) as {
+          kind?: string;
+          by?: string;
+          byName?: string;
+          question?: string;
+          token?: string;
+        };
+        if (event.by === userId) return;
+        if (event.kind === "turn_start") {
+          const liveId = `live-${Date.now()}`;
+          liveAssistantId = `${liveId}-a`;
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: `${liveId}-u`,
+              role: "user",
+              content: event.question ?? "",
+              authorId: event.by,
+              authorName: event.byName,
+            },
+            {
+              id: liveAssistantId!,
+              role: "assistant",
+              content: "",
+              isStreaming: true,
+            },
+          ]);
+        } else if (event.kind === "token" && liveAssistantId && event.token) {
+          const id = liveAssistantId;
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === id ? { ...m, content: m.content + event.token } : m
+            )
+          );
+        } else if (event.kind === "turn_done") {
+          liveAssistantId = null;
+          adopt();
+        } else {
+          // settled write ("changed" / untyped)
+          adopt();
+        }
       } catch {}
     };
     // Catch anything missed while the tab was hidden or the stream was down.

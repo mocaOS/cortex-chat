@@ -11,7 +11,10 @@ import {
   renderCortexAnalytics,
 } from "@/lib/cortex-analytics";
 import { getUsableAssistant, parseSoulFile } from "@/lib/souls";
-import { getAccessibleProject } from "@/lib/projects";
+import { canReadChatSession, getAccessibleProject } from "@/lib/projects";
+import { chatSessions } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
+import { publishChatEvent } from "@/lib/chat-events";
 import { fetchUpstreamWithRetry } from "@/lib/upstream-sse";
 
 export const dynamic = "force-dynamic";
@@ -63,11 +66,36 @@ export async function POST(request: Request) {
     typeof parsedBody?.project_id === "string"
       ? (parsedBody.project_id as string)
       : null;
+  // Live-turn relay target (Phase B): the chat session this turn belongs to.
+  // Only honored when the caller is actually a member of that chat.
+  const sessionId =
+    typeof parsedBody?.session_id === "string"
+      ? (parsedBody.session_id as string)
+      : null;
   let forwardBody = body;
-  if (parsedBody && ("assistant_id" in parsedBody || "project_id" in parsedBody)) {
+  if (
+    parsedBody &&
+    ("assistant_id" in parsedBody ||
+      "project_id" in parsedBody ||
+      "session_id" in parsedBody)
+  ) {
     delete parsedBody.assistant_id;
     delete parsedBody.project_id;
+    delete parsedBody.session_id;
     forwardBody = JSON.stringify(parsedBody);
+  }
+  // Relay live turns only for shared project chats — personal chats have no
+  // watchers by definition.
+  let relaySessionId: string | null = null;
+  if (sessionId && projectId) {
+    const session = db
+      .select()
+      .from(chatSessions)
+      .where(eq(chatSessions.id, sessionId))
+      .get();
+    if (session?.projectId && canReadChatSession(ctx.user, session)) {
+      relaySessionId = sessionId;
+    }
   }
   let soulBody: string | null = null;
   if (assistantId) {
@@ -144,7 +172,20 @@ export async function POST(request: Request) {
       return new Response("No upstream body", { status: 502 });
     }
 
-    return new Response(upstream.body, {
+    // Phase B live-turn relay: tee the answer stream — one branch to the
+    // asker unchanged, the other parsed for content tokens and re-published
+    // on the chat's bus channel so project members watch the turn live.
+    let responseBody = upstream.body;
+    if (relaySessionId) {
+      const [toClient, toRelay] = upstream.body.tee();
+      responseBody = toClient;
+      const question =
+        typeof parsedBody?.question === "string" ? parsedBody.question : "";
+      const byName = ctx.user.username || ctx.user.email;
+      relayTurn(relaySessionId, ctx.user.id, byName, question, toRelay);
+    }
+
+    return new Response(responseBody, {
       headers: {
         "Content-Type": "text/event-stream; charset=utf-8",
         "Cache-Control": "no-cache, no-transform",
@@ -159,5 +200,60 @@ export async function POST(request: Request) {
       status: 502,
       headers: { "Content-Type": "application/json" },
     });
+  }
+}
+
+// Reads the teed answer stream and republishes it as bus events: turn_start
+// (with the question, so watchers render it immediately), token frames, and
+// turn_done (watchers then refetch the settled, attributed state). Fire and
+// forget — a relay failure must never affect the asker's stream.
+async function relayTurn(
+  sessionId: string,
+  byId: string,
+  byName: string,
+  question: string,
+  stream: ReadableStream<Uint8Array>
+): Promise<void> {
+  const publish = (event: Parameters<typeof publishChatEvent>[1]) =>
+    publishChatEvent(sessionId, event);
+  publish({
+    kind: "turn_start",
+    updatedAt: Date.now(),
+    by: byId,
+    byName,
+    question,
+  });
+  try {
+    const reader = stream.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() || "";
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed.startsWith("data: ")) continue;
+        try {
+          const data = JSON.parse(trimmed.slice(6));
+          if (typeof data.content === "string" && data.content) {
+            publish({
+              kind: "token",
+              updatedAt: Date.now(),
+              by: byId,
+              token: data.content,
+            });
+          }
+        } catch {
+          // malformed frame — skip
+        }
+      }
+    }
+  } catch {
+    // asker aborted or upstream dropped — fall through to turn_done
+  } finally {
+    publish({ kind: "turn_done", updatedAt: Date.now(), by: byId });
   }
 }

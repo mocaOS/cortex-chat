@@ -7,6 +7,7 @@ import { requireAuth } from "@/lib/auth/session";
 import { newId } from "@/lib/auth/crypto";
 import { getUsableAssistant } from "@/lib/souls";
 import { getAccessibleProject } from "@/lib/projects";
+import { publishChannel } from "@/lib/chat-events";
 
 export const dynamic = "force-dynamic";
 
@@ -65,6 +66,10 @@ export async function POST(request: Request) {
       updatedAt: now,
     })
     .run();
+  // Sidebar freshness for teammates: a project gained a chat.
+  if (projectId) {
+    publishChannel(`project:${projectId}`, { updatedAt: now, by: user.id });
+  }
   return NextResponse.json({
     id,
     title: parsed.data.title ?? "",
