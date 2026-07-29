@@ -34,8 +34,66 @@ const Body = z.object({
   refinement: z.string().max(2000).optional(),
 });
 
-const ASK_TIMEOUT_MS = 60_000;
+const ASK_TIMEOUT_MS = 90_000;
 const SEARCH_TIMEOUT_MS = 20_000;
+
+/**
+ * Research ask via the STREAMING endpoint, assembled into a plain answer.
+ * Deliberately not the non-stream POST /api/ask: that path buffers the whole
+ * run (28s gateway deadline) and is the less-exercised code path — streaming
+ * is what chat itself uses on every deployment. Returns at the `done` frame.
+ */
+async function askViaStream(
+  apiUrl: string,
+  headers: Record<string, string>,
+  body: Record<string, unknown>,
+  signal: AbortSignal
+): Promise<string> {
+  const res = await fetch(`${apiUrl}/api/ask/stream`, {
+    method: "POST",
+    headers: { ...headers, "Accept-Encoding": "identity" },
+    body: JSON.stringify({
+      ...body,
+      use_agentic: false,
+      conversation_history: [],
+      conversation_memory: {},
+    }),
+    signal,
+  });
+  if (!res.ok || !res.body) {
+    throw new Error(`HTTP ${res.status}`);
+  }
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let answer = "";
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() || "";
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed.startsWith("data: ")) continue;
+        try {
+          const data = JSON.parse(trimmed.slice(6));
+          if (typeof data.content === "string") answer += data.content;
+          if (typeof data.error === "string") throw new Error(data.error);
+          if (data.done) return answer;
+        } catch (err) {
+          if (err instanceof Error && !(err instanceof SyntaxError)) throw err;
+        }
+      }
+    }
+  } finally {
+    try {
+      await reader.cancel();
+    } catch {}
+  }
+  return answer;
+}
 
 export async function POST(request: Request) {
   const ctx = await getAuth();
@@ -132,31 +190,36 @@ export async function POST(request: Request) {
             if (request.signal.aborted) return controller.close();
             think(`Asking Cortex: ${question}`);
             try {
-              const res = await fetch(`${apiUrl}/api/ask`, {
-                method: "POST",
+              const answer = await askViaStream(
+                apiUrl,
                 headers,
-                body: JSON.stringify({
+                {
                   question,
-                  use_agentic: false,
                   use_graph: true,
                   use_reranking: true,
                   ...(collectionId ? { collection_id: collectionId } : {}),
-                }),
-                signal: AbortSignal.any([
+                },
+                AbortSignal.any([
                   request.signal,
                   AbortSignal.timeout(ASK_TIMEOUT_MS),
-                ]),
-              });
-              const data = await res.json().catch(() => null);
-              const answer: string = data?.answer ?? "";
+                ])
+              );
               if (isUsableAnswer(answer)) {
                 findings.answers.push({ question, answer });
                 think(`Answer: ${answer.replace(/\s+/g, " ").slice(0, 140)}…`);
               } else {
-                think("No usable answer for this question — skipping");
+                // An empty/refused answer is a finding of its own — but say
+                // WHAT came back so the trail is never a mystery.
+                think(
+                  answer.trim()
+                    ? `Answer not usable ("${answer.replace(/\s+/g, " ").slice(0, 80)}…") — skipping`
+                    : "No answer for this question — skipping"
+                );
               }
-            } catch {
-              think("Question timed out — continuing");
+            } catch (err) {
+              think(
+                `Cortex error on this question (${err instanceof Error ? err.message : "failed"}) — continuing`
+              );
             }
           }
 
@@ -165,8 +228,13 @@ export async function POST(request: Request) {
           );
         }
 
-        // ---- Phase 2: write via the direct LLM.
+        // ---- Phase 2: write via the backend's primary model.
         if (request.signal.aborted) return controller.close();
+        think(
+          isRevision
+            ? "Revising the SOUL.md…"
+            : `Writing the SOUL.md from ${findings.answers.length} answers and ${findings.snippets.length} passages…`
+        );
         emit({ status: { stage: "generating", message: "Writing the SOUL.md…" } });
         const messages = isRevision
           ? buildRevisionMessages(prompt, previousDraft!, refinement!)
