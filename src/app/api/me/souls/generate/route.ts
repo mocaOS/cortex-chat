@@ -10,7 +10,6 @@ import {
   buildResearchQuestions,
   buildResearchSearchQueries,
   buildRevisionMessages,
-  buildSoulAuthorPrompt,
   buildWriterMessages,
   isUsableAnswer,
   type ResearchFindings,
@@ -19,16 +18,14 @@ import {
   getPersonalityLlmConfig,
   streamChatCompletion,
 } from "@/lib/personality-llm";
-import { fetchUpstreamWithRetry } from "@/lib/upstream-sse";
 
 export const dynamic = "force-dynamic";
 
 // Soul Builder, soulweaver architecture: Cortex answers BENIGN research
-// questions (each visible as a step in the client's log), then a direct LLM
-// call writes the SOUL.md with the findings inlined. Sending the author
-// meta-prompt as a Cortex query trips the backend's prompt-injection
-// defense — that path survives only as a legacy fallback when
-// PERSONALITY_LLM_* is not configured.
+// questions (each visible as a step in the client's log), then the SOUL.md
+// is written via the backend's admin-gated /api/llm/completions with the
+// findings inlined. Sending the author meta-prompt as a Cortex ask query
+// would trip the backend's prompt-injection defense — never do that.
 const Body = z.object({
   prompt: z.string().min(1).max(4000),
   collectionId: z.string().min(1).nullable().optional(),
@@ -71,7 +68,11 @@ export async function POST(request: Request) {
 
   const llm = getPersonalityLlmConfig();
   if (!llm) {
-    return legacyAgenticGenerate(request, resolved.apiKey, parsed.data);
+    // Unreachable in practice — BACKEND_ADMIN_API_KEY is validated at boot.
+    return NextResponse.json(
+      { error: "Personality generation is not configured" },
+      { status: 500 }
+    );
   }
 
   const apiUrl = getBackendUrl();
@@ -206,77 +207,3 @@ export async function POST(request: Request) {
   });
 }
 
-// Legacy path (no PERSONALITY_LLM configured): the whole author prompt rides
-// as one deep-research question. Works only where the backend's prompt
-// security is off — kept so zero-config deployments retain the feature.
-async function legacyAgenticGenerate(
-  request: Request,
-  apiKey: string,
-  input: z.infer<typeof Body>
-): Promise<Response> {
-  const question = buildSoulAuthorPrompt({
-    userPrompt: input.prompt,
-    previousDraft: input.previousDraft,
-    refinement: input.refinement,
-  });
-  const requestId = request.headers.get("x-request-id") ?? crypto.randomUUID();
-  const apiUrl = getBackendUrl();
-
-  const upstreamRequest = (useAgentic: boolean) =>
-    fetchUpstreamWithRetry(
-      `${apiUrl}/api/ask/stream`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-API-Key": apiKey,
-          "Accept-Encoding": "identity",
-          "X-Request-ID": requestId,
-        },
-        body: JSON.stringify({
-          question,
-          use_agentic: useAgentic,
-          use_graph: true,
-          use_reranking: true,
-          collection_id: input.collectionId ?? null,
-          conversation_history: [],
-          conversation_memory: {},
-        }),
-      },
-      request.signal
-    );
-
-  try {
-    let upstream = await upstreamRequest(true);
-    if (!upstream.ok && upstream.status !== 429 && upstream.status < 500) {
-      upstream = await upstreamRequest(false);
-    }
-    if (!upstream.ok) {
-      const errorHeaders: Record<string, string> = { "X-Request-ID": requestId };
-      const retryAfter = upstream.headers.get("Retry-After");
-      if (retryAfter) errorHeaders["Retry-After"] = retryAfter;
-      return new Response(`Upstream error: ${upstream.status}`, {
-        status: upstream.status,
-        headers: errorHeaders,
-      });
-    }
-    if (!upstream.body) {
-      return new Response("No upstream body", { status: 502 });
-    }
-    return new Response(upstream.body, {
-      headers: {
-        "Content-Type": "text/event-stream; charset=utf-8",
-        "Cache-Control": "no-cache, no-transform",
-        Connection: "keep-alive",
-        "X-Accel-Buffering": "no",
-        "X-Request-ID": requestId,
-      },
-    });
-  } catch (err) {
-    console.error("Soul generate proxy error:", err);
-    return new Response(JSON.stringify({ error: String(err) }), {
-      status: 502,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
-}

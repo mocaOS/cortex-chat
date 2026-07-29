@@ -1,6 +1,5 @@
 import * as Sentry from "@sentry/nextjs";
 import { validateVoiceEnv } from "@/lib/voice";
-import { validatePersonalityLlmEnv } from "@/lib/personality-llm";
 
 export async function register() {
   if (process.env.NEXT_RUNTIME === "edge") {
@@ -135,8 +134,6 @@ function validateRequiredEnv(): void {
   // Voice is optional (feature-gated on VOICE_*_BASE_URL); when a base URL is
   // set, the matching model must be too.
   errors.push(...validateVoiceEnv());
-  // Same contract for the personality-generation LLM.
-  errors.push(...validatePersonalityLlmEnv());
 
   if (errors.length > 0) {
     const header =
