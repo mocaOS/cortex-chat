@@ -1,14 +1,24 @@
 import "server-only";
+import { getBackendUrl } from "@/lib/backend";
 
-// Direct LLM for the personality Generate flow — soulweaver's architecture:
+// Writer model for the personality Generate flow — soulweaver's architecture:
 // Cortex is used for RESEARCH ONLY (benign questions), and the SOUL.md is
-// written by a plain chat-completions call with the findings inlined. Sending
-// the author meta-prompt as a Cortex query trips the backend's prompt-
-// injection defense (instant canned deflection), so a separate model is the
-// only reliable way. Env-configured like voice; any OpenAI-compatible
-// endpoint works (LiteLLM router, Venice, OpenAI).
+// written by a plain chat-completions call with the findings inlined.
+//
+// Resolution order:
+//  1. PERSONALITY_LLM_* env — explicit direct connection to any
+//     OpenAI-compatible endpoint (LiteLLM router, Venice, OpenAI).
+//  2. DEFAULT: the Cortex backend's own primary model via the admin-gated
+//     POST /api/llm/completions (cortex-app ≥ the completions-endpoint
+//     release) — one model configuration, unit-metered and Langfuse-traced
+//     like every other completion. Zero extra config: rides CORTEX_API_URL +
+//     BACKEND_ADMIN_API_KEY, which are required at boot anyway.
 
 export interface PersonalityLlmConfig {
+  // "openai": {baseUrl}/chat/completions with Bearer auth + model field.
+  // "cortex": {baseUrl}/api/llm/completions with X-API-Key auth; the backend
+  // picks its configured primary model.
+  transport: "openai" | "cortex";
   baseUrl: string;
   apiKey: string | null;
   model: string;
@@ -17,12 +27,24 @@ export interface PersonalityLlmConfig {
 export function getPersonalityLlmConfig(): PersonalityLlmConfig | null {
   const baseUrl = process.env.PERSONALITY_LLM_BASE_URL;
   const model = process.env.PERSONALITY_LLM_MODEL;
-  if (!baseUrl || !model) return null;
-  return {
-    baseUrl: baseUrl.replace(/\/+$/, ""),
-    apiKey: process.env.PERSONALITY_LLM_API_KEY || null,
-    model,
-  };
+  if (baseUrl && model) {
+    return {
+      transport: "openai",
+      baseUrl: baseUrl.replace(/\/+$/, ""),
+      apiKey: process.env.PERSONALITY_LLM_API_KEY || null,
+      model,
+    };
+  }
+  const adminKey = process.env.BACKEND_ADMIN_API_KEY;
+  if (adminKey) {
+    return {
+      transport: "cortex",
+      baseUrl: getBackendUrl(),
+      apiKey: adminKey,
+      model: "cortex-primary", // informational; the backend chooses
+    };
+  }
+  return null;
 }
 
 export function validatePersonalityLlmEnv(): string[] {
@@ -45,8 +67,10 @@ export interface ChatMessage {
 }
 
 /**
- * Stream a chat completion, invoking onToken per content delta. Parses the
- * OpenAI SSE shape (data: {choices:[{delta:{content}}]} … data: [DONE]).
+ * Stream a chat completion, invoking onToken per content delta. Both
+ * transports speak the OpenAI SSE chunk shape (data: {choices:[{delta:
+ * {content}}]} … data: [DONE]); the cortex transport can additionally emit
+ * sanitized `data: {"error": ...}` frames, surfaced as thrown errors.
  */
 export async function streamChatCompletion(
   cfg: PersonalityLlmConfig,
@@ -55,22 +79,36 @@ export async function streamChatCompletion(
   signal: AbortSignal,
   options?: { temperature?: number; maxTokens?: number }
 ): Promise<void> {
-  const res = await fetch(`${cfg.baseUrl}/chat/completions`, {
+  const isCortex = cfg.transport === "cortex";
+  const url = isCortex
+    ? `${cfg.baseUrl}/api/llm/completions`
+    : `${cfg.baseUrl}/chat/completions`;
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (cfg.apiKey) {
+    if (isCortex) headers["X-API-Key"] = cfg.apiKey;
+    else headers["Authorization"] = `Bearer ${cfg.apiKey}`;
+  }
+  const body: Record<string, unknown> = {
+    messages,
+    stream: true,
+    temperature: options?.temperature ?? 0.85,
+    max_tokens: options?.maxTokens ?? 4000,
+  };
+  if (!isCortex) body.model = cfg.model;
+
+  const res = await fetch(url, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(cfg.apiKey ? { Authorization: `Bearer ${cfg.apiKey}` } : {}),
-    },
-    body: JSON.stringify({
-      model: cfg.model,
-      messages,
-      stream: true,
-      temperature: options?.temperature ?? 0.85,
-      max_tokens: options?.maxTokens ?? 4000,
-    }),
+    headers,
+    body: JSON.stringify(body),
     signal,
   });
   if (!res.ok || !res.body) {
+    if (isCortex && res.status === 404) {
+      throw new Error(
+        "The Cortex backend has no /api/llm/completions endpoint yet — " +
+          "update cortex-app, or set PERSONALITY_LLM_* to a direct LLM."
+      );
+    }
     const detail = await res.text().catch(() => "");
     throw new Error(`LLM error ${res.status}${detail ? `: ${detail.slice(0, 200)}` : ""}`);
   }
@@ -91,9 +129,15 @@ export async function streamChatCompletion(
       if (payload === "[DONE]") return;
       try {
         const parsed = JSON.parse(payload);
+        if (typeof parsed?.error === "string") {
+          throw new Error(parsed.error);
+        }
         const token = parsed?.choices?.[0]?.delta?.content;
         if (typeof token === "string" && token) onToken(token);
-      } catch {
+      } catch (err) {
+        if (err instanceof Error && err.message && !(err instanceof SyntaxError)) {
+          throw err; // backend error frame
+        }
         // partial/malformed frame — skip
       }
     }
