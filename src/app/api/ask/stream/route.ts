@@ -14,7 +14,12 @@ import { getUsableAssistant, parseSoulFile } from "@/lib/souls";
 import { canReadChatSession, getAccessibleProject } from "@/lib/projects";
 import { chatSessions } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { publishChatEvent } from "@/lib/chat-events";
+import {
+  appendLiveTurn,
+  endLiveTurn,
+  publishChatEvent,
+  startLiveTurn,
+} from "@/lib/chat-events";
 import { fetchUpstreamWithRetry } from "@/lib/upstream-sse";
 
 export const dynamic = "force-dynamic";
@@ -216,6 +221,8 @@ async function relayTurn(
 ): Promise<void> {
   const publish = (event: Parameters<typeof publishChatEvent>[1]) =>
     publishChatEvent(sessionId, event);
+  // Registry first, so members opening the chat mid-stream get a replay.
+  startLiveTurn(sessionId, { by: byId, byName, question });
   publish({
     kind: "turn_start",
     updatedAt: Date.now(),
@@ -239,6 +246,7 @@ async function relayTurn(
         try {
           const data = JSON.parse(trimmed.slice(6));
           if (typeof data.content === "string" && data.content) {
+            appendLiveTurn(sessionId, data.content);
             publish({
               kind: "token",
               updatedAt: Date.now(),
@@ -254,6 +262,7 @@ async function relayTurn(
   } catch {
     // asker aborted or upstream dropped — fall through to turn_done
   } finally {
+    endLiveTurn(sessionId);
     publish({ kind: "turn_done", updatedAt: Date.now(), by: byId });
   }
 }

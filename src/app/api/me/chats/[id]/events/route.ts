@@ -4,7 +4,7 @@ import { db } from "@/lib/db/client";
 import { chatSessions } from "@/lib/db/schema";
 import { requireAuth } from "@/lib/auth/session";
 import { canReadChatSession } from "@/lib/projects";
-import { subscribeChatEvents } from "@/lib/chat-events";
+import { getLiveTurn, subscribeChatEvents } from "@/lib/chat-events";
 
 export const dynamic = "force-dynamic";
 
@@ -46,6 +46,33 @@ export async function GET(request: Request, ctx: Ctx) {
       const unsubscribe = subscribeChatEvents(id, (event) => {
         send(`data: ${JSON.stringify(event)}\n\n`);
       });
+
+      // Late-join replay: if a turn is streaming RIGHT NOW, hand the new
+      // subscriber the question + everything streamed so far, then they
+      // ride the live token frames like everyone else.
+      const live = getLiveTurn(id);
+      if (live) {
+        const now = Date.now();
+        send(
+          `data: ${JSON.stringify({
+            kind: "turn_start",
+            updatedAt: now,
+            by: live.by,
+            byName: live.byName,
+            question: live.question,
+          })}\n\n`
+        );
+        if (live.content) {
+          send(
+            `data: ${JSON.stringify({
+              kind: "token",
+              updatedAt: now,
+              by: live.by,
+              token: live.content,
+            })}\n\n`
+          );
+        }
+      }
       // Keep intermediary proxies from timing out the idle stream.
       const heartbeat = setInterval(() => send(": ping\n\n"), HEARTBEAT_MS);
 

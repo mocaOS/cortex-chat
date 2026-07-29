@@ -811,6 +811,9 @@ export default function Home() {
       const fresh = await getChat(sessionId).catch(() => null);
       if (!fresh?.messages) return;
       setMessages((prev) => {
+        // Never replace a live-turn view with (older) settled state — the
+        // initial adopt can resolve after a replayed turn_start landed.
+        if (liveAssistantId) return prev;
         // Only adopt server state that actually advanced — last id + count
         // comparison keeps this cheap and avoids pointless re-renders.
         if (

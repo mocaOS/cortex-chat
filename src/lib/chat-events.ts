@@ -67,3 +67,36 @@ export function subscribeChatEvents(sessionId: string, listener: Listener) {
 export function publishChatEvent(sessionId: string, event: ChatEvent): void {
   publishChannel(`chat:${sessionId}`, event);
 }
+
+// ---------------------------------------------------------------------------
+// Live-turn registry: the currently streaming turn per chat, so members who
+// open the chat MID-STREAM get an instant replay (question + everything
+// streamed so far) instead of an empty view until the turn settles.
+
+export interface LiveTurn {
+  by: string;
+  byName: string;
+  question: string;
+  content: string;
+}
+
+const liveTurns: Map<string, LiveTurn> = ((
+  globalThis as { __liveTurns?: Map<string, LiveTurn> }
+).__liveTurns ??= new Map());
+
+export function startLiveTurn(sessionId: string, turn: Omit<LiveTurn, "content">) {
+  liveTurns.set(sessionId, { ...turn, content: "" });
+}
+
+export function appendLiveTurn(sessionId: string, token: string) {
+  const turn = liveTurns.get(sessionId);
+  if (turn) turn.content += token;
+}
+
+export function endLiveTurn(sessionId: string) {
+  liveTurns.delete(sessionId);
+}
+
+export function getLiveTurn(sessionId: string): LiveTurn | null {
+  return liveTurns.get(sessionId) ?? null;
+}
