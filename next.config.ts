@@ -32,8 +32,11 @@ const nextConfig: NextConfig = {
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           {
+            // microphone=(self): the voice feature's dictation mic
+            // (ChatInput -> /api/voice/transcribe) runs in the top-level
+            // same-origin document. Everything else stays denied.
             key: "Permissions-Policy",
-            value: "camera=(), microphone=(), geolocation=()",
+            value: "camera=(), microphone=(self), geolocation=()",
           },
         ],
       },

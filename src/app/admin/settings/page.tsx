@@ -62,7 +62,7 @@ export default function AdminSettingsPage() {
   const [supportUrl, setSupportUrl] = useState("");
   const [supportLabel, setSupportLabel] = useState("");
   const [locale, setLocaleState] = useState<Locale>("en");
-  const [defaultChatMode, setDefaultChatMode] = useState<ChatMode>("chat");
+  const [defaultChatMode, setDefaultChatMode] = useState<ChatMode>("deep-research");
   const [registrationNotifyEmails, setRegistrationNotifyEmails] = useState("");
   const [starterPrompts, setStarterPrompts] = useState("");
   const [loading, setLoading] = useState(true);
@@ -427,8 +427,9 @@ export default function AdminSettingsPage() {
               value={defaultChatMode}
               onChange={(e) => setDefaultChatMode(e.target.value as ChatMode)}
             >
-              <option value="chat">{t("chat")}</option>
+              {/* Product default first */}
               <option value="deep-research">{t("deepResearch")}</option>
+              <option value="chat">{t("chat")}</option>
             </Select>
             <p
               className="text-[11.5px] -mt-2"

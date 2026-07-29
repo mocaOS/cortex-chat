@@ -60,6 +60,16 @@ export function updateChatMessages(
   }).then(() => undefined);
 }
 
+export function setChatProject(
+  id: string,
+  projectId: string | null
+): Promise<void> {
+  return http(`${BASE}/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ projectId }),
+  }).then(() => undefined);
+}
+
 export function setChatPinned(id: string, pinned: boolean): Promise<void> {
   return http(`${BASE}/${id}`, {
     method: "PATCH",

@@ -5,7 +5,7 @@ import { db } from "@/lib/db/client";
 import { chatMessages, chatSessions } from "@/lib/db/schema";
 import { requireAuth } from "@/lib/auth/session";
 import { newId } from "@/lib/auth/crypto";
-import { canReadChatSession } from "@/lib/projects";
+import { canReadChatSession, getAccessibleProject } from "@/lib/projects";
 
 export const dynamic = "force-dynamic";
 
@@ -85,6 +85,9 @@ const PatchBody = z.object({
   // Opaque memory blob — stored verbatim as a JSON string, never inspected.
   memory: z.unknown().optional(),
   pinned: z.boolean().optional(),
+  // Move between projects (drag & drop): a project id, or null for the
+  // personal flat list. Author-only like every write here.
+  projectId: z.string().min(1).nullable().optional(),
 });
 
 export async function PATCH(request: Request, ctx: Ctx) {
@@ -114,6 +117,22 @@ export async function PATCH(request: Request, ctx: Ctx) {
       .set({ pinned: parsed.data.pinned ? 1 : 0 })
       .where(eq(chatSessions.id, id))
       .run();
+  }
+
+  // Project move — organizational like pinning, so no updatedAt bump. Only
+  // projects the author is a member of are valid targets.
+  if (parsed.data.projectId !== undefined) {
+    const target = parsed.data.projectId
+      ? (getAccessibleProject(user, parsed.data.projectId)?.id ?? undefined)
+      : null;
+    if (target !== undefined) {
+      db.update(chatSessions)
+        .set({ projectId: target })
+        .where(eq(chatSessions.id, id))
+        .run();
+    } else {
+      return NextResponse.json({ error: "Unknown project" }, { status: 400 });
+    }
   }
 
   // Opaque memory blob is stored as a JSON string; absent key = leave as-is.

@@ -46,14 +46,14 @@ const translations = {
     sources: "Sources",
     back: "Back",
 
-    // Souls (assistant personas)
+    // Personalities (assistant personas; SOUL.md is the technical format)
     soulDefaultCortex: "Cortex",
-    soulsManage: "Manage souls",
-    soulActive: "Active soul",
-    soulsTitle: "Souls",
-    soulsAddTitle: "Add soul",
-    soulsAdd: "Add soul",
-    soulsEmpty: "No souls yet.",
+    soulsManage: "Manage personalities",
+    soulActive: "Active personality",
+    soulsTitle: "Personalities",
+    soulsAddTitle: "Add personality",
+    soulsAdd: "Add personality",
+    soulsEmpty: "No personalities yet.",
     soulScopeBuiltin: "Built-in",
     soulScopeGlobal: "Global",
     soulScopeGroup: "Group",
@@ -62,36 +62,44 @@ const translations = {
     soulVerifiedSigner: "Verified signer",
     soulExport: "Export SOUL.md",
     soulDelete: "Delete",
-    soulDeleteConfirm: "Delete this soul?",
+    soulDeleteConfirm: "Delete this personality?",
     soulTabWrite: "Write or upload",
-    soulTabUrl: "Import from URL",
-    soulTabDescribe: "Describe",
+    soulTabUrl: "Import SOUL.md from URL",
+    soulTabDescribe: "Generate",
     soulContentLabel: "SOUL.md content",
     soulContentPlaceholder:
       "Paste or write the SOUL.md here — who is this assistant, how does it speak, what must it never do?",
     soulUploadFile: "Upload .md file",
-    soulSave: "Save soul",
-    soulUrlLabel: "Soul URL",
+    soulSave: "Save personality",
+    soulUrlLabel: "SOUL.md URL",
     soulUrlHint:
-      "A soulweaver souls API link (the signature is verified automatically) or any URL serving a raw SOUL.md file.",
+      "A URL serving a SOUL.md file. Signed files are verified automatically.",
     soulImport: "Import",
-    soulDescribeLabel: "Describe your assistant",
+    soulDescribeLabel: "Describe the personality",
     soulDescribePlaceholder:
       "e.g. An assistant for our support team that answers politely, cites the documentation, and always ends with clear next steps…",
     soulGenerate: "Generate with Cortex",
     soulBuilderConnecting: "Connecting…",
     soulBuilderResearching: "Researching the knowledge base…",
+    soulBuilderLog: "Research",
     soulRefineLabel: "What should change?",
     soulRefinePlaceholder: "e.g. make the tone more formal",
     soulRefine: "Refine",
     soulRegenerate: "Regenerate",
-    soulUse: "Use this soul",
+    soulUse: "Use this personality",
 
     // Voice
     voiceDictate: "Dictate",
     voiceStopRecording: "Stop recording",
     voiceReadAloud: "Read aloud",
     voiceStopAudio: "Stop audio",
+    voiceInsecureContext:
+      "The microphone needs a secure connection — open the app via HTTPS (or localhost).",
+    voiceMicDenied: "Microphone access was denied.",
+    voiceMicBlocked:
+      "Microphone access is blocked for this site — click the icon next to the address bar, allow the microphone, then reload.",
+    voiceNoMic: "No microphone found on this device.",
+    voiceTranscribeFailed: "Transcription failed — please try again.",
 
     // Projects
     projects: "Projects",
@@ -107,7 +115,7 @@ const translations = {
     projectEditTitle: "Edit project",
     projectNameLabel: "Name",
     projectNamePlaceholder: "e.g. Website relaunch",
-    projectSoulLabel: "Soul",
+    projectSoulLabel: "Personality",
     projectCollectionLabel: "Collection",
     projectInstructionsLabel: "Instructions",
     projectInstructionsPlaceholder:
@@ -295,10 +303,10 @@ const translations = {
     adminNavUsers: "Users",
     adminNavGroups: "User groups",
     adminNavContentRoles: "Content roles",
-    adminNavAssistants: "Souls",
-    adminSoulsHeading: "Souls",
+    adminNavAssistants: "Personalities",
+    adminSoulsHeading: "Personalities",
     adminSoulsDescription:
-      "Assistant personas available in chat — built-in, global, and per group. Each soul is a portable SOUL.md file.",
+      "Assistant personalities available in chat — built-in, global, and per group. Each personality is a portable SOUL.md file.",
     soulName: "Name",
     soulScope: "Visibility",
     soulStatus: "Status",
@@ -454,7 +462,7 @@ const translations = {
       "Mode the chat starts in for every user — on page load and each new chat. Users can still switch per conversation.",
     starterPromptsLabel: "Starter prompts",
     starterPromptsHint:
-      "One question per line, up to 4. Shown as clickable cards on the empty chat screen; clicking one submits it. Leave empty to show no cards.",
+      "One question per line, up to 4. Shown as clickable cards on the empty chat screen for every assistant — a selected personality's own suggested questions appear first, these follow. Leave empty to show only the personality's.",
     starterPromptsPlaceholder:
       "What documents are in this knowledge base?\nSummarize the latest report.",
     resetTitleDescription: "Reset title & description",
@@ -640,14 +648,14 @@ const translations = {
     sources: "Quellen",
     back: "Zurück",
 
-    // Souls (assistant personas) — "Soul" is a product term, stays English
+    // Personalities (Assistenten-Personas; SOUL.md bleibt der technische Begriff)
     soulDefaultCortex: "Cortex",
-    soulsManage: "Souls verwalten",
-    soulActive: "Aktive Soul",
-    soulsTitle: "Souls",
-    soulsAddTitle: "Soul hinzufügen",
-    soulsAdd: "Soul hinzufügen",
-    soulsEmpty: "Noch keine Souls.",
+    soulsManage: "Persönlichkeiten verwalten",
+    soulActive: "Aktive Persönlichkeit",
+    soulsTitle: "Persönlichkeiten",
+    soulsAddTitle: "Persönlichkeit hinzufügen",
+    soulsAdd: "Persönlichkeit hinzufügen",
+    soulsEmpty: "Noch keine Persönlichkeiten.",
     soulScopeBuiltin: "Integriert",
     soulScopeGlobal: "Global",
     soulScopeGroup: "Gruppe",
@@ -656,36 +664,44 @@ const translations = {
     soulVerifiedSigner: "Verifizierter Signer",
     soulExport: "SOUL.md exportieren",
     soulDelete: "Löschen",
-    soulDeleteConfirm: "Diese Soul löschen?",
+    soulDeleteConfirm: "Diese Persönlichkeit löschen?",
     soulTabWrite: "Schreiben oder hochladen",
-    soulTabUrl: "Von URL importieren",
-    soulTabDescribe: "Beschreiben",
+    soulTabUrl: "SOUL.md von URL importieren",
+    soulTabDescribe: "Generieren",
     soulContentLabel: "SOUL.md Inhalt",
     soulContentPlaceholder:
       "SOUL.md hier einfügen oder schreiben — wer ist dieser Assistent, wie spricht er, was darf er nie tun?",
     soulUploadFile: ".md-Datei hochladen",
-    soulSave: "Soul speichern",
-    soulUrlLabel: "Soul-URL",
+    soulSave: "Persönlichkeit speichern",
+    soulUrlLabel: "SOUL.md-URL",
     soulUrlHint:
-      "Ein soulweaver Souls-API-Link (die Signatur wird automatisch verifiziert) oder eine beliebige URL mit einer SOUL.md-Datei.",
+      "Eine URL, die eine SOUL.md-Datei bereitstellt. Signierte Dateien werden automatisch verifiziert.",
     soulImport: "Importieren",
-    soulDescribeLabel: "Beschreibe deinen Assistenten",
+    soulDescribeLabel: "Beschreibe die Persönlichkeit",
     soulDescribePlaceholder:
       "z. B. Ein Assistent für unser Support-Team, der höflich antwortet, die Dokumentation zitiert und immer mit klaren nächsten Schritten endet…",
     soulGenerate: "Mit Cortex generieren",
     soulBuilderConnecting: "Verbinde…",
     soulBuilderResearching: "Durchsucht die Wissensdatenbank…",
+    soulBuilderLog: "Recherche",
     soulRefineLabel: "Was soll sich ändern?",
     soulRefinePlaceholder: "z. B. formellerer Ton",
     soulRefine: "Verfeinern",
     soulRegenerate: "Neu generieren",
-    soulUse: "Diese Soul verwenden",
+    soulUse: "Diese Persönlichkeit verwenden",
 
     // Voice
     voiceDictate: "Diktieren",
     voiceStopRecording: "Aufnahme stoppen",
     voiceReadAloud: "Vorlesen",
     voiceStopAudio: "Audio stoppen",
+    voiceInsecureContext:
+      "Das Mikrofon benötigt eine sichere Verbindung — öffne die App über HTTPS (oder localhost).",
+    voiceMicDenied: "Mikrofonzugriff wurde verweigert.",
+    voiceMicBlocked:
+      "Der Mikrofonzugriff ist für diese Seite blockiert — klicke auf das Symbol neben der Adressleiste, erlaube das Mikrofon und lade die Seite neu.",
+    voiceNoMic: "Kein Mikrofon auf diesem Gerät gefunden.",
+    voiceTranscribeFailed: "Transkription fehlgeschlagen — bitte erneut versuchen.",
 
     // Projects
     projects: "Projekte",
@@ -701,7 +717,7 @@ const translations = {
     projectEditTitle: "Projekt bearbeiten",
     projectNameLabel: "Name",
     projectNamePlaceholder: "z. B. Website-Relaunch",
-    projectSoulLabel: "Soul",
+    projectSoulLabel: "Persönlichkeit",
     projectCollectionLabel: "Collection",
     projectInstructionsLabel: "Anweisungen",
     projectInstructionsPlaceholder:
@@ -891,10 +907,10 @@ const translations = {
     adminNavUsers: "Benutzer",
     adminNavGroups: "Benutzergruppen",
     adminNavContentRoles: "Inhaltsrollen",
-    adminNavAssistants: "Souls",
-    adminSoulsHeading: "Souls",
+    adminNavAssistants: "Persönlichkeiten",
+    adminSoulsHeading: "Persönlichkeiten",
     adminSoulsDescription:
-      "Assistenten-Personas im Chat — integriert, global oder pro Gruppe. Jede Soul ist eine portable SOUL.md-Datei.",
+      "Assistenten-Persönlichkeiten im Chat — integriert, global oder pro Gruppe. Jede Persönlichkeit ist eine portable SOUL.md-Datei.",
     soulName: "Name",
     soulScope: "Sichtbarkeit",
     soulStatus: "Status",
@@ -1051,7 +1067,7 @@ const translations = {
       "Modus, in dem der Chat für alle Benutzer startet — beim Laden der Seite und bei jedem neuen Chat. Benutzer können pro Unterhaltung weiterhin wechseln.",
     starterPromptsLabel: "Startfragen",
     starterPromptsHint:
-      "Eine Frage pro Zeile, maximal 4. Werden als klickbare Karten auf dem leeren Chat-Bildschirm angezeigt; ein Klick sendet die Frage ab. Leer lassen, um keine Karten anzuzeigen.",
+      "Eine Frage pro Zeile, maximal 4. Werden als klickbare Karten auf dem leeren Chat-Bildschirm für jeden Assistenten angezeigt — die eigenen Startfragen einer gewählten Persönlichkeit erscheinen zuerst, diese danach. Leer lassen, um nur die der Persönlichkeit zu zeigen.",
     starterPromptsPlaceholder:
       "Welche Dokumente enthält diese Wissensdatenbank?\nFasse den neuesten Bericht zusammen.",
     resetTitleDescription: "Titel & Beschreibung zurücksetzen",

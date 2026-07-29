@@ -64,6 +64,8 @@ export async function downloadSoul(
 export interface GenerateCallbacks {
   onContent: (token: string) => void;
   onStatus: (message: string) => void;
+  // Agent activity feed — thinking steps, skill calls, retrieval progress.
+  onThinking?: (step: string) => void;
   onDone: () => void;
   onError: (error: string) => void;
   onRateLimited?: (retryAfterSeconds: number | null) => void;
@@ -133,7 +135,17 @@ export async function generateSoulStream(
         const data = JSON.parse(trimmed.slice(6));
         if (data.content !== undefined) callbacks.onContent(data.content);
         if (data.status?.message) callbacks.onStatus(data.status.message);
-        if (data.thinking) callbacks.onStatus(String(data.thinking));
+        // Same event mapping as the chat's thinking card: agent thinking,
+        // skill activity, and retrieval lines all feed the visible log.
+        if (data.thinking) callbacks.onThinking?.(String(data.thinking));
+        if (data.skill_tool) {
+          callbacks.onThinking?.(
+            data.skill_name
+              ? `${data.skill_name}: ${data.skill_tool}`
+              : String(data.skill_tool)
+          );
+        }
+        if (data.retrieval) callbacks.onThinking?.(String(data.retrieval));
         if (data.error) callbacks.onError(data.error);
         if (data.done) {
           sawDone = true;

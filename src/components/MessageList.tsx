@@ -45,13 +45,15 @@ export default function MessageList({
 }: Props) {
   useLocale();
 
-  // Per-soul starters replace the global cards when a soul is selected.
+  // Starters COMBINE: the active soul's own suggestions first, then the
+  // admin-curated global prompts (deduped) — so global starters stay usable
+  // with every assistant instead of being replaced by the soul's.
   const activeAssistant =
     (activeAssistantId && assistants?.find((a) => a.id === activeAssistantId)) ||
     null;
-  const effectiveStarters = activeAssistant?.starters.length
-    ? activeAssistant.starters
-    : starterPrompts;
+  const effectiveStarters = [
+    ...new Set([...(activeAssistant?.starters ?? []), ...(starterPrompts ?? [])]),
+  ].slice(0, 6);
 
   if (messages.length === 0) {
     return (
@@ -127,9 +129,9 @@ export default function MessageList({
         ) : null}
 
         {/* Starter prompt cards — one click submits the question */}
-        {effectiveStarters && effectiveStarters.length > 0 && onStarterClick && (
+        {effectiveStarters.length > 0 && onStarterClick && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-6 w-full max-w-xl">
-            {effectiveStarters.slice(0, 4).map((prompt) => (
+            {effectiveStarters.map((prompt) => (
               <button
                 key={prompt}
                 onClick={() => onStarterClick(prompt)}

@@ -151,6 +151,8 @@ Hover-revealed message actions, sidebar organization, and starter prompts. All c
 
 ## Souls (assistant personas)
 
+**Naming:** the user-facing term is **Personality** (DE: Persönlichkeit); **SOUL.md** is the technical file-format term (kept in labels like "SOUL.md content", "Export SOUL.md"). Code identifiers stay `assistants`/`soul*`.
+
 A soul IS a **SOUL.md file** — portable persona documents (soulweaver/OpenClaw convention) stored verbatim in `assistants.soul` and injected server-side per turn. Frontmatter (`name`, `description`, `starters:` dash-list, `mode`, `collection`) is parsed at save time by `parseSoulFile` (`src/lib/souls.ts` — hand-rolled, no YAML dep) and cached in columns; the **body** (file minus frontmatter) is the injected persona.
 
 - **Three tiers** (`assistants.scope`): `builtin` (repo-shipped in `src/lib/builtin-souls.ts` — embedded strings, not files, so the standalone build needs no fs reads; seeded insert-if-missing by `builtinKey` in `instrumentation.ts`, so admin "remove" = `enabled=0` sticks across restarts and new releases add new souls), `global` / `group` (admin-curated at `/admin/assistants`, `requireAdmin`), `user` (personal, max 20, managed from the chat empty screen's souls modal).
@@ -167,7 +169,7 @@ A project groups chats and carries defaults inherited by chats created inside it
 - **Sharing:** owner-only, via one modal — a single search field over groups AND people (`GET /api/me/directory`, min 2 chars, 8 hits/kind) → chips → `PUT /api/me/projects/[id]/shares` replaces the set. Owner is implicitly a member.
 - **Collaboration semantics:** members see ALL chats in the project (`listProjectChats`, with author attribution); only the author can continue/rename/delete a chat (`PATCH`/`DELETE` stay `ownedSession`-gated; `GET /api/me/chats/[id]` allows member reads and returns `readOnly`). A teammate's chat renders read-only with a **"Duplicate to continue"** bar → `POST /api/me/chats/[id]/duplicate` copies messages + the opaque memory blob (client-carried, replays cleanly) + soul, stays in the project, owned by the caller.
 - **Injection:** the client sends `project_id` per `/api/ask/stream` turn; the proxy membership-checks it and injects the project's instructions via the analytics-block mechanism — final order `[analytics, soul, project instructions, …turns]`, stripped upstream, never persisted.
-- **Sidebar:** collapsible project folders above the flat list (which now shows only non-project chats — `GET /api/me/chats` filters `project_id IS NULL`); new-chat-in-project inherits the project's soul + collection client-side.
+- **Sidebar:** collapsible project folders above the flat list (which now shows only non-project chats — `GET /api/me/chats` filters `project_id IS NULL`); new-chat-in-project inherits the project's soul + collection client-side. **Drag & drop**: own chats drag between the flat list and project folders (`PATCH /api/me/chats/[id]` with `projectId`, membership-checked; organizational like pinning — no `updatedAt` bump).
 - **Deletion keeps chats** — they fall back to their authors' flat lists. Detaching is done **explicitly in the delete handlers** (projects and souls both): SQLite `ALTER TABLE` FK columns on older deployments may lack the `ON DELETE SET NULL` action (drizzle-kit emitted the ALTERs without it originally; the migration files are fixed, but never rely on the FK action for these columns).
 
 ## Voice (STT dictation + TTS read-aloud)
@@ -177,6 +179,7 @@ Env-only, feature-gated like SMTP: unset `VOICE_*_BASE_URL` ⇒ the mic and read
 - **Env:** `VOICE_STT_BASE_URL/API_KEY/MODEL` and `VOICE_TTS_BASE_URL/API_KEY/MODEL/VOICE` (`src/lib/voice.ts`). Keys optional (LAN routers may be keyless). Boot-validated: a set base URL requires its model. Note some TTS backends require `voice` (Kokoro: `af_heart`; `voxtral-tts`: `casual_female`) — the proxy omits the field when unset.
 - **Proxies** (`/api/voice/transcribe`, `/api/voice/speech`): `requireAuth()`, provider key injected server-side, provider error bodies sanitized (never leaked — may echo config), 25MB audio cap, TTS input truncated to 4k chars (hearing the start beats an error).
 - **UI:** mic in `ChatInput` (MediaRecorder webm/opus → transcribe → appended to the input, dictation-style; pulsing stop-square while recording); read-aloud in the message action row (`ReadAloudButton` — fetch once, blob-URL cached per message, toggle to stop). `stripForSpeech` (`src/lib/voice-client.ts`) reduces markdown to speakable text (code blocks, `[src_N]` markers, links, tables stripped).
+- **Permissions-Policy caveat:** the baseline security headers in `next.config.ts` must keep `microphone=(self)` — with `microphone=()` every browser silently refuses `getUserMedia` for the whole document (no prompt, `NotAllowedError`), regardless of user permission. Mic also requires a secure origin (HTTPS or localhost); `ChatInput` checks `window.isSecureContext` and surfaces distinct errors for insecure origin / blocked / no device.
 - Sentence-streaming TTS and hands-free call mode are explicitly later phases.
 
 ## Error tracking (GlitchTip)

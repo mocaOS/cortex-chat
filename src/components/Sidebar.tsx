@@ -24,10 +24,14 @@ interface Props {
   onShareProject?: (project: ProjectInfo) => void;
   onDeleteProject?: (project: ProjectInfo) => void;
   onNewChatInProject?: (project: ProjectInfo) => void;
+  // Drag & drop: move an own chat into a project (or null = flat list).
+  onMoveChatToProject?: (chatId: string, projectId: string | null) => void;
   logoUrl: string;
   currentUser?: CurrentUser | null;
   onSignOut?: () => void;
 }
+
+const DRAG_MIME = "application/x-cortex-chat-id";
 
 function timeLabel(ts: number): string {
   const now = new Date();
@@ -81,6 +85,7 @@ export default function Sidebar({
   onShareProject,
   onDeleteProject,
   onNewChatInProject,
+  onMoveChatToProject,
   logoUrl,
   currentUser,
   onSignOut,
@@ -88,6 +93,40 @@ export default function Sidebar({
   useLocale();
   const [query, setQuery] = useState("");
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  // Current drop target while dragging a chat: project id or "flat".
+  const [dragOver, setDragOver] = useState<string | null>(null);
+
+  const dragProps = (chatId: string) =>
+    onMoveChatToProject
+      ? {
+          draggable: true,
+          onDragStart: (e: React.DragEvent) => {
+            e.dataTransfer.setData(DRAG_MIME, chatId);
+            e.dataTransfer.effectAllowed = "move";
+          },
+        }
+      : {};
+
+  const dropProps = (target: string, projectId: string | null) =>
+    onMoveChatToProject
+      ? {
+          onDragOver: (e: React.DragEvent) => {
+            if (!e.dataTransfer.types.includes(DRAG_MIME)) return;
+            e.preventDefault();
+            e.dataTransfer.dropEffect = "move";
+            setDragOver(target);
+          },
+          onDragLeave: () => setDragOver((cur) => (cur === target ? null : cur)),
+          onDrop: (e: React.DragEvent) => {
+            const chatId = e.dataTransfer.getData(DRAG_MIME);
+            setDragOver(null);
+            if (chatId) {
+              e.preventDefault();
+              onMoveChatToProject(chatId, projectId);
+            }
+          },
+        }
+      : {};
   const toggleExpanded = (id: string) =>
     setExpanded((prev) => {
       const next = new Set(prev);
@@ -239,13 +278,25 @@ export default function Sidebar({
                   <div key={project.id}>
                     <div
                       className="group flex items-center rounded-[var(--radius)] px-2.5 py-2 cursor-pointer transition-colors"
+                      style={{
+                        background:
+                          dragOver === project.id ? "var(--muted)" : "transparent",
+                        outline:
+                          dragOver === project.id
+                            ? "1px dashed var(--ring)"
+                            : "none",
+                        outlineOffset: -1,
+                      }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.background = "oklch(1 0 0 / 0.04)";
+                        if (dragOver !== project.id)
+                          e.currentTarget.style.background = "oklch(1 0 0 / 0.04)";
                       }}
                       onMouseLeave={(e) => {
-                        e.currentTarget.style.background = "transparent";
+                        if (dragOver !== project.id)
+                          e.currentTarget.style.background = "transparent";
                       }}
                       onClick={() => toggleExpanded(project.id)}
+                      {...dropProps(project.id, project.id)}
                     >
                       <svg
                         className={`w-3 h-3 mr-1.5 flex-shrink-0 transition-transform ${isOpen ? "rotate-90" : ""}`}
@@ -307,12 +358,12 @@ export default function Sidebar({
                           }}
                           title={t("projectShare")}
                         >
+                          {/* users icon — this is an internal team share */}
                           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                            <circle cx="18" cy="5" r="3" />
-                            <circle cx="6" cy="12" r="3" />
-                            <circle cx="18" cy="19" r="3" />
-                            <path d="M8.59 13.51l6.83 3.98" />
-                            <path d="M15.41 6.51l-6.82 3.98" />
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                            <circle cx="9" cy="7" r="4" />
+                            <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
                           </svg>
                         </button>
                       )}
@@ -375,6 +426,7 @@ export default function Sidebar({
                               key={chat.id}
                               className="flex items-center rounded-[var(--radius)] px-2.5 py-1.5 cursor-pointer transition-colors"
                               style={{ background: active ? "var(--muted)" : "transparent" }}
+                              {...(chat.isOwn ? dragProps(chat.id) : {})}
                               onMouseEnter={(e) => {
                                 if (!active)
                                   e.currentTarget.style.background = "oklch(1 0 0 / 0.04)";
@@ -413,6 +465,16 @@ export default function Sidebar({
             </div>
           ) : null}
 
+          {/* Flat personal list — also the drop target for dragging a chat
+              OUT of a project. min-h keeps it droppable when empty. */}
+          <div
+            className="min-h-[80px] rounded-[var(--radius)]"
+            style={{
+              outline: dragOver === "flat" ? "1px dashed var(--ring)" : "none",
+              outlineOffset: -1,
+            }}
+            {...dropProps("flat", null)}
+          >
           {q && filtered.length === 0 && (
             <p
               className="px-2.5 py-2 text-[12px]"
@@ -438,6 +500,7 @@ export default function Sidebar({
                     style={{
                       background: active ? "var(--muted)" : "transparent",
                     }}
+                    {...dragProps(session.id)}
                     onMouseEnter={(e) => {
                       if (!active) e.currentTarget.style.background = "oklch(1 0 0 / 0.04)";
                     }}
@@ -540,6 +603,7 @@ export default function Sidebar({
               })}
             </div>
           ))}
+          </div>
         </div>
 
         {currentUser && (

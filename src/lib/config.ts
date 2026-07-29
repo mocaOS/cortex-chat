@@ -56,7 +56,7 @@ export async function getConfig(): Promise<ClientConfig> {
         "Formulate any question that you have about the Contents of this Cortex Knowledge Graph.",
       supportUrl: "",
       supportLabel: "",
-      defaultChatMode: "chat",
+      defaultChatMode: "deep-research",
       starterPrompts: [],
       voice: { stt: false, tts: false },
       emailConfigured: false,

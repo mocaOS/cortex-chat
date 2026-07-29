@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button, ErrorBanner, Tabs, Textarea, Input } from "@/components/admin/ui";
 import { generateSoulStream } from "@/lib/assistants-client";
 import { rateLimitMessage } from "@/lib/rate-limit-message";
@@ -26,7 +26,8 @@ function cleanDraft(raw: string): string {
 
 export default function SoulComposer({ onSubmit }: Props) {
   useLocale();
-  const [tab, setTab] = useState<SourceTab>("write");
+  // Generate is the default entry point — most users describe, few paste.
+  const [tab, setTab] = useState<SourceTab>("describe");
   const [content, setContent] = useState("");
   const [url, setUrl] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -38,8 +39,26 @@ export default function SoulComposer({ onSubmit }: Props) {
   const [refinement, setRefinement] = useState("");
   const [generating, setGenerating] = useState(false);
   const [statusLine, setStatusLine] = useState("");
+  // Agent activity log — every research step the builder takes, visible live
+  // (mirrors the chat's thinking card).
+  const [steps, setSteps] = useState<string[]>([]);
+  const [stepsExpanded, setStepsExpanded] = useState(true);
   const abortRef = useRef<AbortController | null>(null);
   const draftRef = useRef("");
+  const stepsScrollRef = useRef<HTMLDivElement>(null);
+  const draftScrollRef = useRef<HTMLDivElement>(null);
+
+  // Auto-follow both the step log and the streaming draft.
+  useEffect(() => {
+    if (generating && stepsScrollRef.current) {
+      stepsScrollRef.current.scrollTop = stepsScrollRef.current.scrollHeight;
+    }
+  }, [steps, generating]);
+  useEffect(() => {
+    if (generating && draftScrollRef.current) {
+      draftScrollRef.current.scrollTop = draftScrollRef.current.scrollHeight;
+    }
+  }, [draft, generating]);
 
   async function save(input: { content?: string; url?: string }) {
     setSaving(true);
@@ -65,6 +84,8 @@ export default function SoulComposer({ onSubmit }: Props) {
     setGenerating(true);
     setError(null);
     setStatusLine(t("soulBuilderConnecting"));
+    setSteps([]);
+    setStepsExpanded(true);
     const previous = refine ? draftRef.current : undefined;
     draftRef.current = "";
     setDraft("");
@@ -80,12 +101,14 @@ export default function SoulComposer({ onSubmit }: Props) {
           setDraft(draftRef.current);
         },
         onStatus: (message) => setStatusLine(message),
+        onThinking: (step) => setSteps((prev) => [...prev, step]),
         onDone: () => {
           draftRef.current = cleanDraft(draftRef.current);
           setDraft(draftRef.current);
           setGenerating(false);
           setStatusLine("");
           setRefinement("");
+          setStepsExpanded(false);
         },
         onError: (e) => {
           setError(e);
@@ -120,9 +143,9 @@ export default function SoulComposer({ onSubmit }: Props) {
           setError(null);
         }}
         tabs={[
+          { key: "describe", label: t("soulTabDescribe") },
           { key: "write", label: t("soulTabWrite") },
           { key: "url", label: t("soulTabUrl") },
-          { key: "describe", label: t("soulTabDescribe") },
         ]}
       />
 
@@ -205,39 +228,92 @@ export default function SoulComposer({ onSubmit }: Props) {
             </div>
           )}
 
-          {(generating || draft) && (
+          {(generating || draft || steps.length > 0) && (
             <div className="space-y-2">
-              {generating && (
+              {/* Agent activity log — every step, live, like the chat's
+                  thinking card. Collapses to a summary once done. */}
+              {(generating || steps.length > 0) && (
                 <div
-                  className="flex items-center gap-2 text-[11.5px] px-1"
-                  style={{ fontFamily: "var(--font-mono)", color: "var(--fg2)" }}
+                  className="rounded-[var(--radius)] overflow-hidden text-xs border"
+                  style={{ background: "var(--card)", borderColor: "var(--border)" }}
                 >
-                  <svg
-                    className="w-3 h-3 animate-spin flex-shrink-0"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                    style={{ color: "var(--accent)" }}
+                  <button
+                    type="button"
+                    onClick={() => setStepsExpanded((v) => !v)}
+                    className="flex items-center gap-2 px-3 py-2 w-full text-left transition-colors"
+                    style={{ color: "var(--fg2)" }}
                   >
-                    <path strokeLinecap="round" d="M12 2a10 10 0 0 1 10 10" />
-                  </svg>
-                  <span className="truncate">
-                    {statusLine || t("soulBuilderResearching")}
-                  </span>
+                    <svg
+                      className="w-3.5 h-3.5 flex-shrink-0"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      style={{ color: "var(--accent)" }}
+                    >
+                      <path d="M12 3l1.9 5.8L20 10l-5.8 1.9L12 18l-1.9-5.8L4 10l6.1-1.2L12 3z" />
+                    </svg>
+                    <span className="font-medium flex-1 uppercase tracking-[0.08em] text-[10.5px] truncate">
+                      {generating
+                        ? statusLine || t("soulBuilderResearching")
+                        : `${t("soulBuilderLog")} · ${steps.length} ${t("steps")}`}
+                    </span>
+                    {generating ? (
+                      <svg className="w-3.5 h-3.5 animate-spin flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" d="M12 2a10 10 0 0 1 10 10" />
+                      </svg>
+                    ) : (
+                      <svg
+                        className={`w-3 h-3 flex-shrink-0 transition-transform ${stepsExpanded ? "rotate-90" : ""}`}
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                      </svg>
+                    )}
+                  </button>
+                  {stepsExpanded && steps.length > 0 && (
+                    <div
+                      ref={stepsScrollRef}
+                      className="max-h-[180px] overflow-y-auto px-3 pb-2"
+                    >
+                      {steps.map((step, i) => (
+                        <div key={i} className="flex gap-3 py-0.5 leading-relaxed">
+                          <span
+                            className="select-none w-4 text-right flex-shrink-0 tabular-nums"
+                            style={{ fontFamily: "var(--font-mono)", color: "var(--fg3)" }}
+                          >
+                            {i + 1}
+                          </span>
+                          <span style={{ color: "var(--fg2)" }}>{step}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
-              <div
-                className="rounded-[var(--radius)] border px-3 py-2.5 text-[12px] whitespace-pre-wrap max-h-[280px] overflow-y-auto"
-                style={{
-                  background: "var(--bg)",
-                  borderColor: "var(--input)",
-                  color: "var(--fg1)",
-                  fontFamily: "var(--font-mono)",
-                }}
-              >
-                {draft || "…"}
-              </div>
+
+              {/* Draft — auto-follows while streaming, full file once done */}
+              {(generating || draft) && (
+                <div
+                  ref={draftScrollRef}
+                  className={`rounded-[var(--radius)] border px-3 py-2.5 text-[12px] whitespace-pre-wrap ${
+                    generating ? "max-h-[40vh] overflow-y-auto" : ""
+                  }`}
+                  style={{
+                    background: "var(--bg)",
+                    borderColor: "var(--input)",
+                    color: "var(--fg1)",
+                    fontFamily: "var(--font-mono)",
+                  }}
+                >
+                  {draft || "…"}
+                </div>
+              )}
             </div>
           )}
 

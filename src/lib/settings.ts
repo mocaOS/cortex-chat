@@ -21,7 +21,7 @@ export const DEFAULT_STARTER_PROMPTS = "";
 export const DEFAULT_ACCENT_COLOR = "oklch(0.79 0.18 70.67)";
 // Mode the chat UI starts in for every user (initial load and each new chat).
 // Users can still switch per conversation; this only sets the starting point.
-export const DEFAULT_CHAT_MODE: ChatMode = "chat";
+export const DEFAULT_CHAT_MODE: ChatMode = "deep-research";
 
 export const CORTEX_ANALYTICS_VARIABLES = [
   { token: "$userEmail", description: "Logged-in user's email address" },
@@ -77,7 +77,11 @@ function normalizeLocale(raw: string | undefined): Locale {
 }
 
 function normalizeChatMode(raw: string | undefined): ChatMode {
-  return raw === "deep-research" ? "deep-research" : DEFAULT_CHAT_MODE;
+  // Respect BOTH explicit values — only unset/garbage falls back to the
+  // product default (otherwise an admin's explicit "chat" would be ignored
+  // now that the default is deep-research).
+  if (raw === "chat" || raw === "deep-research") return raw;
+  return DEFAULT_CHAT_MODE;
 }
 
 export function getAppSettings(): AppSettings {

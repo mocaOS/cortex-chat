@@ -18,6 +18,7 @@ import {
   updateChatMessages,
   updateChatTitle,
   setChatPinned,
+  setChatProject,
   deleteChat,
 } from "@/lib/chatHistory";
 import { downloadChatMarkdown } from "@/lib/exportChat";
@@ -110,7 +111,7 @@ export default function Home() {
   // initial load and on every new chat, and puts the default first in the
   // ChatInput toggle; the user can still switch per conversation.
   const [defaultMode, setDefaultMode] = useState<Mode>(
-    () => getCachedConfig()?.defaultChatMode ?? "chat"
+    () => getCachedConfig()?.defaultChatMode ?? "deep-research"
   );
   const modeTouchedRef = useRef(false);
   const [mode, setMode] = useState<Mode>(defaultMode);
@@ -211,7 +212,7 @@ export default function Home() {
       setVoice(cfg.voice ?? { stt: false, tts: false });
       // When config wasn't seeded (direct fetch), apply the admin default —
       // unless the user already toggled the mode by hand.
-      const dm = cfg.defaultChatMode ?? "chat";
+      const dm = cfg.defaultChatMode ?? "deep-research";
       setDefaultMode(dm);
       if (!modeTouchedRef.current) setMode(dm);
       setConfigReady(true);
@@ -772,6 +773,17 @@ export default function Home() {
     }
   }, [activeSessionId, refreshSessions, handleSelectSession]);
 
+  // Drag & drop: move an own chat into a project (or null = flat list).
+  // Organizational only — soul/history/memory travel with the chat as-is.
+  const handleMoveChatToProject = useCallback(
+    async (chatId: string, projectId: string | null) => {
+      await setChatProject(chatId, projectId).catch(() => {});
+      if (chatId === activeSessionId) setActiveProjectId(projectId);
+      refreshSessions();
+    },
+    [activeSessionId, refreshSessions]
+  );
+
   const handleDeleteProject = useCallback(
     async (project: ProjectInfo) => {
       if (!confirm(t("projectDeleteConfirm"))) return;
@@ -795,6 +807,7 @@ export default function Home() {
       <Header
         logoUrl={logoUrl}
         onToggleSidebar={() => setSidebarOpen(true)}
+        onNewChat={hasGroup ? handleNewChat : undefined}
       />
 
       <Sidebar
@@ -816,6 +829,7 @@ export default function Home() {
         onShareProject={setShareProject}
         onDeleteProject={handleDeleteProject}
         onNewChatInProject={handleNewChatInProject}
+        onMoveChatToProject={handleMoveChatToProject}
         logoUrl={logoUrl}
         currentUser={currentUser}
         onSignOut={handleSignOut}

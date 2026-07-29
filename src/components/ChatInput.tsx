@@ -41,8 +41,16 @@ export default function ChatInput({
   // Dictation: MediaRecorder → /api/voice/transcribe → append to the input.
   const [recording, setRecording] = useState(false);
   const [transcribing, setTranscribing] = useState(false);
+  const [voiceError, setVoiceError] = useState<string | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const voiceErrorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function showVoiceError(message: string) {
+    setVoiceError(message);
+    if (voiceErrorTimerRef.current) clearTimeout(voiceErrorTimerRef.current);
+    voiceErrorTimerRef.current = setTimeout(() => setVoiceError(null), 6000);
+  }
 
   async function toggleRecording() {
     if (recording) {
@@ -50,6 +58,19 @@ export default function ChatInput({
       return;
     }
     if (transcribing) return;
+    // The mic permission popup is a browser privilege reserved for SECURE
+    // origins (https or localhost). On http://<LAN-IP> the browser refuses
+    // without ever prompting — Chrome hides the API entirely, Firefox
+    // exposes it but instantly rejects with NotAllowedError (which reads
+    // like a user denial). isSecureContext is the reliable signal for both.
+    if (!window.isSecureContext) {
+      showVoiceError(t("voiceInsecureContext"));
+      return;
+    }
+    if (!navigator.mediaDevices?.getUserMedia) {
+      showVoiceError(t("voiceInsecureContext"));
+      return;
+    }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mime = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
@@ -72,7 +93,7 @@ export default function ChatInput({
           const text = await transcribeAudio(blob);
           if (text) setInput((prev) => (prev ? `${prev} ${text}` : text));
         } catch {
-          /* transcription failed — leave the input untouched */
+          showVoiceError(t("voiceTranscribeFailed"));
         }
         setTranscribing(false);
         inputRef.current?.focus();
@@ -80,8 +101,22 @@ export default function ChatInput({
       recorderRef.current = rec;
       rec.start();
       setRecording(true);
-    } catch {
-      /* mic permission denied or unavailable */
+    } catch (err) {
+      // NotAllowedError with NO permission popup = the browser has the mic
+      // persistently blocked for this origin (or a global policy) — a
+      // re-prompt can't be forced from code, the user must unblock it in
+      // the site settings. Say so instead of a generic "denied".
+      // Keep the real reason visible — the UI message is a best guess, the
+      // browser's error name/message is the ground truth for diagnosis.
+      console.warn("[voice] getUserMedia failed:", err);
+      const name = err instanceof DOMException ? err.name : "";
+      if (name === "NotFoundError" || name === "OverconstrainedError") {
+        showVoiceError(t("voiceNoMic"));
+      } else if (name === "NotAllowedError" || name === "SecurityError") {
+        showVoiceError(t("voiceMicBlocked"));
+      } else {
+        showVoiceError(t("voiceMicDenied"));
+      }
     }
   }
 
@@ -322,6 +357,16 @@ export default function ChatInput({
             </svg>
           </button>
         </div>
+
+        {/* Voice error (transient) */}
+        {voiceError && (
+          <p
+            className="text-[11.5px] px-1"
+            style={{ color: "var(--destructive)" }}
+          >
+            {voiceError}
+          </p>
+        )}
 
         {/* Scope caption (mobile) + mono caption */}
         <p
