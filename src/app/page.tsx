@@ -265,21 +265,33 @@ export default function Home() {
       .catch(() => {});
   }, [messages, activeSessionId, refreshSessions]);
 
+  // URL <-> chat sync: the active chat rides as ?chat=<id> so a refresh
+  // lands back in the same conversation and back/forward walk the history.
+  const syncUrl = useCallback((id: string | null, push: boolean) => {
+    const url = id ? `/?chat=${encodeURIComponent(id)}` : "/";
+    if (push) window.history.pushState({}, "", url);
+    else window.history.replaceState({}, "", url);
+  }, []);
+
+  const loadSession = useCallback(async (id: string): Promise<boolean> => {
+    const session = await getChat(id).catch(() => null);
+    if (!session) return false;
+    justLoadedRef.current = true;
+    setActiveSessionId(id);
+    setMessages(session.messages ?? []);
+    memoryRef.current = session.memory;
+    memoryAtSendRef.current = session.memory;
+    setActiveAssistantId(session.assistantId ?? null);
+    setActiveProjectId(session.projectId ?? null);
+    setIsLoading(false);
+    return true;
+  }, []);
+
   const handleSelectSession = useCallback(
     async (id: string) => {
-      const session = await getChat(id);
-      if (session) {
-        justLoadedRef.current = true;
-        setActiveSessionId(id);
-        setMessages(session.messages ?? []);
-        memoryRef.current = session.memory;
-        memoryAtSendRef.current = session.memory;
-        setActiveAssistantId(session.assistantId ?? null);
-        setActiveProjectId(session.projectId ?? null);
-        setIsLoading(false);
-      }
+      if (await loadSession(id)) syncUrl(id, true);
     },
-    []
+    [loadSession, syncUrl]
   );
 
   const handleDeleteSession = useCallback(
@@ -293,23 +305,56 @@ export default function Home() {
         memoryAtSendRef.current = undefined;
         setActiveAssistantId(null);
         setActiveProjectId(null);
+        syncUrl(null, false);
       }
     },
-    [activeSessionId, refreshSessions]
+    [activeSessionId, refreshSessions, syncUrl]
   );
 
-  const handleNewChat = useCallback(() => {
-    setActiveSessionId(null);
-    setMessages([]);
-    memoryRef.current = undefined;
-    memoryAtSendRef.current = undefined;
-    setActiveAssistantId(null);
-    setActiveProjectId(null);
-    setIsLoading(false);
-    // Every new conversation starts in the admin-configured default mode.
-    modeTouchedRef.current = false;
-    setMode(defaultMode);
-  }, [defaultMode]);
+  // Reset to the empty state. `push` is false when driven by history
+  // navigation (popstate must not create new entries).
+  const resetToNewChat = useCallback(
+    (push: boolean) => {
+      setActiveSessionId(null);
+      setMessages([]);
+      memoryRef.current = undefined;
+      memoryAtSendRef.current = undefined;
+      setActiveAssistantId(null);
+      setActiveProjectId(null);
+      setIsLoading(false);
+      // Every new conversation starts in the admin-configured default mode.
+      modeTouchedRef.current = false;
+      setMode(defaultMode);
+      syncUrl(null, push);
+    },
+    [defaultMode, syncUrl]
+  );
+
+  const handleNewChat = useCallback(() => resetToNewChat(true), [resetToNewChat]);
+
+  // Restore the chat from the URL on first load; walk history on
+  // back/forward.
+  const urlRestoredRef = useRef(false);
+  useEffect(() => {
+    if (!currentUser || urlRestoredRef.current) return;
+    urlRestoredRef.current = true;
+    const chatId = new URLSearchParams(window.location.search).get("chat");
+    if (chatId) {
+      loadSession(chatId).then((ok) => {
+        if (!ok) syncUrl(null, false); // deleted or foreign chat — clean URL
+      });
+    }
+  }, [currentUser, loadSession, syncUrl]);
+
+  useEffect(() => {
+    const onPopState = () => {
+      const chatId = new URLSearchParams(window.location.search).get("chat");
+      if (chatId) loadSession(chatId);
+      else resetToNewChat(false);
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, [loadSession, resetToNewChat]);
 
   // New chat inside a project: fresh thread that inherits the project's
   // soul and collection scope; created (with projectId) on first send.
@@ -384,6 +429,9 @@ export default function Home() {
         );
         sessionId = created.id;
         setActiveSessionId(sessionId);
+        // The empty state's URL becomes this chat's URL (no extra history
+        // entry mid-flow).
+        syncUrl(sessionId, false);
         refreshSessions();
       }
 
@@ -694,7 +742,7 @@ export default function Home() {
         setIsLoading(false);
       }
     },
-    [isLoading, messages, mode, settings, activeSessionId, activeAssistantId, activeProjectId, refreshSessions]
+    [isLoading, messages, mode, settings, activeSessionId, activeAssistantId, activeProjectId, refreshSessions, syncUrl]
   );
 
   const handleStop = useCallback(() => {
