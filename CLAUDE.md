@@ -10,16 +10,19 @@ Cortex Chat — a Next.js 16 multi-tenant chat suite for the Cortex RAG-based AI
 - Per-group read-only API keys (chat); per-user manage keys (document upload / "content roles")
 - Streaming SSE responses from backend (`/api/ask/stream`), with structured `status` stage events driving the live thinking indicator
 - Conversation memory — client-carried, server-persisted opaque blob for cross-turn recall, citation continuity (`sid`), and a memory-only fast-path
-- Chat and Deep Research modes
+- Deep Research (default) and Chat modes, admin-overridable default
+- **Personalities** — assistant personas as portable SOUL.md files (builtin/global/group/personal tiers), injected server-side per turn; import/export with EIP-191 verification; a **generator** that researches the knowledge base and writes the SOUL.md via the backend's primary model
+- **Projects** — shared team workspaces (group/user grants) with **multi-user chats** (per-message authorship, member writes) and **realtime** (live-turn relay + sidebar freshness over SSE, in-process bus)
+- **Voice** — env-gated STT dictation + TTS read-aloud against any OpenAI-compatible audio API
+- Message actions (copy / regenerate / edit-and-resend / 👍👎 feedback), sidebar search/pin/export, admin starter prompts
+- Chat deep links (`/?chat=<id>`) with back/forward history
 - Collection-scoped search (default: all collections the user's group can read)
-- Source citations with modal viewer
-- Graph context (entities/relationships), thinking steps
+- Source citations with modal viewer; graph context (entities/relationships), thinking steps
 - i18n (EN/DE), locale set via config
-- Server-side chat history, synced across devices per user
-- Auto-generated chat titles via LLM after first response
+- Server-side chat history, synced across devices per user; titles derived from the first user message
 - Configurable accent color, logo, locale via `/api/config` endpoint
 - Admin-defined `<cortexchatanalytics>` context block, injected server-side into every backend request for consumption by agent skills
-- Login history + usage analytics for the superadmin
+- Login history + usage analytics (incl. answer-feedback KPI) for the superadmin
 
 ## Auth & Users
 
@@ -141,7 +144,9 @@ Both consume additive, backward-compatible features on `/api/ask/stream`. Parsin
 
 ## Chat UX pack
 
-Hover-revealed message actions, sidebar organization, and starter prompts. All client-side except the feedback event and the pin flag.
+Hover-revealed message actions, sidebar organization, starter prompts, and chat deep links. All client-side except the feedback event and the pin flag.
+
+- **Deep links**: the active chat rides as `/?chat=<id>` — selection pushes history (back/forward walk conversations, `popstate` handler), first-send session creation replaces in place, new-chat/delete return to `/`, and the URL chat is restored on load (membership-checked by the API; unknown ids clean the URL). All via `history.pushState`/`replaceState` in `page.tsx` (`syncUrl`), no route change.
 
 - **Message actions** (`MessageBubble`, hidden while streaming, always visible on touch): copy; **regenerate** (offered only on the thread's final assistant message); **edit-and-resend** (user messages — forks the thread, everything after the edited message is dropped); 👍/👎 feedback.
 - **Regenerate vs. the opaque memory blob.** The blob can't be rewound, so `page.tsx` keeps a one-turn snapshot (`memoryAtSendRef`) of the blob *as it was when the last question was sent*. Regenerate — and editing the **last** question — restores the snapshot so the redo doesn't "remember" the answer it replaces; editing an earlier message resets memory to `{}` (recall restarts at the fork). After a session load the snapshot is the stored blob itself — best available, slightly degraded. Regenerate/edit rebuild the thread via `handleSend(question, baseOverride)` — the override is the truncated prefix, avoiding a race with the `messages` state update.
@@ -255,7 +260,7 @@ This product uses the **MOCA Library design system** (aka Claude Design). Before
 ## Storage
 
 - Runtime state lives under `./data/`:
-  - `data/cortex-chat.db` — SQLite DB (users, groups, api_keys, sessions, login_events, chat_sessions [incl. opaque `memory` blob], chat_messages, usage_events)
+  - `data/cortex-chat.db` — SQLite DB (users, groups, api_keys, sessions, login_events, registrations, password_reset_tokens, chat_sessions [incl. opaque `memory` blob, `pinned`, `assistant_id`, `project_id`], chat_messages [incl. per-message `user_id` authorship], assistants, projects, project_shares, usage_events, app_settings)
   - `data/avatars/<userId>.webp` — user profile images
 - `data/` is gitignored and intended to be bind-mounted in Docker (see `docker-compose.yml`).
 - Schema lives in `src/lib/db/schema.ts`; migrations in `src/lib/db/migrations/` (generated via `npm run db:generate`, applied on server start via `src/instrumentation.ts` and manually via `npm run db:migrate`).

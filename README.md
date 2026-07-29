@@ -1,6 +1,6 @@
 # Cortex Chat
 
-A lean, multi-tenant chat frontend for [Cortex](https://github.com/mocaOS/cortex-app) instances. Gives end users a clean "Ask AI" interface to query their knowledge base, with admin tools for user management, group-scoped collection access, and document uploads.
+A multi-tenant AI workspace for [Cortex](https://github.com/mocaOS/cortex-app) instances. End users get a clean "Ask AI" interface over their knowledge base — with **AI personalities** (portable SOUL.md personas, including a generator that writes them from your own knowledge base), **shared team projects** with realtime multi-user conversations, **voice** in and out, and per-user cross-device history. Admins get user management, group-scoped collection access, document uploads, and a built-in library console.
 
 Built with Next.js, React, and Tailwind CSS.
 
@@ -17,12 +17,32 @@ Cortex Chat connects to any Cortex instance via its REST API and mints scoped pe
 ### Chat
 - **Ask AI** — single-purpose chat interface for querying your knowledge base
 - **Streaming responses** — real-time token-by-token answer rendering via Server-Sent Events, proxied through a Next.js API route to avoid gzip buffering (toggleable in settings)
-- **Deep Research mode** — agentic multi-step RAG for complex questions, with live thinking steps (auto-expanding during streaming), retrieval progress, and sub-question decomposition
+- **Deep Research mode (default)** — agentic multi-step RAG for complex questions, with live thinking steps (auto-expanding during streaming), retrieval progress, and sub-question decomposition; the default mode is admin-configurable
 - **Inline citations** — `[src_N]` annotations render as clickable numbered badges linked to source documents
 - **Source explorer** — click any citation or source chip to view the full document chunk in a modal with relevance scores
+- **Message actions** — copy, regenerate the last answer, edit & resend (forks the conversation), and 👍/👎 feedback that rolls up into the admin analytics
+- **Starter prompts** — admin-curated suggested questions as clickable cards on the empty screen, combined with the selected personality's starters
 - **Collection scoping** — defaults to all collections the user's group has access to; narrow to a single collection via the settings panel
-- **Conversation history** — multi-turn chat with full context passed to the backend
-- **Server-side chat history** — sessions, messages, and auto-generated titles persist per-user in SQLite, so chats follow the user across devices
+- **Conversation memory** — the backend's opaque memory blob is round-tripped every turn for cross-turn recall and citation continuity
+- **Server-side chat history** — sessions and messages persist per-user in SQLite (titles derived from the first message), so chats follow the user across devices; the sidebar has title search, pinned chats, and per-chat Markdown export
+- **Deep links** — the active chat lives in the URL (`/?chat=<id>`): refresh keeps your place, back/forward walk conversations, links are shareable
+
+### Personalities (SOUL.md)
+- **Portable personas** — each personality is a [SOUL.md](https://soul.md) file (identity, purpose, voice, directives, boundaries), injected server-side per turn, never exposed to the browser or stored in history
+- **Three tiers** — built-ins ship with the app (removable/restorable), admins curate global or per-group personas, users keep up to 20 personal ones
+- **Generator** — describe the assistant in one paragraph; the app researches your knowledge base (live research log) and writes the SOUL.md with the Cortex instance's own primary model, streaming into a hand-editable draft with refine rounds
+- **Import/export** — paste, upload, or import from URL (soulweaver-signed files are EIP-191 signature-verified); export any persona as its verbatim `SOUL.md`
+
+### Projects & realtime collaboration
+- **Shared workspaces** — a project groups chats and carries inherited defaults: an optional personality, a collection scope, and invisible per-turn instructions
+- **Sharing** — one modal, one search field over groups and individual people; moving an existing chat into a shared project asks for confirmation
+- **Multi-user conversations** — any member continues any project thread; per-message authorship (server-stamped), edit/regenerate limited to own turns, chat administration stays with the creator
+- **Realtime** — teammates' questions and streaming answers appear live in open chats (mid-stream joins replay what was missed); sidebars update within a second. Plain SSE through the app's own server — no websockets, no broker
+- **Drag & drop** chats between the personal list and project folders
+
+### Voice
+- **Dictation** (mic button) and **read-aloud** (per-answer speaker button), each env-gated against any OpenAI-compatible audio API (self-hosted speaches/LiteLLM router, Venice, OpenAI)
+- Provider keys stay server-side behind `/api/voice/*` proxies; markdown/citations are stripped before synthesis
 
 ### Multi-tenant auth & admin
 - **Email/password sessions** — `argon2id` password hashing, opaque session cookies with a 30-day sliding TTL, stored server-side in SQLite
@@ -72,7 +92,13 @@ All configuration is server-side, read at runtime. The browser bundle contains z
 | `SUPERADMIN_PASSWORD` | Re-hashed (argon2id) on every boot, so rotating means editing env + restart. | — |
 | `APP_ENCRYPTION_KEY` | 32 random bytes, base64-encoded (`openssl rand -base64 32`). Encrypts Cortex backend keys at rest in SQLite (AES-256-GCM). | — |
 | `DATABASE_PATH` | SQLite file path. Avatars live alongside it under `<dirname>/avatars/`. | `./data/cortex-chat.db` |
+| `VOICE_STT_BASE_URL` / `VOICE_STT_API_KEY` / `VOICE_STT_MODEL` | Optional dictation: any OpenAI-compatible audio API (`{base}/audio/transcriptions`). Unset base URL = mic hidden; model required when set. | — |
+| `VOICE_TTS_BASE_URL` / `VOICE_TTS_API_KEY` / `VOICE_TTS_MODEL` / `VOICE_TTS_VOICE` | Optional read-aloud (`{base}/audio/speech`); some backends require a voice name. | — |
 
+Further optional features (self-registration, SMTP email for password resets and approval notices, GlitchTip error tracking) are documented inline in [`.env.example`](.env.example).
+
+> **Personality generation** uses the Cortex backend's own primary model via its admin-gated `POST /api/llm/completions` — no separate LLM configuration. It requires a Cortex release that ships that endpoint; older backends show a clear message and everything else keeps working.
+>
 > **Branding is DB-backed.** Accent color, logo, page title, description, and default language are managed at runtime by the superadmin at `/admin/settings` and stored in SQLite. Changing branding never requires a rebuild or a restart.
 >
 > **Security note:** Never prefix `BACKEND_ADMIN_API_KEY`, `APP_ENCRYPTION_KEY`, or `SUPERADMIN_*` with `NEXT_PUBLIC_` — those would be baked into the client bundle.
@@ -265,13 +291,14 @@ src/
 ├── app/
 │   ├── admin/                  # superadmin dashboard (users, groups, analytics, settings)
 │   ├── api/
-│   │   ├── admin/              # superadmin-only routes: users, groups, content-roles, library, keys, logo, settings, login-events, analytics
-│   │   ├── ask/stream/         # SSE chat proxy (bypasses gzip buffering, injects cortex chat analytics)
-│   │   ├── auth/               # login, logout, session/me
+│   │   ├── admin/              # admin routes: users, groups, content-roles, assistants, keys, logo, settings, login-events, analytics
+│   │   ├── ask/stream/         # SSE chat proxy (gzip bypass; injects analytics + personality + project instructions; live-turn relay)
+│   │   ├── auth/               # login, logout, register, password reset, session/me
 │   │   ├── avatars/            # serves user avatar files
 │   │   ├── branding/           # serves uploaded logo
-│   │   ├── config/             # runtime config (accent color, logo URL, locale, upload limits)
-│   │   ├── me/                 # self-service: profile, password, avatar, chats, upload, upload-scope
+│   │   ├── config/             # runtime config (accent color, logo URL, locale, voice flags, upload limits)
+│   │   ├── me/                 # self-service: profile, chats (+events feed), assistants, souls/generate, projects, directory, feedback, upload
+│   │   ├── voice/              # STT/TTS proxies (transcribe, speech) — provider keys stay server-side
 │   │   └── proxy/[...path]/    # generic backend proxy for read-scope calls (e.g. collections)
 │   ├── login/                  # login page
 │   ├── profile/                # profile (username, avatar, password)
@@ -281,13 +308,15 @@ src/
 │   └── page.tsx                # Main chat page (state, API orchestration)
 ├── components/
 │   ├── admin/                  # AdminShell, Modal, shared admin UI primitives
-│   ├── ChatInput.tsx           # Text input, mode toggle, settings cog
-│   ├── MessageList.tsx         # Scrollable message area with empty state
-│   ├── MessageBubble.tsx       # User/assistant messages, thinking steps, inline citations
+│   ├── souls/                  # SoulComposer (paste/upload/URL/generate), SoulsModal (personality manager)
+│   ├── projects/               # ProjectModal, ProjectShareModal (groups+people search)
+│   ├── ChatInput.tsx           # Text input, mode toggle, mic dictation, personality/collection chips
+│   ├── MessageList.tsx         # Message area, empty state with personality picker + starter cards
+│   ├── MessageBubble.tsx       # Messages, thinking steps, citations, action bar, read-aloud, author chips
 │   ├── SettingsPanel.tsx       # Streaming toggle + collection scope selector
-│   ├── Sidebar.tsx             # Slide-in chat history (server-side, per-user)
+│   ├── Sidebar.tsx             # Chat history: search, pins, project folders, drag & drop, export
 │   ├── SourceModal.tsx         # Full source content viewer
-│   ├── Header.tsx              # Logo + sidebar toggle
+│   ├── Header.tsx              # Logo, new-chat button, support link
 │   └── ConfigBootstrap.tsx     # Loads /api/config on mount, applies CSS vars + locale
 ├── lib/
 │   ├── auth/
@@ -303,19 +332,26 @@ src/
 │   │   ├── client.ts           # better-sqlite3 + Drizzle setup
 │   │   ├── migrate.ts          # applied on server start via instrumentation
 │   │   └── migrations/         # Drizzle-generated SQL
-│   ├── api.ts                  # client-side API helpers (ask, stream parsing, title generation)
+│   ├── api.ts                  # client-side API helpers (ask, SSE stream parsing)
 │   ├── cortex-analytics.ts     # template render + conversation_history injection (server-only)
+│   ├── souls.ts                # SOUL.md frontmatter parser, visibility, builtin seeding (server-only)
+│   ├── soul-author-prompt.ts   # personality generator prompts: research questions + writer/revision messages
+│   ├── soul-import.ts          # URL import + EIP-191 signature verification (viem)
+│   ├── personality-llm.ts      # streams the writer through the backend's /api/llm/completions
+│   ├── projects.ts             # project membership, shares, chat visibility (server-only)
+│   ├── chat-events.ts          # in-process realtime bus (chat/project/user/group channels, live-turn registry)
+│   ├── voice.ts / voice-client.ts # env config + browser helpers for STT/TTS
 │   ├── settings.ts             # app_settings accessors + CORTEX_ANALYTICS_VARIABLES registry
 │   ├── config.ts               # runtime config payload builder
 │   ├── branding.ts             # logo file + uploaded asset paths
-│   ├── chatHistory.ts          # client-side chat session helpers
+│   ├── chatHistory.ts / exportChat.ts / assistants-client.ts / projects-client.ts # client-side data helpers
 │   └── i18n.ts                 # en/de translations
 ├── middleware.ts               # cookie-based gate on protected routes (PUBLIC_PATHS allowlist for login, config, auth callbacks)
 └── instrumentation.ts          # boot hook: runs migrations + superadmin bootstrap
 ```
 
 Runtime state lives under `./data/`:
-- `data/cortex-chat.db` — SQLite database (users, groups, api_keys, sessions, login_events, chat_sessions, chat_messages, usage_events, app_settings)
+- `data/cortex-chat.db` — SQLite database (users, groups, api_keys, sessions, registrations, password_reset_tokens, login_events, chat_sessions, chat_messages, assistants, projects, project_shares, usage_events, app_settings)
 - `data/avatars/<userId>.webp` — user profile images
 - `data/branding/` — uploaded logo
 
