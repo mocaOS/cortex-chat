@@ -926,11 +926,22 @@ export default function Home() {
   // Organizational only — soul/history/memory travel with the chat as-is.
   const handleMoveChatToProject = useCallback(
     async (chatId: string, projectId: string | null) => {
+      // Moving into a SHARED project exposes the chat's full history to its
+      // members — that needs explicit consent. A project not owned by the
+      // viewer is shared by definition; an owned one counts when it has
+      // grants. Moving out (or into a private project) stays silent.
+      if (projectId) {
+        const target = projects.find((p) => p.id === projectId);
+        const isShared = target
+          ? !target.isOwner || (target.shares?.length ?? 0) > 0
+          : false;
+        if (isShared && !confirm(t("moveToSharedProjectConfirm"))) return;
+      }
       await setChatProject(chatId, projectId).catch(() => {});
       if (chatId === activeSessionId) setActiveProjectId(projectId);
       refreshSessions();
     },
-    [activeSessionId, refreshSessions]
+    [projects, activeSessionId, refreshSessions]
   );
 
   const handleDeleteProject = useCallback(

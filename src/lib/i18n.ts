@@ -128,6 +128,8 @@ const translations = {
     projectSharePlaceholder: "Search groups and people…",
     readOnlyChatNotice: "A teammate's chat — read-only.",
     duplicateToContinue: "Duplicate to continue",
+    moveToSharedProjectConfirm:
+      "This project is shared — all members will be able to read this chat's entire history and continue the conversation. Move it?",
     researching: "Researching",
     searchingKnowledge: "Searching the knowledge base",
     generatingResponse: "Writing the answer",
@@ -730,6 +732,8 @@ const translations = {
     projectSharePlaceholder: "Gruppen und Personen suchen…",
     readOnlyChatNotice: "Chat einer Kollegin oder eines Kollegen — nur lesbar.",
     duplicateToContinue: "Duplizieren & fortsetzen",
+    moveToSharedProjectConfirm:
+      "Dieses Projekt ist geteilt — alle Mitglieder können den gesamten Verlauf dieses Chats lesen und die Unterhaltung fortsetzen. Verschieben?",
     researching: "Recherchiert",
     searchingKnowledge: "Durchsucht die Wissensdatenbank",
     generatingResponse: "Schreibt die Antwort",
