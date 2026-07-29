@@ -64,7 +64,7 @@ const translations = {
     soulDelete: "Delete",
     soulDeleteConfirm: "Delete this personality?",
     soulTabWrite: "Write or upload",
-    soulTabUrl: "Import SOUL.md from URL",
+    soulTabUrl: "Import from URL",
     soulTabDescribe: "Generate",
     soulContentLabel: "SOUL.md content",
     soulContentPlaceholder:
@@ -668,7 +668,7 @@ const translations = {
     soulDelete: "Löschen",
     soulDeleteConfirm: "Diese Persönlichkeit löschen?",
     soulTabWrite: "Schreiben oder hochladen",
-    soulTabUrl: "SOUL.md von URL importieren",
+    soulTabUrl: "Von URL importieren",
     soulTabDescribe: "Generieren",
     soulContentLabel: "SOUL.md Inhalt",
     soulContentPlaceholder:
