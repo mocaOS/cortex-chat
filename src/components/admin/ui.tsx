@@ -37,11 +37,17 @@ export const Input = forwardRef<
 });
 
 // Password variant of Input: same label + styling, plus the show/hide eye
-// toggle. `type` is owned by the component.
+// toggle. `type` is owned by the component. Defaults to
+// autocomplete="new-password": these fields set OTHER accounts' passwords
+// (admin user editor), where a password manager autofilling the admin's own
+// saved login would silently overwrite the target user's password.
 export const PasswordInput = forwardRef<
   HTMLInputElement,
   Omit<React.InputHTMLAttributes<HTMLInputElement>, "type"> & { label?: string }
->(function PasswordInput({ label, className = "", ...props }, ref) {
+>(function PasswordInput(
+  { label, className = "", autoComplete = "new-password", ...props },
+  ref
+) {
   const [visible, setVisible] = useState(false);
   return (
     <label className="block space-y-1.5">
@@ -50,6 +56,7 @@ export const PasswordInput = forwardRef<
         <input
           ref={ref}
           {...props}
+          autoComplete={autoComplete}
           type={visible ? "text" : "password"}
           style={{
             background: "var(--bg)",

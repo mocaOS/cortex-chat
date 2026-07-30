@@ -405,7 +405,16 @@ function UserForm({
         </>
       }
     >
-      <form id="user-form" onSubmit={handleSubmit} className="space-y-4">
+      {/* autoComplete="off" on the form + fields: this email/password pair
+          edits OTHER accounts — a password manager treating it as a login
+          form and autofilling the admin's own credentials would silently
+          reset the target user's password (and kick all their sessions). */}
+      <form
+        id="user-form"
+        onSubmit={handleSubmit}
+        className="space-y-4"
+        autoComplete="off"
+      >
         {!isSuperadmin && (
           <>
             <Input
@@ -413,6 +422,7 @@ function UserForm({
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              autoComplete="off"
               required
               autoFocus
             />
@@ -425,7 +435,6 @@ function UserForm({
               label={user ? t("newPasswordLeaveBlank") : t("password")}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder={user ? "•••••••" : ""}
               minLength={user && !password ? 0 : 8}
               required={!user}
             />
