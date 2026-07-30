@@ -43,7 +43,27 @@ function LoginForm() {
   const [registrationEnabled, setRegistrationEnabled] = useState(
     () => getCachedConfig()?.registrationEnabled ?? false
   );
+  const [oidc, setOidc] = useState(
+    () =>
+      getCachedConfig()?.oidc ?? { enabled: false, label: "", only: false }
+  );
   const justReset = params.get("reset") === "1";
+  // Break-glass escape hatch under OIDC_ONLY: /login?password=1 shows the
+  // password form again (the env-managed superadmin is exempt from SSO).
+  const passwordEscape = params.get("password") === "1";
+  const showPasswordForm = !oidc.only || passwordEscape;
+
+  // Errors bounced back from the OIDC callback (?error=…). Generic on
+  // purpose — IdP details never reach the browser.
+  const oidcErrorParam = params.get("error");
+  const oidcError =
+    oidcErrorParam === "oidc"
+      ? t("oidcError")
+      : oidcErrorParam === "oidc_unverified"
+        ? t("oidcErrorUnverified")
+        : oidcErrorParam === "oidc_superadmin"
+          ? t("oidcErrorSuperadmin")
+          : null;
 
   useEffect(() => {
     getConfig()
@@ -53,6 +73,7 @@ function LoginForm() {
         setSupportLabel(cfg.supportLabel || "");
         setEmailConfigured(!!cfg.emailConfigured);
         setRegistrationEnabled(!!cfg.registrationEnabled);
+        if (cfg.oidc) setOidc(cfg.oidc);
       })
       .finally(() => setReady(true));
   }, []);
@@ -72,7 +93,9 @@ function LoginForm() {
         setError(
           data.code === "pendingApproval"
             ? t("loginPendingApproval")
-            : data.error || t("loginFailed")
+            : data.code === "oidcOnly"
+              ? t("loginOidcOnly")
+              : data.error || t("loginFailed")
         );
         setLoading(false);
         return;
@@ -124,49 +147,53 @@ function LoginForm() {
           <img src={logoUrl} alt="Logo" className="h-9 w-auto" />
         </div>
 
-        <div className="space-y-1.5">
-          <label
-            className="text-[10.5px] font-medium uppercase tracking-[0.08em]"
-            style={{ color: "var(--fg2)" }}
-          >
-            {t("email")}
-          </label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            autoComplete="email"
-            autoFocus
-            className="w-full rounded-[var(--radius)] px-3 py-2.5 text-[13px] outline-none border transition-colors"
-            style={{
-              background: "var(--bg)",
-              borderColor: "var(--input)",
-              color: "var(--fg1)",
-            }}
-            onFocus={(e) => {
-              e.currentTarget.style.borderColor = "var(--ring)";
-            }}
-            onBlur={(e) => {
-              e.currentTarget.style.borderColor = "var(--input)";
-            }}
-          />
-        </div>
+        {showPasswordForm && (
+          <>
+            <div className="space-y-1.5">
+              <label
+                className="text-[10.5px] font-medium uppercase tracking-[0.08em]"
+                style={{ color: "var(--fg2)" }}
+              >
+                {t("email")}
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                autoComplete="email"
+                autoFocus
+                className="w-full rounded-[var(--radius)] px-3 py-2.5 text-[13px] outline-none border transition-colors"
+                style={{
+                  background: "var(--bg)",
+                  borderColor: "var(--input)",
+                  color: "var(--fg1)",
+                }}
+                onFocus={(e) => {
+                  e.currentTarget.style.borderColor = "var(--ring)";
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.borderColor = "var(--input)";
+                }}
+              />
+            </div>
 
-        <div className="space-y-1.5">
-          <label
-            className="text-[10.5px] font-medium uppercase tracking-[0.08em]"
-            style={{ color: "var(--fg2)" }}
-          >
-            {t("password")}
-          </label>
-          <PasswordInput
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            autoComplete="current-password"
-          />
-        </div>
+            <div className="space-y-1.5">
+              <label
+                className="text-[10.5px] font-medium uppercase tracking-[0.08em]"
+                style={{ color: "var(--fg2)" }}
+              >
+                {t("password")}
+              </label>
+              <PasswordInput
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                autoComplete="current-password"
+              />
+            </div>
+          </>
+        )}
 
         {justReset && (
           <div
@@ -177,30 +204,81 @@ function LoginForm() {
           </div>
         )}
 
-        {error && (
+        {(error || oidcError) && (
           <div
             className="text-[12.5px] text-center"
             style={{ color: "var(--destructive)" }}
           >
-            {error}
+            {error || oidcError}
           </div>
         )}
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full py-2.5 rounded-[var(--radius)] text-[13px] font-medium disabled:opacity-60 transition-all active:scale-[0.98]"
-          style={{
-            background: "var(--accent)",
-            color: "var(--accent-fg)",
-            boxShadow:
-              "0 0 20px color-mix(in oklch, var(--accent) 30%, transparent)",
-          }}
-        >
-          {loading ? t("signingIn") : t("signIn")}
-        </button>
+        {showPasswordForm && (
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-2.5 rounded-[var(--radius)] text-[13px] font-medium disabled:opacity-60 transition-all active:scale-[0.98]"
+            style={{
+              background: "var(--accent)",
+              color: "var(--accent-fg)",
+              boxShadow:
+                "0 0 20px color-mix(in oklch, var(--accent) 30%, transparent)",
+            }}
+          >
+            {loading ? t("signingIn") : t("signIn")}
+          </button>
+        )}
 
-        {(emailConfigured || registrationEnabled) && (
+        {oidc.enabled && (
+          <>
+            {showPasswordForm && (
+              <div className="flex items-center gap-3">
+                <div
+                  className="flex-1 h-px"
+                  style={{ background: "var(--border)" }}
+                />
+                <span
+                  className="text-[10.5px] uppercase tracking-[0.08em]"
+                  style={{ color: "var(--fg2)" }}
+                >
+                  {t("ssoDivider")}
+                </span>
+                <div
+                  className="flex-1 h-px"
+                  style={{ background: "var(--border)" }}
+                />
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                window.location.href = "/api/auth/oidc/login";
+              }}
+              className="w-full py-2.5 rounded-[var(--radius)] text-[13px] font-medium transition-all active:scale-[0.98] border"
+              style={
+                showPasswordForm
+                  ? {
+                      // Secondary next to the password CTA — one accent per screen.
+                      background: "var(--card)",
+                      borderColor: "var(--border)",
+                      color: "var(--fg1)",
+                    }
+                  : {
+                      // Sole sign-in method → it IS the primary CTA.
+                      background: "var(--accent)",
+                      borderColor: "transparent",
+                      color: "var(--accent-fg)",
+                      boxShadow:
+                        "0 0 20px color-mix(in oklch, var(--accent) 30%, transparent)",
+                    }
+              }
+            >
+              {oidc.label || t("ssoSignIn")}
+            </button>
+          </>
+        )}
+
+        {showPasswordForm && !oidc.only && (emailConfigured || registrationEnabled) && (
           <div className="text-center pt-1 space-y-1.5">
             {emailConfigured && (
               <div>

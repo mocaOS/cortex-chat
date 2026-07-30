@@ -1,5 +1,11 @@
 import { sql } from "drizzle-orm";
-import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import {
+  index,
+  integer,
+  sqliteTable,
+  text,
+  uniqueIndex,
+} from "drizzle-orm/sqlite-core";
 
 // API keys issued by the library-backend, stored encrypted (AES-256-GCM).
 // One row per backend key; referenced polymorphically by groups.chatKeyId (read)
@@ -26,25 +32,41 @@ export const groups = sqliteTable("groups", {
   updatedAt: integer("updated_at").notNull().default(sql`(unixepoch() * 1000)`),
 });
 
-export const users = sqliteTable("users", {
-  id: text("id").primaryKey(),
-  email: text("email").notNull().unique(),
-  passwordHash: text("password_hash").notNull(),
-  username: text("username").notNull().default(""),
-  avatarPath: text("avatar_path"),
-  role: text("role", { enum: ["user", "admin", "superadmin"] })
-    .notNull()
-    .default("user"),
-  groupId: text("group_id").references(() => groups.id, {
-    onDelete: "set null",
-  }),
-  contentKeyId: text("content_key_id").references(() => apiKeys.id, {
-    onDelete: "set null",
-  }),
-  createdAt: integer("created_at").notNull().default(sql`(unixepoch() * 1000)`),
-  updatedAt: integer("updated_at").notNull().default(sql`(unixepoch() * 1000)`),
-  lastLoginAt: integer("last_login_at"),
-});
+export const users = sqliteTable(
+  "users",
+  {
+    id: text("id").primaryKey(),
+    email: text("email").notNull().unique(),
+    // OIDC-provisioned accounts store "" — an unusable sentinel; verifyPassword
+    // fails closed on it, so password login is impossible until a reset.
+    passwordHash: text("password_hash").notNull(),
+    username: text("username").notNull().default(""),
+    avatarPath: text("avatar_path"),
+    role: text("role", { enum: ["user", "admin", "superadmin"] })
+      .notNull()
+      .default("user"),
+    groupId: text("group_id").references(() => groups.id, {
+      onDelete: "set null",
+    }),
+    contentKeyId: text("content_key_id").references(() => apiKeys.id, {
+      onDelete: "set null",
+    }),
+    // SSO account link. The IdP's stable subject identifier + the issuer it
+    // came from — (issuer, sub) is the durable identity pair (emails can
+    // change at the IdP). Set on first OIDC login or verified-email link.
+    oidcSub: text("oidc_sub"),
+    oidcIssuer: text("oidc_issuer"),
+    createdAt: integer("created_at").notNull().default(sql`(unixepoch() * 1000)`),
+    updatedAt: integer("updated_at").notNull().default(sql`(unixepoch() * 1000)`),
+    lastLoginAt: integer("last_login_at"),
+  },
+  (t) => ({
+    oidcIdentityIdx: uniqueIndex("idx_users_oidc_identity").on(
+      t.oidcIssuer,
+      t.oidcSub
+    ),
+  })
+);
 
 export const sessions = sqliteTable("sessions", {
   token: text("token").primaryKey(),
@@ -95,6 +117,8 @@ export const loginEvents = sqliteTable("login_events", {
   userId: text("user_id").references(() => users.id, { onDelete: "set null" }),
   emailAttempted: text("email_attempted").notNull(),
   success: integer("success").notNull(),
+  // How the sign-in was attempted: "password" or "oidc" (SSO).
+  method: text("method").notNull().default("password"),
   ip: text("ip").notNull().default(""),
   userAgent: text("user_agent").notNull().default(""),
   createdAt: integer("created_at").notNull().default(sql`(unixepoch() * 1000)`),

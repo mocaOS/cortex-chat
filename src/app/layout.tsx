@@ -7,6 +7,7 @@ import { MAX_UPLOAD_BYTES } from "@/lib/upload-limits";
 import { isEmailConfigured } from "@/lib/email/config";
 import { isRegistrationEnabled } from "@/lib/registration";
 import { getSttConfig, getTtsConfig } from "@/lib/voice";
+import { getOidcConfig, isOidcOnly } from "@/lib/auth/oidc";
 import ConfigBootstrap from "@/components/ConfigBootstrap";
 
 export const dynamic = "force-dynamic";
@@ -51,6 +52,7 @@ export default function RootLayout({
 }) {
   const settings = getAppSettings();
   const logoUrl = resolveLogoUrl(settings);
+  const oidc = getOidcConfig();
   setI18nLocale(settings.locale);
 
   const initialConfig = {
@@ -66,6 +68,11 @@ export default function RootLayout({
     voice: { stt: !!getSttConfig(), tts: !!getTtsConfig() },
     emailConfigured: isEmailConfigured(),
     registrationEnabled: isRegistrationEnabled(),
+    oidc: {
+      enabled: !!oidc,
+      label: oidc?.buttonLabel ?? "",
+      only: isOidcOnly(),
+    },
     maxUploadBytes: MAX_UPLOAD_BYTES,
   };
 

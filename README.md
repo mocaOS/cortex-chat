@@ -46,6 +46,7 @@ Cortex Chat connects to any Cortex instance via its REST API and mints scoped pe
 
 ### Multi-tenant auth & admin
 - **Email/password sessions** — `argon2id` password hashing, opaque session cookies with a 30-day sliding TTL, stored server-side in SQLite
+- **Single Sign-On (OIDC)** — vendor-agnostic SSO via OpenID Connect discovery: Entra ID, ADFS, Okta, Google Workspace, Keycloak, Authentik, Zitadel, … Three env vars enable it; users are JIT-provisioned into a configurable group on first login, existing accounts are linked on verified email. `OIDC_ONLY=true` turns off password login entirely (superadmin keeps a break-glass backdoor)
 - **Superadmin bootstrap** — superadmin row is upserted from env on every boot (rotate by editing env + restart)
 - **User & group management** — superadmin creates users at `/admin`, assigns each to exactly one group, and edits per-group collection scope
 - **Per-group read keys** — every chat request uses the group's `read`-scoped Cortex backend key, minted by the superadmin and stored AES-256-GCM encrypted at rest
@@ -254,6 +255,20 @@ So every key in `api_keys` was minted by the env admin key against **one specifi
 #### Sessions
 
 Users sign in with email + password (argon2id). Sessions are DB-backed (`sessions` table) with an opaque cookie token and a 30-day sliding TTL. Middleware checks for the cookie on protected routes; route handlers re-validate against DB via `getAuth()` / `requireAuth()` / `requireAdmin()` / `requireSuperadmin()`.
+
+#### Single Sign-On (OIDC)
+
+SSO is a **second way to mint a session** — the app keeps its own session model, and the OIDC callback terminates into the same `sessions` table as password login. Any OpenID Connect IdP with discovery works (`{issuer}/.well-known/openid-configuration`): Entra ID / Azure AD, on-prem ADFS (2016+), Okta, Auth0, Google Workspace, Keycloak, Authentik, Authelia, Zitadel, PocketID. Legacy LDAP-only or SAML-only stacks are covered by putting a thin bridging IdP (Authentik or Dex) in front and pointing `OIDC_ISSUER_URL` at that — standard practice, no SAML code needed here.
+
+Configuration is env-only (see `.env.example`): set `OIDC_ISSUER_URL`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, and `APP_BASE_URL`, and register `{APP_BASE_URL}/api/auth/oidc/callback` as the redirect URI at your IdP. The login page then shows an SSO button (text via `OIDC_BUTTON_LABEL`). The flow is Authorization Code + PKCE with `state`/`nonce` in a short-lived signed cookie.
+
+Account resolution on callback, in order:
+
+1. A user already linked to this IdP identity (`(issuer, sub)` pair) signs in.
+2. Otherwise, an existing user with the same email is **linked** — but only when the IdP asserts `email_verified: true` (the account-takeover guard).
+3. Otherwise a new account is JIT-provisioned (role `user`) into the group named by `OIDC_DEFAULT_GROUP` — unset means group-less: the user can sign in but can't chat until an admin assigns a group. SSO-only accounts have no usable password.
+
+The **superadmin is excluded from SSO entirely** — it stays env-managed so break-glass access never depends on the IdP being up. With `OIDC_ONLY=true` the password form and self-registration disappear and `/api/auth/login` rejects everyone except the superadmin, who reaches the hidden password form via `/login?password=1`. Note that disabling a user at the IdP does **not** end their existing chat sessions (30-day TTL) — delete the user in `/admin` to cascade their sessions.
 
 #### Collection scoping
 

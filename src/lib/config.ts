@@ -17,6 +17,9 @@ export interface ClientConfig {
   voice: { stt: boolean; tts: boolean };
   emailConfigured: boolean;
   registrationEnabled: boolean;
+  // SSO (OIDC) — enabled gates the login button; label is the admin-set
+  // button text ("" = localized fallback); only = password form hidden.
+  oidc: { enabled: boolean; label: string; only: boolean };
   maxUploadBytes: number;
 }
 
@@ -61,6 +64,7 @@ export async function getConfig(): Promise<ClientConfig> {
       voice: { stt: false, tts: false },
       emailConfigured: false,
       registrationEnabled: false,
+      oidc: { enabled: false, label: "", only: false },
       maxUploadBytes: MAX_UPLOAD_BYTES,
     };
   }

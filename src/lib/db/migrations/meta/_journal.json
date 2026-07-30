@@ -71,6 +71,13 @@
       "when": 1785354000422,
       "tag": "0009_naive_echo",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1785404506064,
+      "tag": "0010_neat_moon_knight",
+      "breakpoints": true
     }
   ]
 }

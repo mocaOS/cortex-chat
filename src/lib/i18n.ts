@@ -190,6 +190,16 @@ const translations = {
       "This reset link is invalid or has expired. Request a new one.",
     resetPasswordCheckingLink: "Checking link…",
 
+    // SSO (OIDC)
+    ssoSignIn: "Continue with Single Sign-On",
+    ssoDivider: "or",
+    oidcError:
+      "Single Sign-On failed. Please try again or contact your administrator.",
+    oidcErrorUnverified:
+      "Your email address isn't verified at the identity provider, so it can't be linked to an existing account. Contact your administrator.",
+    oidcErrorSuperadmin: "This account can't sign in with Single Sign-On.",
+    loginOidcOnly: "Password sign-in is disabled — use Single Sign-On.",
+
     // Self-registration
     createAccount: "Create account",
     registerHeading: "Create your account",
@@ -797,6 +807,18 @@ const translations = {
     resetPasswordInvalid:
       "Dieser Link ist ungültig oder abgelaufen. Fordere einen neuen an.",
     resetPasswordCheckingLink: "Prüfe Link…",
+
+    // SSO (OIDC)
+    ssoSignIn: "Mit Single Sign-On fortfahren",
+    ssoDivider: "oder",
+    oidcError:
+      "Single Sign-On fehlgeschlagen. Versuch es erneut oder wende dich an deinen Administrator.",
+    oidcErrorUnverified:
+      "Deine E-Mail-Adresse ist beim Identity Provider nicht verifiziert und kann daher nicht mit einem bestehenden Konto verknüpft werden. Wende dich an deinen Administrator.",
+    oidcErrorSuperadmin:
+      "Dieses Konto kann sich nicht per Single Sign-On anmelden.",
+    loginOidcOnly:
+      "Die Anmeldung mit Passwort ist deaktiviert — nutze Single Sign-On.",
 
     // Selbstregistrierung
     createAccount: "Konto erstellen",

@@ -1,5 +1,6 @@
 import * as Sentry from "@sentry/nextjs";
 import { validateVoiceEnv } from "@/lib/voice";
+import { validateOidcEnv } from "@/lib/auth/oidc";
 
 export async function register() {
   if (process.env.NEXT_RUNTIME === "edge") {
@@ -134,6 +135,10 @@ function validateRequiredEnv(): void {
   // Voice is optional (feature-gated on VOICE_*_BASE_URL); when a base URL is
   // set, the matching model must be too.
   errors.push(...validateVoiceEnv());
+
+  // SSO is optional (feature-gated on OIDC_ISSUER_URL); when the issuer is
+  // set, client id + secret + APP_BASE_URL (redirect URI) must be too.
+  errors.push(...validateOidcEnv());
 
   if (errors.length > 0) {
     const header =

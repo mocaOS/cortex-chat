@@ -9,6 +9,7 @@ import {
   getRequestMeta,
 } from "@/lib/auth/session";
 import { newId } from "@/lib/auth/crypto";
+import { isOidcOnly } from "@/lib/auth/oidc";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +24,21 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
   }
   const email = parsed.data.email.trim().toLowerCase();
+
+  // OIDC_ONLY: password sign-in is disabled for everyone except the
+  // env-managed superadmin (break-glass access via /login?password=1 —
+  // it must keep working even when the IdP is down).
+  if (isOidcOnly()) {
+    const superadminEmail =
+      process.env.SUPERADMIN_EMAIL?.trim().toLowerCase() ?? "";
+    if (!superadminEmail || email !== superadminEmail) {
+      return NextResponse.json(
+        { error: "Password sign-in is disabled", code: "oidcOnly" },
+        { status: 403 }
+      );
+    }
+  }
+
   const { ip, userAgent } = await getRequestMeta();
 
   const user = db

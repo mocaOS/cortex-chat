@@ -23,6 +23,7 @@ Cortex Chat — a Next.js 16 multi-tenant chat suite for the Cortex RAG-based AI
 - Configurable accent color, logo, locale via `/api/config` endpoint
 - Admin-defined `<cortexchatanalytics>` context block, injected server-side into every backend request for consumption by agent skills
 - Login history + usage analytics (incl. answer-feedback KPI) for the superadmin
+- **SSO (OIDC)** — vendor-agnostic Single Sign-On via OpenID Connect discovery, env-gated; JIT provisioning, verified-email account linking, optional `OIDC_ONLY` mode
 
 ## Auth & Users
 
@@ -59,6 +60,69 @@ email" button are hidden (`ClientConfig.emailConfigured`).
   first send for pre-existing logos; only a failed conversion falls back to
   the text wordmark (`readEmailLogo` in `src/lib/branding.ts`). Email copy is
   server-side only (`src/lib/email/templates/`), never in `i18n.ts`.
+
+## Single Sign-On (OIDC)
+
+Vendor-agnostic SSO: one adapter over OpenID Connect **discovery**
+(`{issuer}/.well-known/openid-configuration`) covers Entra ID, ADFS 2016+,
+Okta, Auth0, Google Workspace, Keycloak, Authentik, Zitadel, … — no per-vendor
+code. Legacy LDAP/SAML-only stacks bridge with a thin IdP (Authentik/Dex) in
+front; that's documented practice, not built here. SSO is a **second way to
+mint a `sessions` row** — the hand-rolled DB session model stays authoritative
+(deliberately `openid-client`, NOT NextAuth). Feature-gated like SMTP/voice:
+unset `OIDC_ISSUER_URL` ⇒ no button, `/api/auth/oidc/*` 404.
+
+- **Env (all in `src/lib/auth/oidc.ts`, boot-validated in
+  `instrumentation.ts`):** `OIDC_ISSUER_URL` (presence enables; https:// or
+  localhost-http only), `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, and
+  `APP_BASE_URL` (redirect URI = `{APP_BASE_URL}/api/auth/oidc/callback`) —
+  all four required together. Optional: `OIDC_SCOPES` (default
+  `openid profile email`), `OIDC_BUTTON_LABEL` (default: localized "Single
+  Sign-On"), `OIDC_DEFAULT_GROUP` (group NAME for JIT users, resolved at login
+  time; unset ⇒ group-less, chat blocked until an admin assigns),
+  `OIDC_ONLY`.
+- **Flow:** Authorization Code + PKCE (`src/lib/auth/oidc-flow.ts`). Issuer
+  metadata cached in-process 15 min. PKCE verifier + `state` + `nonce` ride a
+  10-min httpOnly cookie (`oidc_txn`, path-scoped to `/api/auth/oidc`), HMAC-
+  signed with an `APP_ENCRYPTION_KEY`-derived key; deleted on every callback
+  outcome (single-use — replayed callback URLs fail). The callback rebuilds
+  the current URL from the configured redirect URI + actual query string so
+  reverse proxies can't desync the token-exchange `redirect_uri`.
+- **Account resolution (callback, strict order):** (1) `(oidc_issuer,
+  oidc_sub)` match → login; (2) email match → link ONLY when
+  `email_verified === true` (account-takeover guard — never link on an
+  unverified claim); (3) superadmin email/role → **reject**
+  (`error=oidc_superadmin`) — the env-managed break-glass account never
+  depends on the IdP; (4) JIT-create with `password_hash = ""` (unusable
+  sentinel; `verifyPassword` fails closed on malformed digests). The unique
+  index covers the `(issuer, sub)` pair; issuer stored is the *discovered*
+  canonical issuer, not the env string.
+- **Pre-hijack containment:** JIT deliberately does NOT require
+  `email_verified` (Entra ID never emits the claim — requiring it would break
+  the flagship IdP), so on an IdP that lets users pick unverified emails an
+  attacker could squat a not-yet-provisioned address. Two mitigations: the
+  email-match **link path evicts every existing session** for the account in
+  the same transaction (reset-password pattern), so a squatter is fully
+  logged out the moment the verified owner first signs in; and re-linking a
+  row that already carries a different `sub` logs a server-side warning
+  instead of happening silently. Operator guidance: keep email verification
+  ON at IdPs with self-service signup.
+- **`OIDC_ONLY=true`:** password form hidden, `/api/auth/login` 403s everyone
+  except the superadmin email, `isRegistrationEnabled()` forced false.
+  Superadmin escape hatch: `/login?password=1` shows the password form again.
+- **Errors:** every failure redirects to `/login?error=oidc[_unverified|_superadmin]`
+  with localized generic copy — IdP error bodies/tokens never reach the
+  browser (voice-proxy sanitization rule). Post-login redirect is always `/`.
+- **Observability:** `login_events.method` (`password`/`oidc`, migration
+  `0010`) tags every attempt incl. rejected links; usage_events login rows
+  carry `metadata.method: "oidc"`.
+- **Out of v1 (documented, deliberate):** claim→group/admin mapping, RP-
+  initiated logout, refresh tokens (no IdP calls after login, no tokens
+  persisted), multiple simultaneous IdPs, SCIM — disabling a user at the IdP
+  does NOT kill existing 30-day chat sessions; delete the user in /admin.
+- **Dev IdP:** `docs/dev/keycloak/` — compose file + realm import with test
+  users (verified/unverified email) preconfigured for
+  `http://localhost:3000`.
 
 ## Self-registration & admin approval
 

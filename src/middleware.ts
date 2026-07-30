@@ -12,6 +12,8 @@ const PUBLIC_PATHS = new Set<string>([
   "/api/auth/forgot-password",
   "/api/auth/reset-password",
   "/api/auth/register",
+  "/api/auth/oidc/login",
+  "/api/auth/oidc/callback",
   "/api/config",
   "/api/branding/logo",
 ]);

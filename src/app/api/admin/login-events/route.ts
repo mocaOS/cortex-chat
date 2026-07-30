@@ -28,6 +28,7 @@ export async function GET(request: Request) {
       id: loginEvents.id,
       createdAt: loginEvents.createdAt,
       success: loginEvents.success,
+      method: loginEvents.method,
       emailAttempted: loginEvents.emailAttempted,
       ip: loginEvents.ip,
       userAgent: loginEvents.userAgent,
