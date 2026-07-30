@@ -78,7 +78,7 @@ const translations = {
     soulDescribeLabel: "Describe the personality",
     soulDescribePlaceholder:
       "e.g. An assistant for our support team that answers politely, cites the documentation, and always ends with clear next steps…",
-    soulGenerate: "Generate with Cortex",
+    soulGenerate: "Generate Now",
     soulBuilderConnecting: "Connecting…",
     soulBuilderResearching: "Researching the knowledge base…",
     soulBuilderLog: "Research",
@@ -696,7 +696,7 @@ const translations = {
     soulDescribeLabel: "Beschreibe die Persönlichkeit",
     soulDescribePlaceholder:
       "z. B. Ein Assistent für unser Support-Team, der höflich antwortet, die Dokumentation zitiert und immer mit klaren nächsten Schritten endet…",
-    soulGenerate: "Mit Cortex generieren",
+    soulGenerate: "Jetzt generieren",
     soulBuilderConnecting: "Verbinde…",
     soulBuilderResearching: "Durchsucht die Wissensdatenbank…",
     soulBuilderLog: "Recherche",
