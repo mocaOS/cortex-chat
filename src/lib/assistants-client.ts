@@ -81,6 +81,17 @@ export async function downloadSoul(
   URL.revokeObjectURL(url);
 }
 
+// A generated/revised draft streams straight from a RAG answer, so it can
+// carry citation markers and code fences — meaningless inside a persona file.
+// Strip them before showing/saving.
+export function cleanSoulDraft(raw: string): string {
+  return raw
+    .replace(/\s?\[[^\]]*?src_\d+[^\]]*?\](?!\()/gi, "")
+    .replace(/^```(?:markdown|md)?\s*\n/i, "")
+    .replace(/\n```\s*$/, "")
+    .trim();
+}
+
 export interface GenerateCallbacks {
   onContent: (token: string) => void;
   onStatus: (message: string) => void;

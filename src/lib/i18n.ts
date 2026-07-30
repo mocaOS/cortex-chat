@@ -91,6 +91,11 @@ const translations = {
     soulEditTitle: "Edit personality",
     soulEditHint:
       "Edit the SOUL.md directly — the frontmatter drives the UI: name, description, the starters list (the suggested-question cards), and an optional default collection. Changes apply to the next message in every chat using this personality.",
+    soulStartersHelpTitle: "Suggested questions",
+    soulStartersHelp:
+      "The question cards shown on a new chat with this personality come from the starters: list in the frontmatter at the top of the file — one question per dash line:",
+    soulStartersHelpExample:
+      "starters:\n  - How do I get started?\n  - What can you help me with?",
 
     // Voice
     voiceDictate: "Dictate",
@@ -709,6 +714,11 @@ const translations = {
     soulEditTitle: "Persönlichkeit bearbeiten",
     soulEditHint:
       "Bearbeite die SOUL.md direkt — das Frontmatter steuert die UI: Name, Beschreibung, die starters-Liste (die Startfragen-Karten) und eine optionale Standard-Collection. Änderungen gelten ab der nächsten Nachricht in jedem Chat mit dieser Persönlichkeit.",
+    soulStartersHelpTitle: "Startfragen",
+    soulStartersHelp:
+      "Die Fragen-Karten, die ein neuer Chat mit dieser Persönlichkeit anzeigt, kommen aus der starters:-Liste im Frontmatter am Anfang der Datei — eine Frage pro Bindestrich-Zeile:",
+    soulStartersHelpExample:
+      "starters:\n  - Wie starte ich?\n  - Wobei kannst du mir helfen?",
 
     // Voice
     voiceDictate: "Diktieren",

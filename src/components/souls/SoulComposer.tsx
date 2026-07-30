@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Button, ErrorBanner, Tabs, Textarea, Input } from "@/components/admin/ui";
-import { generateSoulStream } from "@/lib/assistants-client";
+import { cleanSoulDraft, generateSoulStream } from "@/lib/assistants-client";
 import { rateLimitMessage } from "@/lib/rate-limit-message";
 import { t } from "@/lib/i18n";
 import { useLocale } from "@/lib/i18n-client";
@@ -12,16 +12,6 @@ type SourceTab = "write" | "url" | "describe";
 interface Props {
   // Resolves when the soul was saved; the composer resets itself.
   onSubmit: (input: { content?: string; url?: string }) => Promise<void>;
-}
-
-// The generated draft streams straight from a RAG answer, so it can carry
-// citation markers — meaningless inside a persona file. Strip them.
-function cleanDraft(raw: string): string {
-  return raw
-    .replace(/\s?\[[^\]]*?src_\d+[^\]]*?\](?!\()/gi, "")
-    .replace(/^```(?:markdown|md)?\s*\n/i, "")
-    .replace(/\n```\s*$/, "")
-    .trim();
 }
 
 export default function SoulComposer({ onSubmit }: Props) {
@@ -103,7 +93,7 @@ export default function SoulComposer({ onSubmit }: Props) {
         onStatus: (message) => setStatusLine(message),
         onThinking: (step) => setSteps((prev) => [...prev, step]),
         onDone: () => {
-          draftRef.current = cleanDraft(draftRef.current);
+          draftRef.current = cleanSoulDraft(draftRef.current);
           setDraft(draftRef.current);
           setGenerating(false);
           setStatusLine("");
@@ -130,7 +120,7 @@ export default function SoulComposer({ onSubmit }: Props) {
     abortRef.current = null;
     setGenerating(false);
     setStatusLine("");
-    draftRef.current = cleanDraft(draftRef.current);
+    draftRef.current = cleanSoulDraft(draftRef.current);
     setDraft(draftRef.current);
   }
 
