@@ -100,7 +100,7 @@ export default function ProjectModal({
           value={assistantId}
           onChange={(e) => setAssistantId(e.target.value)}
         >
-          <option value="">{t("soulDefaultCortex")}</option>
+          <option value="">{t("soulDefault")}</option>
           {assistants.map((a) => (
             <option key={a.id} value={a.id}>
               {a.name}

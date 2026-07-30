@@ -47,7 +47,7 @@ const translations = {
     back: "Back",
 
     // Personalities (assistant personas; SOUL.md is the technical format)
-    soulDefaultCortex: "Cortex",
+    soulDefault: "Default",
     soulsManage: "Manage personalities",
     soulActive: "Active personality",
     soulsTitle: "Personalities",
@@ -655,7 +655,7 @@ const translations = {
     back: "Zurück",
 
     // Personalities (Assistenten-Personas; SOUL.md bleibt der technische Begriff)
-    soulDefaultCortex: "Cortex",
+    soulDefault: "Standard",
     soulsManage: "Persönlichkeiten verwalten",
     soulActive: "Aktive Persönlichkeit",
     soulsTitle: "Persönlichkeiten",

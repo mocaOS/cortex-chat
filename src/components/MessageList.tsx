@@ -94,7 +94,7 @@ export default function MessageList({
         {onSelectAssistant && (assistants?.length || onManageSouls) ? (
           <div className="flex flex-wrap items-center justify-center gap-1.5 mt-5 max-w-xl">
             <SoulChip
-              label={t("soulDefaultCortex")}
+              label={t("soulDefault")}
               active={!activeAssistantId}
               onClick={() => onSelectAssistant(null)}
             />
