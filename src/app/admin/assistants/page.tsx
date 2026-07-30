@@ -11,6 +11,7 @@ import {
 } from "@/components/admin/ui";
 import Modal from "@/components/admin/Modal";
 import SoulComposer from "@/components/souls/SoulComposer";
+import SoulEditModal from "@/components/souls/SoulEditModal";
 import { downloadSoul } from "@/lib/assistants-client";
 import { t } from "@/lib/i18n";
 import { useLocale } from "@/lib/i18n-client";
@@ -39,6 +40,7 @@ export default function AdminAssistantsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [newScope, setNewScope] = useState<"global" | "group">("global");
   const [newGroupId, setNewGroupId] = useState("");
 
@@ -179,6 +181,9 @@ export default function AdminAssistantsPage() {
                 </Td>
                 <Td>
                   <div className="flex gap-2 flex-wrap">
+                    <Button variant="ghost" onClick={() => setEditingId(a.id)}>
+                      {t("soulEdit")}
+                    </Button>
                     <Button variant="ghost" onClick={() => toggle(a)}>
                       {a.enabled
                         ? a.builtinKey
@@ -258,6 +263,14 @@ export default function AdminAssistantsPage() {
           />
         </div>
       </Modal>
+
+      <SoulEditModal
+        open={!!editingId}
+        onClose={() => setEditingId(null)}
+        assistantId={editingId}
+        admin
+        onSaved={load}
+      />
     </div>
   );
 }

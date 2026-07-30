@@ -87,6 +87,10 @@ const translations = {
     soulRefine: "Refine",
     soulRegenerate: "Regenerate",
     soulUse: "Use this personality",
+    soulEdit: "Edit",
+    soulEditTitle: "Edit personality",
+    soulEditHint:
+      "Edit the SOUL.md directly — the frontmatter drives the UI: name, description, the starters list (the suggested-question cards), and an optional default collection. Changes apply to the next message in every chat using this personality.",
 
     // Voice
     voiceDictate: "Dictate",
@@ -691,6 +695,10 @@ const translations = {
     soulRefine: "Verfeinern",
     soulRegenerate: "Neu generieren",
     soulUse: "Diese Persönlichkeit verwenden",
+    soulEdit: "Bearbeiten",
+    soulEditTitle: "Persönlichkeit bearbeiten",
+    soulEditHint:
+      "Bearbeite die SOUL.md direkt — das Frontmatter steuert die UI: Name, Beschreibung, die starters-Liste (die Startfragen-Karten) und eine optionale Standard-Collection. Änderungen gelten ab der nächsten Nachricht in jedem Chat mit dieser Persönlichkeit.",
 
     // Voice
     voiceDictate: "Diktieren",

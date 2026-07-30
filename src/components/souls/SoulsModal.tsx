@@ -5,6 +5,7 @@ import { AssistantSummary } from "@/types";
 import Modal from "@/components/admin/Modal";
 import { Button } from "@/components/admin/ui";
 import SoulComposer from "./SoulComposer";
+import SoulEditModal from "./SoulEditModal";
 import {
   createAssistant,
   deleteAssistant,
@@ -31,6 +32,7 @@ function scopeLabel(a: AssistantSummary): string {
 export default function SoulsModal({ open, onClose, assistants, onChanged }: Props) {
   useLocale();
   const [view, setView] = useState<"list" | "add">("list");
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   return (
     <Modal
@@ -102,6 +104,26 @@ export default function SoulsModal({ open, onClose, assistants, onChanged }: Pro
                 )}
               </div>
               <div className="flex gap-1 flex-shrink-0">
+                {a.isOwn && (
+                  <button
+                    onClick={() => setEditingId(a.id)}
+                    className="w-7 h-7 rounded-[var(--radius-sm)] flex items-center justify-center transition-colors"
+                    style={{ color: "var(--fg3)" }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.color = "var(--fg1)";
+                      e.currentTarget.style.background = "var(--muted)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.color = "var(--fg3)";
+                      e.currentTarget.style.background = "transparent";
+                    }}
+                    title={t("soulEditTitle")}
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                    </svg>
+                  </button>
+                )}
                 <button
                   onClick={() => downloadSoul(a.id).catch(() => {})}
                   className="w-7 h-7 rounded-[var(--radius-sm)] flex items-center justify-center transition-colors"
@@ -160,6 +182,13 @@ export default function SoulsModal({ open, onClose, assistants, onChanged }: Pro
           }}
         />
       )}
+
+      <SoulEditModal
+        open={!!editingId}
+        onClose={() => setEditingId(null)}
+        assistantId={editingId}
+        onSaved={onChanged}
+      />
     </Modal>
   );
 }

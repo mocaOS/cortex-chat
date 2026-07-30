@@ -4,7 +4,7 @@ import { z } from "zod";
 import { db } from "@/lib/db/client";
 import { assistants, chatSessions, projects } from "@/lib/db/schema";
 import { requireAdmin } from "@/lib/auth/session";
-import { toAssistantSummary } from "@/lib/souls";
+import { parseSoulFile, toAssistantSummary } from "@/lib/souls";
 
 export const dynamic = "force-dynamic";
 
@@ -30,12 +30,19 @@ export async function GET(_: Request, ctx: Ctx) {
   });
 }
 
-const PatchBody = z.object({
-  enabled: z.boolean(),
-});
+const PatchBody = z
+  .object({
+    enabled: z.boolean().optional(),
+    // Replace the SOUL.md verbatim; cached frontmatter columns re-derive.
+    content: z.string().min(1).max(64_000).optional(),
+  })
+  .refine((b) => b.enabled !== undefined || b.content !== undefined, {
+    message: "Nothing to update",
+  });
 
-// Enable/disable. For builtins this IS remove/restore — the row persists so
-// the boot seeder never resurrects a removed builtin.
+// Enable/disable and content edits — any tier, builtins included (the seeder
+// is insert-if-missing, so an admin's edit to a builtin sticks across
+// restarts). For builtins the enabled flag IS remove/restore.
 export async function PATCH(request: Request, ctx: Ctx) {
   try {
     await requireAdmin();
@@ -47,9 +54,29 @@ export async function PATCH(request: Request, ctx: Ctx) {
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
   }
+
+  const patch: Record<string, unknown> = { updatedAt: Date.now() };
+  if (parsed.data.enabled !== undefined) {
+    patch.enabled = parsed.data.enabled ? 1 : 0;
+  }
+  if (parsed.data.content !== undefined) {
+    const soul = parseSoulFile(parsed.data.content);
+    if (!soul.body) {
+      return NextResponse.json(
+        { error: "The soul file has no persona content" },
+        { status: 400 }
+      );
+    }
+    patch.soul = parsed.data.content;
+    patch.name = soul.name ?? "Unnamed soul";
+    patch.description = soul.description;
+    patch.starters = JSON.stringify(soul.starters);
+    patch.collectionId = soul.collectionId;
+  }
+
   const result = db
     .update(assistants)
-    .set({ enabled: parsed.data.enabled ? 1 : 0, updatedAt: Date.now() })
+    .set(patch)
     .where(eq(assistants.id, id))
     .run();
   if (result.changes === 0) {

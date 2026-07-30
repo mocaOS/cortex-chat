@@ -36,6 +36,26 @@ export async function deleteAssistant(id: string): Promise<void> {
   await http(`${BASE}/${id}`, { method: "DELETE" });
 }
 
+/** Fetch a personality including its SOUL.md content. */
+export async function fetchSoul(
+  id: string,
+  adminEndpoint = false
+): Promise<AssistantSummary & { soul: string }> {
+  const path = adminEndpoint ? `/api/admin/assistants/${id}` : `${BASE}/${id}`;
+  const data = await http<{ assistant: AssistantSummary & { soul: string } }>(path);
+  return data.assistant;
+}
+
+/** Replace a personality's SOUL.md (frontmatter columns re-derive server-side). */
+export async function updateAssistantContent(
+  id: string,
+  content: string,
+  adminEndpoint = false
+): Promise<void> {
+  const path = adminEndpoint ? `/api/admin/assistants/${id}` : `${BASE}/${id}`;
+  await http(path, { method: "PATCH", body: JSON.stringify({ content }) });
+}
+
 /** Fetch the full soul and trigger a .md download. */
 export async function downloadSoul(
   id: string,
