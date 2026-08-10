@@ -514,6 +514,8 @@ const translations = {
     documentsHeading: "Documents",
     documentsDescription:
       "All documents in Cortex. Reprocess to rerun extraction after a config change; delete removes the document and cleans up orphaned entities.",
+    documentsShowing: "Showing {shown} of {total} documents",
+    loadMoreDocuments: "Load more ({remaining} more)",
     tableFilename: "Filename",
     tableStatus: "Status",
     tableSource: "Source",
@@ -1143,6 +1145,8 @@ const translations = {
     documentsHeading: "Dokumente",
     documentsDescription:
       "Alle Dokumente in Cortex. Mit Reprocess kannst du die Extraktion nach einer Konfigurationsänderung erneut ausführen; Löschen entfernt das Dokument und räumt verwaiste Entities auf.",
+    documentsShowing: "{shown} von {total} Dokumenten angezeigt",
+    loadMoreDocuments: "Mehr laden ({remaining} weitere)",
     tableFilename: "Dateiname",
     tableStatus: "Status",
     tableSource: "Quelle",

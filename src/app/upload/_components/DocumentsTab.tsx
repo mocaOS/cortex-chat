@@ -139,8 +139,15 @@ function DocStatusCell({ doc }: { doc: BackendDocument }) {
   );
 }
 
+// Page size for the documents list. The backend enforces `limit` server-side
+// (it used to ignore it and return everything), so the tab pages explicitly:
+// "load more" grows the window and polling refetches the whole grown window.
+const DOCS_PAGE_SIZE = 200;
+
 export default function DocumentsTab() {
   const [docs, setDocs] = useState<BackendDocument[]>([]);
+  const [total, setTotal] = useState<number | null>(null);
+  const [visibleLimit, setVisibleLimit] = useState(DOCS_PAGE_SIZE);
   const [collections, setCollections] = useState<Collection[]>([]);
   const [pendingCount, setPendingCount] = useState<number>(0);
   const [loading, setLoading] = useState(true);
@@ -154,7 +161,9 @@ export default function DocumentsTab() {
     setError(null);
     try {
       const [d, c, s] = await Promise.all([
-        fetch("/api/admin/library/documents?limit=200").then((x) => x.json()),
+        fetch(`/api/admin/library/documents?limit=${visibleLimit}`).then((x) =>
+          x.json()
+        ),
         fetch("/api/admin/library/collections").then((x) => x.json()),
         fetch("/api/admin/library/stats")
           .then((x) => x.json())
@@ -162,6 +171,7 @@ export default function DocumentsTab() {
       ]);
       if (d.error) throw new Error(d.error);
       setDocs(d.documents ?? []);
+      setTotal(typeof d.total === "number" ? d.total : null);
       setCollections(c.collections ?? []);
       setPendingCount(
         typeof s?.pending_task_count === "number" ? s.pending_task_count : 0
@@ -171,7 +181,7 @@ export default function DocumentsTab() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [visibleLimit]);
 
   useEffect(() => {
     load();
@@ -413,6 +423,21 @@ export default function DocumentsTab() {
             })}
           </tbody>
         </Table>
+      )}
+
+      {!loading && total !== null && (
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-[12px]" style={{ color: "var(--fg2)" }}>
+            {t("documentsShowing", { shown: docs.length, total })}
+          </span>
+          {total > docs.length && (
+            <Button
+              onClick={() => setVisibleLimit((v) => v + DOCS_PAGE_SIZE)}
+            >
+              {t("loadMoreDocuments", { remaining: total - docs.length })}
+            </Button>
+          )}
+        </div>
       )}
 
       <ConfirmModal
