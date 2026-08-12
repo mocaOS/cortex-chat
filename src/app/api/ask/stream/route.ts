@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { getAuth } from "@/lib/auth/session";
+import { getAuth, getRequestMeta } from "@/lib/auth/session";
+import { isDemoUser } from "@/lib/demo";
 import { getGroupChatKey } from "@/lib/auth/backend-key";
 import { getBackendUrl } from "@/lib/backend";
 import { db } from "@/lib/db/client";
@@ -24,6 +25,39 @@ import { fetchUpstreamWithRetry } from "@/lib/upstream-sse";
 
 export const dynamic = "force-dynamic";
 
+// Per-visitor throttle for the shared demo account. Demo visitors all ride
+// one group key, so the backend's per-key/per-IP limits can't tell them
+// apart (it only ever sees this server's address) — this sliding window is
+// the visitor-level control; backend RATE_LIMIT_QPM / the monthly quota
+// remain the aggregate backstop. In-memory like the register cooldown:
+// per-process, resets on deploy, skipped when no client IP is attributable.
+const demoAskWindow = new Map<string, number[]>();
+const DEMO_ASK_LIMIT = 5; // messages per window per IP
+const DEMO_ASK_WINDOW_MS = 60_000;
+
+function demoRateLimitResponse(ip: string): NextResponse | null {
+  if (!ip) return null;
+  if (demoAskWindow.size > 5000) demoAskWindow.clear();
+  const now = Date.now();
+  const recent = (demoAskWindow.get(ip) ?? []).filter(
+    (t) => now - t < DEMO_ASK_WINDOW_MS
+  );
+  if (recent.length >= DEMO_ASK_LIMIT) {
+    demoAskWindow.set(ip, recent);
+    const retryAfterSec = Math.max(
+      1,
+      Math.ceil((recent[0] + DEMO_ASK_WINDOW_MS - now) / 1000)
+    );
+    return NextResponse.json(
+      { error: "Rate limited" },
+      { status: 429, headers: { "Retry-After": String(retryAfterSec) } }
+    );
+  }
+  recent.push(now);
+  demoAskWindow.set(ip, recent);
+  return null;
+}
+
 /**
  * SSE streaming proxy with per-user key injection.
  *
@@ -45,6 +79,12 @@ export async function POST(request: Request) {
       { error: "No chat access. Ask an administrator to assign you to a group." },
       { status: 403 }
     );
+  }
+
+  if (isDemoUser(ctx.user)) {
+    const { ip } = await getRequestMeta();
+    const limited = demoRateLimitResponse(ip);
+    if (limited) return limited;
   }
 
   const apiUrl = getBackendUrl();

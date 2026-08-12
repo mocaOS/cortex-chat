@@ -20,6 +20,10 @@ export interface ClientConfig {
   // SSO (OIDC) — enabled gates the login button; label is the admin-set
   // button text ("" = localized fallback); only = password form hidden.
   oidc: { enabled: boolean; label: string; only: boolean };
+  // Public demo mode — the login form prefills these credentials and shows a
+  // demo notice. Publishing the password here is the point: it's the shared,
+  // deliberately public demo login.
+  demo: { enabled: boolean; email: string; password: string };
   maxUploadBytes: number;
 }
 
@@ -65,6 +69,7 @@ export async function getConfig(): Promise<ClientConfig> {
       emailConfigured: false,
       registrationEnabled: false,
       oidc: { enabled: false, label: "", only: false },
+      demo: { enabled: false, email: "", password: "" },
       maxUploadBytes: MAX_UPLOAD_BYTES,
     };
   }

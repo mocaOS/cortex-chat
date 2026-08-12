@@ -4,6 +4,7 @@ import { z } from "zod";
 import { db } from "@/lib/db/client";
 import { chatSessions } from "@/lib/db/schema";
 import { requireAuth } from "@/lib/auth/session";
+import { forbidDemo } from "@/lib/auth/demo-guard";
 import { newId } from "@/lib/auth/crypto";
 import { getUsableAssistant } from "@/lib/souls";
 import { getAccessibleProject } from "@/lib/projects";
@@ -40,6 +41,11 @@ const Body = z.object({
 
 export async function POST(request: Request) {
   const { user } = await requireAuth();
+  // Belt-and-braces: demo chats live in the visitor's browser and the demo
+  // client never calls this — but a hand-rolled request must not create
+  // server rows that every other visitor would then see.
+  const blocked = forbidDemo(user);
+  if (blocked) return blocked;
   const parsed = Body.safeParse(await request.json().catch(() => ({})));
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid payload" }, { status: 400 });

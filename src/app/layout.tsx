@@ -8,6 +8,7 @@ import { isEmailConfigured } from "@/lib/email/config";
 import { isRegistrationEnabled } from "@/lib/registration";
 import { getSttConfig, getTtsConfig } from "@/lib/voice";
 import { getOidcConfig, isOidcOnly } from "@/lib/auth/oidc";
+import { getDemoConfig } from "@/lib/demo";
 import ConfigBootstrap from "@/components/ConfigBootstrap";
 
 export const dynamic = "force-dynamic";
@@ -53,6 +54,7 @@ export default function RootLayout({
   const settings = getAppSettings();
   const logoUrl = resolveLogoUrl(settings);
   const oidc = getOidcConfig();
+  const demo = getDemoConfig();
   setI18nLocale(settings.locale);
 
   const initialConfig = {
@@ -72,6 +74,11 @@ export default function RootLayout({
       enabled: !!oidc,
       label: oidc?.buttonLabel ?? "",
       only: isOidcOnly(),
+    },
+    demo: {
+      enabled: !!demo,
+      email: demo?.email ?? "",
+      password: demo?.password ?? "",
     },
     maxUploadBytes: MAX_UPLOAD_BYTES,
   };

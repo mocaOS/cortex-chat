@@ -4,6 +4,7 @@ import { z } from "zod";
 import { db } from "@/lib/db/client";
 import { chatSessions, projects } from "@/lib/db/schema";
 import { requireAuth } from "@/lib/auth/session";
+import { forbidDemo } from "@/lib/auth/demo-guard";
 import { getUsableAssistant } from "@/lib/souls";
 import { publishChannel } from "@/lib/chat-events";
 
@@ -23,6 +24,8 @@ const PatchBody = z.object({
 // Project settings are owner-only; members interact through chats.
 export async function PATCH(request: Request, ctx: Ctx) {
   const { user } = await requireAuth();
+  const blocked = forbidDemo(user); // shared demo account — no project edits
+  if (blocked) return blocked;
   const { id } = await ctx.params;
   const project = db
     .select()
@@ -59,6 +62,8 @@ export async function PATCH(request: Request, ctx: Ctx) {
 // ALTER TABLE columns on older deployments may lack ON DELETE SET NULL.
 export async function DELETE(_: Request, ctx: Ctx) {
   const { user } = await requireAuth();
+  const blocked = forbidDemo(user);
+  if (blocked) return blocked;
   const { id } = await ctx.params;
   const project = db
     .select({ id: projects.id })

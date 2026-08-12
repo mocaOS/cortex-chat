@@ -3,6 +3,7 @@ import { z } from "zod";
 import { db } from "@/lib/db/client";
 import { assistants } from "@/lib/db/schema";
 import { requireAuth } from "@/lib/auth/session";
+import { forbidDemo } from "@/lib/auth/demo-guard";
 import { newId } from "@/lib/auth/crypto";
 import {
   listVisibleAssistants,
@@ -38,6 +39,10 @@ const Body = z
 
 export async function POST(request: Request) {
   const { user } = await requireAuth();
+  // Shared demo account: its 20 personal-soul slots would be one global pool
+  // for all visitors, and the URL import is server-side fetch (SSRF surface).
+  const blocked = forbidDemo(user);
+  if (blocked) return blocked;
   const parsed = Body.safeParse(await request.json().catch(() => ({})));
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid payload" }, { status: 400 });

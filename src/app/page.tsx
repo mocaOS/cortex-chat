@@ -20,6 +20,7 @@ import {
   setChatPinned,
   setChatProject,
   deleteChat,
+  setChatStorageMode,
 } from "@/lib/chatHistory";
 import { downloadChatMarkdown } from "@/lib/exportChat";
 import { listAssistants } from "@/lib/assistants-client";
@@ -223,6 +224,11 @@ export default function Home() {
       })
       .then((me) => {
         if (me) {
+          // Demo account: chats live in this browser, not on the server.
+          // Set unconditionally — login/logout are client-side navigations,
+          // so a stale "local" from a previous demo session must never leak
+          // into a real user's session in the same tab.
+          setChatStorageMode(me.demo ? "local" : "server");
           setCurrentUser(me);
           // Attach the user to browser-side GlitchTip events.
           Sentry.setUser({
@@ -784,13 +790,16 @@ export default function Home() {
       setMessages((prev) =>
         prev.map((m) => (m.id === messageId ? { ...m, feedback: rating } : m))
       );
+      // Demo chats have no server-side session row, so the analytics event
+      // could never pass the route's ownership check — skip the call.
+      if (currentUser?.demo) return;
       fetch("/api/me/feedback", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ sessionId: activeSessionId, messageId, rating }),
       }).catch(() => {});
     },
-    [activeSessionId]
+    [activeSessionId, currentUser]
   );
 
   const handleTogglePin = useCallback(
@@ -818,6 +827,9 @@ export default function Home() {
     .join(",");
   useEffect(() => {
     if (!currentUser) return;
+    // Demo visitors all share one user id — every frame would be filtered as
+    // self anyway. Skip the connection entirely (one SSE stream per visitor).
+    if (currentUser.demo) return;
     const userId = currentUser.id;
     let timer: ReturnType<typeof setTimeout> | null = null;
     const es = new EventSource("/api/me/events");
@@ -984,7 +996,12 @@ export default function Home() {
         onTogglePin={handleTogglePin}
         onExportSession={handleExportSession}
         projects={projects}
-        onNewProject={() => setProjectModal({ open: true, project: null })}
+        onNewProject={
+          // Demo: project creation is locked server-side — hide the "+".
+          currentUser?.demo
+            ? undefined
+            : () => setProjectModal({ open: true, project: null })
+        }
         onEditProject={(p) => setProjectModal({ open: true, project: p })}
         onShareProject={setShareProject}
         onDeleteProject={handleDeleteProject}
@@ -1017,7 +1034,11 @@ export default function Home() {
               assistants={assistants}
               activeAssistantId={activeAssistantId}
               onSelectAssistant={handleSelectAssistant}
-              onManageSouls={() => setSoulsOpen(true)}
+              onManageSouls={
+                // Demo: personal-soul CRUD is locked server-side — hide the
+                // manage button (curated builtin/global souls still show).
+                currentUser.demo ? undefined : () => setSoulsOpen(true)
+              }
               ttsEnabled={voice.tts}
             />
           </main>

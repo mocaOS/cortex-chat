@@ -3,6 +3,7 @@ import { asc, eq } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { chatMessages, chatSessions } from "@/lib/db/schema";
 import { requireAuth } from "@/lib/auth/session";
+import { forbidDemo } from "@/lib/auth/demo-guard";
 import { newId } from "@/lib/auth/crypto";
 import { canReadChatSession } from "@/lib/projects";
 
@@ -20,6 +21,8 @@ interface Ctx {
  */
 export async function POST(_: Request, ctx: Ctx) {
   const { user } = await requireAuth();
+  const blocked = forbidDemo(user); // demo chats are browser-local only
+  if (blocked) return blocked;
   const { id } = await ctx.params;
 
   const source = db

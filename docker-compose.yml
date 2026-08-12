@@ -27,6 +27,11 @@ services:
       APP_BASE_URL: ${APP_BASE_URL:-}
       # Self-registration (default on; set "false" to disable the /register page).
       ENABLE_REGISTRATION: ${ENABLE_REGISTRATION:-}
+      # Public demo mode (optional — see .env.example for semantics).
+      DEMO_MODE: ${DEMO_MODE:-}
+      DEMO_EMAIL: ${DEMO_EMAIL:-}
+      DEMO_PASSWORD: ${DEMO_PASSWORD:-}
+      DEMO_GROUP: ${DEMO_GROUP:-}
     ports:
       - "${PORT:-3000}:3000"
     volumes:

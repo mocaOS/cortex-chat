@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getAuth } from "@/lib/auth/session";
+import { forbidDemo } from "@/lib/auth/demo-guard";
 import { getGroupChatKey } from "@/lib/auth/backend-key";
 import { getBackendUrl } from "@/lib/backend";
 import { db } from "@/lib/db/client";
@@ -100,6 +101,10 @@ export async function POST(request: Request) {
   if (!ctx) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  // Shared demo account: each run fires a batch of backend searches plus an
+  // admin-LLM completion — an unmetered cost sink on a public instance.
+  const blocked = forbidDemo(ctx.user);
+  if (blocked) return blocked;
   const resolved = getGroupChatKey(ctx.user);
   if (!resolved) {
     return NextResponse.json(

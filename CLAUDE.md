@@ -155,6 +155,60 @@ pending rows).
   form) use the shared eye-toggle components (`src/components/PasswordInput`
   public flavor, `PasswordInput` in `components/admin/ui` labeled flavor).
 
+## Demo mode
+
+Env-gated public demo (`DEMO_MODE=true`) that flips an existing deployment
+into a "try the product" instance without touching other accounts. One shared
+demo user + browser-local chat storage — no ephemeral guests, no schema change.
+
+- **Env (`src/lib/demo.ts`, boot-validated in `instrumentation.ts`):**
+  `DEMO_MODE` (presence enables), `DEMO_EMAIL` (default `test@test.com`),
+  `DEMO_PASSWORD` (default `test`), `DEMO_GROUP` (group NAME deciding the
+  demo's collection scope; unset = keep current, else first group). Refuses to
+  boot with `OIDC_ONLY` or when `DEMO_EMAIL == SUPERADMIN_EMAIL`.
+- **Bootstrap (`src/lib/auth/demo-bootstrap.ts`, after `bootstrapSuperadmin`):**
+  upsert by email, `role:"user"`, `contentKeyId:null` (upload fails closed),
+  password re-hashed every boot (published creds self-heal). Never repurposes
+  an existing non-`user` row. Group join retries in the background on fresh
+  installs (default group may still be provisioning). `app_settings.demoUserId`
+  marker; flipping `DEMO_MODE` off disarms the account on next boot (password
+  → `""` unusable sentinel, sessions evicted).
+- **Identification is email-match** (`isDemoUser`) — no schema change. Flag
+  surfaces as `demo: true` on `/api/auth/me` and `ClientConfig.demo`
+  (`{enabled, email, password}` — published creds, exposing them is the
+  point; kept in sync across `/api/config`, the layout seed, and the offline
+  fallback like every config flag).
+- **Login:** form prefilled from config + `demoNotice` banner; one click.
+- **Chats live in localStorage** for the demo user only:
+  `src/lib/chatHistory.ts` is a dispatcher (`setChatStorageMode`, set
+  UNCONDITIONALLY in page.tsx after `/api/auth/me` — login/logout are
+  client-side navigations, a stale "local" must never leak into a real
+  session). `src/lib/demoChatStore.ts` mirrors the API semantics exactly
+  (pinned 0/1, `pinned desc, updatedAt desc`, pin/move don't bump updatedAt,
+  `getChat → null`, `memory === undefined` never clobbers). Keys
+  `cortexDemo.v1.*`, 30-chat cap with oldest-unpinned eviction, quota
+  evict-and-retry, in-memory Map fallback when localStorage is unavailable.
+  Works because `/api/ask/stream` needs a user + group key but NO server chat
+  row, and memory replay is fully client-carried. Deep links, pin, export,
+  search, regenerate/edit all work unchanged; the events SSE feed and the
+  feedback POST are skipped client-side.
+- **Lockdown (`forbidDemo` in `src/lib/auth/demo-guard.ts`, 403):** password,
+  profile (username feeds the analytics block upstream), avatar, personal
+  souls CRUD + `souls/generate` (cost sink), projects CRUD/shares, directory
+  (email enumeration — the one GET blocked), chats mutations (belt-and-braces;
+  GETs stay open), and forgot-password silently skips the demo email (reset
+  hijack). Upload/web-import/admin already fail closed via key/role.
+- **Throttle:** `/api/ask/stream` sliding window per visitor IP for the demo
+  user only (5/min, 429 + `Retry-After`, register-cooldown pattern) — the
+  backend can't tell visitors apart (it sees one proxy IP); its
+  `RATE_LIMIT_QPM`/monthly quota stay the aggregate backstop.
+- **UI for demo:** profile link → storage note in the sidebar footer,
+  project "+" and souls manage hidden (curated builtin/global souls still
+  show), `/profile` bounces to `/`.
+- Trade-offs (accepted): sessions/login_events accumulate one row per
+  visitor on the shared account; admin "top users" collapses demo traffic
+  into one row.
+
 ## API Keys — How we talk to Cortex
 
 Frontend never sees backend keys. All keys are stored **encrypted at rest** in SQLite (`api_keys.encrypted_value`, AES-256-GCM, key from `APP_ENCRYPTION_KEY`) and injected by server routes as the `X-API-Key` header.

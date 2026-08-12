@@ -4,6 +4,7 @@ import { z } from "zod";
 import { db } from "@/lib/db/client";
 import { chatMessages, chatSessions, users } from "@/lib/db/schema";
 import { requireAuth } from "@/lib/auth/session";
+import { forbidDemo } from "@/lib/auth/demo-guard";
 import { newId } from "@/lib/auth/crypto";
 import { canReadChatSession, getAccessibleProject } from "@/lib/projects";
 import { publishChannel, publishChatEvent } from "@/lib/chat-events";
@@ -109,6 +110,8 @@ const PatchBody = z.object({
 
 export async function PATCH(request: Request, ctx: Ctx) {
   const { user } = await requireAuth();
+  const blocked = forbidDemo(user); // demo chats are browser-local only
+  if (blocked) return blocked;
   const { id } = await ctx.params;
   // Shared project chats are collaborative: any member may continue the
   // thread (messages + memory). Chat administration (title, pin, moving
@@ -245,6 +248,8 @@ export async function PATCH(request: Request, ctx: Ctx) {
 
 export async function DELETE(_: Request, ctx: Ctx) {
   const { user } = await requireAuth();
+  const blocked = forbidDemo(user);
+  if (blocked) return blocked;
   const { id } = await ctx.params;
   const session = await ownedSession(user.id, id);
   if (!session) {

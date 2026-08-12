@@ -1,6 +1,7 @@
 import * as Sentry from "@sentry/nextjs";
 import { validateVoiceEnv } from "@/lib/voice";
 import { validateOidcEnv } from "@/lib/auth/oidc";
+import { validateDemoEnv } from "@/lib/demo";
 
 export async function register() {
   if (process.env.NEXT_RUNTIME === "edge") {
@@ -36,9 +37,12 @@ export async function register() {
 
   const { runMigrations } = await import("@/lib/db/migrate");
   const { bootstrapSuperadmin } = await import("@/lib/auth/superadmin-bootstrap");
+  const { bootstrapDemoUser } = await import("@/lib/auth/demo-bootstrap");
   const { bootstrapDefaultGroup } = await import("@/lib/default-group-bootstrap");
   runMigrations();
   await bootstrapSuperadmin();
+  // Demo mode: provision (or, when turned off, disarm) the shared demo user.
+  await bootstrapDemoUser();
   // Repo-shipped souls: insert-if-missing by builtin key (admin removals
   // stick; new releases add new souls). Purely local DB work — never blocks.
   const { seedBuiltinSouls } = await import("@/lib/souls");
@@ -139,6 +143,10 @@ function validateRequiredEnv(): void {
   // SSO is optional (feature-gated on OIDC_ISSUER_URL); when the issuer is
   // set, client id + secret + APP_BASE_URL (redirect URI) must be too.
   errors.push(...validateOidcEnv());
+
+  // Demo mode is optional (feature-gated on DEMO_MODE); incompatible with
+  // OIDC_ONLY, and the demo email must be valid and not the superadmin's.
+  errors.push(...validateDemoEnv());
 
   if (errors.length > 0) {
     const header =

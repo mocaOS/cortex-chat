@@ -23,8 +23,19 @@ function LoginForm() {
   const params = useSearchParams();
   const next = safeNext(params.get("next"));
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  // Demo mode prefills the shared demo credentials — the visitor only has to
+  // press Sign in. Seeded synchronously when the layout config is available.
+  const [demo, setDemo] = useState(
+    () =>
+      getCachedConfig()?.demo ?? { enabled: false, email: "", password: "" }
+  );
+  const [email, setEmail] = useState(
+    () => getCachedConfig()?.demo?.enabled ? getCachedConfig()!.demo.email : ""
+  );
+  const [password, setPassword] = useState(
+    () =>
+      getCachedConfig()?.demo?.enabled ? getCachedConfig()!.demo.password : ""
+  );
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [logoUrl, setLogoUrl] = useState(
@@ -74,6 +85,14 @@ function LoginForm() {
         setEmailConfigured(!!cfg.emailConfigured);
         setRegistrationEnabled(!!cfg.registrationEnabled);
         if (cfg.oidc) setOidc(cfg.oidc);
+        if (cfg.demo) {
+          setDemo(cfg.demo);
+          if (cfg.demo.enabled) {
+            // Backfill without clobbering anything the visitor already typed.
+            setEmail((v) => v || cfg.demo.email);
+            setPassword((v) => v || cfg.demo.password);
+          }
+        }
       })
       .finally(() => setReady(true));
   }, []);
@@ -146,6 +165,19 @@ function LoginForm() {
         <div className="flex items-center justify-center pb-1">
           <img src={logoUrl} alt="Logo" className="h-9 w-auto" />
         </div>
+
+        {demo.enabled && (
+          <div
+            className="text-[12.5px] text-center rounded-[var(--radius)] px-3 py-2.5 border"
+            style={{
+              color: "var(--fg2)",
+              background: "var(--bg)",
+              borderColor: "var(--border)",
+            }}
+          >
+            {t("demoNotice")}
+          </div>
+        )}
 
         {showPasswordForm && (
           <>

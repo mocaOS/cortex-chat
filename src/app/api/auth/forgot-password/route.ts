@@ -7,6 +7,7 @@ import { users } from "@/lib/db/schema";
 import { isEmailConfigured } from "@/lib/email/config";
 import { createResetToken, hasRecentResetToken } from "@/lib/auth/reset-token";
 import { sendPasswordResetEmail } from "@/lib/email/send";
+import { isDemoUserEmail } from "@/lib/demo";
 
 export const dynamic = "force-dynamic";
 
@@ -20,8 +21,15 @@ export async function POST(request: Request) {
       const email = parsed.data.email.trim().toLowerCase();
       if (isEmailConfigured()) {
         const user = db.select().from(users).where(eq(users.email, email)).get();
-        // Skip the superadmin (env-managed password) and throttle resends.
-        if (user && user.role !== "superadmin" && !hasRecentResetToken(user.id)) {
+        // Skip the superadmin (env-managed password), the shared demo account
+        // (a reset link would let one visitor hijack the published creds
+        // until the next boot re-hash), and throttle resends.
+        if (
+          user &&
+          user.role !== "superadmin" &&
+          !isDemoUserEmail(user.email) &&
+          !hasRecentResetToken(user.id)
+        ) {
           const { token } = createResetToken(user.id);
           // Fire-and-forget the SMTP send so response latency never depends on
           // whether an email was dispatched — awaiting a network round-trip only

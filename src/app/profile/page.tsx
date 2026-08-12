@@ -34,6 +34,12 @@ export default function ProfilePage() {
       return null;
     }
     const data = (await res.json()) as CurrentUser;
+    // The shared demo account has nothing to manage here — every mutation on
+    // this page is 403'd server-side. Bounce back to the chat.
+    if (data.demo) {
+      router.replace("/");
+      return null;
+    }
     setMe(data);
     setUsername(data.username);
     return data;

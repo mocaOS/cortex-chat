@@ -4,6 +4,7 @@ import { db } from "@/lib/db/client";
 import { groups, users } from "@/lib/db/schema";
 import { getAuth } from "@/lib/auth/session";
 import { ensureDefaultGroup } from "@/lib/default-group-bootstrap";
+import { isDemoUser } from "@/lib/demo";
 
 export const dynamic = "force-dynamic";
 
@@ -48,5 +49,8 @@ export async function GET() {
       user.role === "superadmin" ||
       user.role === "admin" ||
       !!user.contentKeyId,
+    // Demo-mode shared account: the client switches chat storage to
+    // localStorage and hides per-user account surfaces when this is true.
+    demo: isDemoUser(user),
   });
 }

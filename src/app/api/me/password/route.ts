@@ -7,6 +7,7 @@ import { cookies } from "next/headers";
 import { requireAuth } from "@/lib/auth/session";
 import { SESSION_COOKIE } from "@/lib/auth/cookie";
 import { hashPassword, verifyPassword } from "@/lib/auth/password";
+import { forbidDemo } from "@/lib/auth/demo-guard";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +18,10 @@ const Body = z.object({
 
 export async function PATCH(request: Request) {
   const { user } = await requireAuth();
+  // Shared demo account: changing its password would break the published
+  // demo credentials (and log out every other visitor).
+  const blocked = forbidDemo(user);
+  if (blocked) return blocked;
   const parsed = Body.safeParse(await request.json().catch(() => ({})));
   if (!parsed.success) {
     return NextResponse.json(

@@ -195,6 +195,11 @@ const translations = {
       "This reset link is invalid or has expired. Request a new one.",
     resetPasswordCheckingLink: "Checking link…",
 
+    // Demo mode
+    demoNotice:
+      "Public demo — sign-in is prefilled, just press Sign in. Chats are stored only in this browser.",
+    demoStorageNote: "Demo mode — chats are stored in this browser.",
+
     // SSO (OIDC)
     ssoSignIn: "Continue with Single Sign-On",
     ssoDivider: "or",
@@ -819,6 +824,11 @@ const translations = {
     resetPasswordInvalid:
       "Dieser Link ist ungültig oder abgelaufen. Fordere einen neuen an.",
     resetPasswordCheckingLink: "Prüfe Link…",
+
+    // Demo-Modus
+    demoNotice:
+      "Öffentliche Demo — die Anmeldung ist vorausgefüllt, klick einfach auf Anmelden. Chats werden nur in diesem Browser gespeichert.",
+    demoStorageNote: "Demo-Modus — Chats werden in diesem Browser gespeichert.",
 
     // SSO (OIDC)
     ssoSignIn: "Mit Single Sign-On fortfahren",

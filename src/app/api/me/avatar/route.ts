@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { users } from "@/lib/db/schema";
 import { requireAuth } from "@/lib/auth/session";
+import { forbidDemo } from "@/lib/auth/demo-guard";
 import {
   deleteAvatar,
   extForMime,
@@ -16,6 +17,8 @@ export const runtime = "nodejs";
 
 export async function POST(request: Request) {
   const { user } = await requireAuth();
+  const blocked = forbidDemo(user); // shared demo account — shared avatar
+  if (blocked) return blocked;
 
   let form: FormData;
   try {
@@ -61,6 +64,8 @@ export async function POST(request: Request) {
 
 export async function DELETE() {
   const { user } = await requireAuth();
+  const blocked = forbidDemo(user);
+  if (blocked) return blocked;
   deleteAvatar(user.id);
   db.update(users)
     .set({ avatarPath: null, updatedAt: Date.now() })

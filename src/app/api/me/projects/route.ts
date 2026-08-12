@@ -3,6 +3,7 @@ import { z } from "zod";
 import { db } from "@/lib/db/client";
 import { projects } from "@/lib/db/schema";
 import { requireAuth } from "@/lib/auth/session";
+import { forbidDemo } from "@/lib/auth/demo-guard";
 import { newId } from "@/lib/auth/crypto";
 import {
   listAccessibleProjects,
@@ -43,6 +44,10 @@ const Body = z.object({
 
 export async function POST(request: Request) {
   const { user } = await requireAuth();
+  // Shared demo account: projects are server-side shared workspaces — one
+  // visitor's project (and its 50-slot cap) would be everyone's.
+  const blocked = forbidDemo(user);
+  if (blocked) return blocked;
   const parsed = Body.safeParse(await request.json().catch(() => ({})));
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid payload" }, { status: 400 });

@@ -4,6 +4,7 @@ import { z } from "zod";
 import { db } from "@/lib/db/client";
 import { assistants, chatSessions, projects } from "@/lib/db/schema";
 import { requireAuth } from "@/lib/auth/session";
+import { forbidDemo } from "@/lib/auth/demo-guard";
 import {
   getUsableAssistant,
   parseSoulFile,
@@ -40,6 +41,8 @@ const PatchBody = z.object({
 
 export async function PATCH(request: Request, ctx: Ctx) {
   const { user } = await requireAuth();
+  const blocked = forbidDemo(user); // shared demo account — no soul edits
+  if (blocked) return blocked;
   const { id } = await ctx.params;
   const owned = db
     .select({ id: assistants.id })
@@ -85,6 +88,8 @@ export async function PATCH(request: Request, ctx: Ctx) {
 // ON DELETE SET NULL action.
 export async function DELETE(_: Request, ctx: Ctx) {
   const { user } = await requireAuth();
+  const blocked = forbidDemo(user);
+  if (blocked) return blocked;
   const { id } = await ctx.params;
   const owned = db
     .select({ id: assistants.id })

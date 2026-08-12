@@ -6,6 +6,7 @@ import { isEmailConfigured } from "@/lib/email/config";
 import { isRegistrationEnabled } from "@/lib/registration";
 import { getSttConfig, getTtsConfig } from "@/lib/voice";
 import { getOidcConfig, isOidcOnly } from "@/lib/auth/oidc";
+import { getDemoConfig } from "@/lib/demo";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +15,7 @@ export function GET() {
   // app_settings table — superadmin-editable at runtime from /admin/settings.
   const settings = getAppSettings();
   const oidc = getOidcConfig();
+  const demo = getDemoConfig();
   return NextResponse.json({
     accentColor: settings.accentColor,
     logoUrl: resolveLogoUrl(settings),
@@ -31,6 +33,11 @@ export function GET() {
       enabled: !!oidc,
       label: oidc?.buttonLabel ?? "",
       only: isOidcOnly(),
+    },
+    demo: {
+      enabled: !!demo,
+      email: demo?.email ?? "",
+      password: demo?.password ?? "",
     },
     maxUploadBytes: MAX_UPLOAD_BYTES,
   });

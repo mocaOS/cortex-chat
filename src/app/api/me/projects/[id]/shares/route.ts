@@ -4,6 +4,7 @@ import { z } from "zod";
 import { db } from "@/lib/db/client";
 import { groups, projects, projectShares, users } from "@/lib/db/schema";
 import { requireAuth } from "@/lib/auth/session";
+import { forbidDemo } from "@/lib/auth/demo-guard";
 import { newId } from "@/lib/auth/crypto";
 import { listProjectShares } from "@/lib/projects";
 import { publishChannel } from "@/lib/chat-events";
@@ -35,6 +36,9 @@ const Body = z.object({
 
 export async function PUT(request: Request, ctx: Ctx) {
   const { user } = await requireAuth();
+  // Shared demo account: a visitor could share into real groups/users.
+  const blocked = forbidDemo(user);
+  if (blocked) return blocked;
   const { id } = await ctx.params;
   const project = db
     .select()

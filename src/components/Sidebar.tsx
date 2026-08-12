@@ -611,28 +611,40 @@ export default function Sidebar({
             className="border-t px-2 py-2 space-y-0.5"
             style={{ borderColor: "var(--border)" }}
           >
-            <SidebarNavLink
-              href="/profile"
-              label={t("profile")}
-              onNav={onClose}
-              icon={
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="8" r="4" />
-                  <path d="M5 21v-1a7 7 0 0 1 14 0v1" />
-                </svg>
-              }
-              rightSlot={
-                <span
-                  className="text-[11px] truncate max-w-[120px]"
-                  style={{
-                    color: "var(--fg2)",
-                    fontFamily: "var(--font-mono)",
-                  }}
-                >
-                  {currentUser.username || currentUser.email}
-                </span>
-              }
-            />
+            {/* The shared demo account has no profile to manage (all its
+                mutations are locked server-side) — show the storage note in
+                the link's place instead. */}
+            {currentUser.demo ? (
+              <div
+                className="px-2.5 py-2 text-[11px]"
+                style={{ color: "var(--fg2)" }}
+              >
+                {t("demoStorageNote")}
+              </div>
+            ) : (
+              <SidebarNavLink
+                href="/profile"
+                label={t("profile")}
+                onNav={onClose}
+                icon={
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="8" r="4" />
+                    <path d="M5 21v-1a7 7 0 0 1 14 0v1" />
+                  </svg>
+                }
+                rightSlot={
+                  <span
+                    className="text-[11px] truncate max-w-[120px]"
+                    style={{
+                      color: "var(--fg2)",
+                      fontFamily: "var(--font-mono)",
+                    }}
+                  >
+                    {currentUser.username || currentUser.email}
+                  </span>
+                }
+              />
+            )}
             {currentUser.canUpload && (
               <SidebarNavLink
                 href="/upload"
