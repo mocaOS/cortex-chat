@@ -2,7 +2,17 @@
 
 A multi-tenant AI workspace for [Cortex](https://github.com/mocaOS/cortex-app) instances. End users get a clean "Ask AI" interface over their knowledge base — with **AI personalities** (portable SOUL.md personas, including a generator that writes them from your own knowledge base), **shared team projects** with realtime multi-user conversations, **voice** in and out, and per-user cross-device history. Admins get user management, group-scoped collection access, document uploads, and a built-in library console.
 
-Built with Next.js, React, and Tailwind CSS.
+![Next.js](https://img.shields.io/badge/Next.js-000000?style=flat&logo=next.js&logoColor=white)
+![React](https://img.shields.io/badge/React-20232A?style=flat&logo=react&logoColor=61DAFB)
+![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=flat&logo=typescript&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-06B6D4?style=flat&logo=tailwindcss&logoColor=white)
+
+<p align="center">
+  <img src=".github/media/cortex-chat-1.jpg" alt="Cortex Chat landing page with assistant personalities and starter prompts" width="49%" />
+  <img src=".github/media/cortex-chat-2.jpg" alt="Cortex Chat answering a question with visible reasoning and inline numbered citations" width="49%" />
+  <br />
+  <sub><i>Ask AI over your knowledge base — assistant personalities, starter prompts, and answers grounded with inline citations.</i></sub>
+</p>
 
 ## What is Cortex?
 
@@ -27,11 +37,32 @@ Cortex Chat connects to any Cortex instance via its REST API and mints scoped pe
 - **Server-side chat history** — sessions and messages persist per-user in SQLite (titles derived from the first message), so chats follow the user across devices; the sidebar has title search, pinned chats, and per-chat Markdown export
 - **Deep links** — the active chat lives in the URL (`/?chat=<id>`): refresh keeps your place, back/forward walk conversations, links are shareable
 
+<p align="center">
+  <img src=".github/media/cortex-chat-3.jpg" alt="A Deep Research answer with visible thinking steps and inline numbered citation badges" width="49%" />
+  <img src=".github/media/cortex-chat-4.jpg" alt="Source modal opened from a citation, showing the underlying document chunk with its relevance score" width="49%" />
+  <br />
+  <sub><i>Deep Research shows its thinking as it works — and every citation opens the full source chunk with relevance scores, so any claim can be verified in one click.</i></sub>
+</p>
+
 ### Personalities (SOUL.md)
 - **Portable personas** — each personality is a [SOUL.md](https://soul.md) file (identity, purpose, voice, directives, boundaries), injected server-side per turn, never exposed to the browser or stored in history
 - **Three tiers** — built-ins ship with the app (removable/restorable), admins curate global or per-group personas, users keep up to 20 personal ones
 - **Generator** — describe the assistant in one paragraph; the app researches your knowledge base (live research log) and writes the SOUL.md with the Cortex instance's own primary model, streaming into a hand-editable draft with refine rounds
 - **Import/export** — paste, upload, or import from URL (soulweaver-signed files are EIP-191 signature-verified); export any persona as its verbatim `SOUL.md`
+
+<p align="center">
+  <img src=".github/media/cortex-chat-5.jpg" alt="Add personality modal — describe the assistant in one paragraph and hit Generate Now" width="49%" />
+  <img src=".github/media/cortex-chat-6.jpg" alt="The generator researching the knowledge base with a live research log while writing the SOUL.md" width="49%" />
+  <br />
+  <sub><i>Describe the assistant in one paragraph — the generator researches your knowledge base (live research log) and writes the SOUL.md before your eyes.</i></sub>
+</p>
+
+<p align="center">
+  <img src=".github/media/cortex-chat-7.jpg" alt="Finished SOUL.md draft with a refine field, Regenerate and Use this personality actions" width="49%" />
+  <img src=".github/media/cortex-chat-8.jpg" alt="The generated Sales Expert personality live in chat with its own starter prompts" width="49%" />
+  <br />
+  <sub><i>Refine the draft with follow-up rounds or edit it by hand — then the persona goes live in chat with its own starter prompts.</i></sub>
+</p>
 
 ### Projects & realtime collaboration
 - **Shared workspaces** — a project groups chats and carries inherited defaults: an optional personality, a collection scope, and invisible per-turn instructions
@@ -60,6 +91,12 @@ Cortex Chat connects to any Cortex instance via its REST API and mints scoped pe
 - **Cortex design system** (a MOCA-derived spec) — dark-first, monochrome OKLCh + one accent, glass on chrome / opaque cards
 - **Multilingual** — English and German, selectable per-deployment
 - **Responsive** — comfortable on both mobile and desktop
+
+<p align="center">
+  <img src=".github/media/cortex-chat-9.jpg" alt="Admin settings page with logo upload, accent color, page title, description, and default language" width="70%" />
+  <br />
+  <sub><i>Logo, accent color, title, description, and language are edited at runtime in the admin settings — stored in SQLite, no env vars, no rebuilds.</i></sub>
+</p>
 
 ## Getting Started
 
