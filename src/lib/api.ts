@@ -1,4 +1,5 @@
 import { AskRequest, Collection, Source, GraphContext, RetrievalStats, StreamStatus } from "@/types";
+import type { AnswerFlags } from "@/lib/answer-flags";
 
 const PROXY_PREFIX = "/api/proxy";
 
@@ -147,7 +148,9 @@ export interface StreamCallbacks {
   onRetrievalStats: (stats: RetrievalStats) => void;
   onStatus: (status: StreamStatus) => void;
   onMemoryUpdate: (memory: unknown) => void;
-  onDone: () => void;
+  // Fired on the `done` frame with the answer-quality flags seen so far
+  // (`refused` / `truncated`, backend 2026-09-03+; both false on older ones).
+  onDone: (flags: AnswerFlags) => void;
   onError: (error: string) => void;
   // Burst rate limit (429). retryAfterSeconds from the Retry-After header.
   onRateLimited?: (retryAfterSeconds: number | null) => void;
@@ -214,6 +217,10 @@ export async function askQuestionStream(
     const decoder = new TextDecoder();
     let buffer = "";
     let shutdown = false;
+    // Answer-quality flags for this attempt — a shutdown-reconnect restarts
+    // the answer, so they reset with it.
+    let refused = false;
+    let truncated = false;
 
     readLoop: while (true) {
       const { done, value } = await reader.read();
@@ -284,13 +291,17 @@ export async function askQuestionStream(
           if (data.memory_update) {
             callbacks.onMemoryUpdate(data.memory_update);
           }
+          // A refusal stream flags its content AND done frames; a token-capped
+          // writer flags only done. Accumulate so onDone sees either.
+          if (data.refused === true) refused = true;
+          if (data.truncated === true) truncated = true;
           if (data.done) {
             // `done` is no longer necessarily the last frame: backend v2
             // (EMIT_DONE_BEFORE_MEMORY) sends `done` with `pending_memory:
             // true` first and `memory_update` 1-4s later (post-answer
             // compaction). Do NOT break/return here — keep reading until the
             // stream actually ends or memory continuity is silently lost.
-            callbacks.onDone();
+            callbacks.onDone({ refused, truncated });
           }
           if (data.error) {
             callbacks.onError(data.error);

@@ -94,6 +94,10 @@ const MessageSchema = z.object({
   // thumb state survives reload. The analytics row is written separately by
   // POST /api/me/feedback.
   feedback: z.unknown().optional(),
+  // Backend answer-quality flags (safe refusal / token cap) — rendered as a
+  // notice under the answer, kept so it survives reload like the thumb.
+  refused: z.boolean().optional(),
+  truncated: z.boolean().optional(),
   isStreaming: z.boolean().optional(),
 });
 

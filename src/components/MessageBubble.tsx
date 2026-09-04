@@ -545,6 +545,34 @@ export default function MessageBubble({
               ))}
             </div>
           )}
+
+          {/* Answer-quality notice — the backend flags a canned safety refusal
+              (refused) or a token-capped answer (truncated) on its done frame;
+              without this both read exactly like a complete answer. */}
+          {!message.isStreaming && (message.refused || message.truncated) && (
+            <div
+              className="flex items-start gap-2 mt-3 pt-3 border-t text-[12px] leading-snug"
+              style={{ borderColor: "var(--border)", color: "var(--fg2)" }}
+            >
+              <svg
+                className="w-3.5 h-3.5 flex-shrink-0 mt-0.5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <circle cx="12" cy="12" r="10" />
+                <path d="M12 16v-4" />
+                <path d="M12 8h.01" />
+              </svg>
+              <span>
+                {message.refused ? t("answerRefused") : t("answerTruncated")}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Action row — copy / regenerate / feedback. Hidden while streaming;

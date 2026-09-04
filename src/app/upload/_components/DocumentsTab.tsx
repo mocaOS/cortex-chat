@@ -18,6 +18,11 @@ interface BackendDocument {
   unembedded_chunk_count?: number;
   injection_flagged?: boolean;
   injection_reason?: string;
+  // Terminal "nothing to ingest" state (backend 2026-08-15+): the document is
+  // completed, not failed — no retry can change the outcome. `content_note`
+  // is the backend's operator-facing explanation.
+  content_status?: "empty" | "encrypted" | null;
+  content_note?: string;
   created_at?: string;
   [k: string]: unknown;
 }
@@ -48,6 +53,9 @@ function isDocCompleted(status?: string): boolean {
 // is derived client-side, mirroring the Cortex admin UI.
 function degradedReason(doc: BackendDocument): string | null {
   if (!isDocCompleted(doc.status)) return null;
+  // Empty / password-protected sources have nothing to extract or embed —
+  // complete, not degraded (same precedence as the Cortex admin UI).
+  if (doc.content_status) return null;
   if (doc.entity_count === 0) return t("degradedNoEntities");
   if ((doc.unembedded_chunk_count ?? 0) > 0)
     return t("degradedUnembedded", { count: doc.unembedded_chunk_count! });
@@ -62,6 +70,24 @@ function WarnChip({ label, title }: { label: string; title?: string }) {
       style={{
         background: "color-mix(in oklch, var(--warning) 16%, transparent)",
         color: "var(--warning)",
+        fontFamily: "var(--font-mono)",
+      }}
+    >
+      {label}
+    </span>
+  );
+}
+
+// Grey, non-alarming chip for states that are a property of the source file
+// rather than a pipeline problem (no-content / password-protected documents).
+function NeutralChip({ label, title }: { label: string; title?: string }) {
+  return (
+    <span
+      className="text-[10.5px] uppercase tracking-[0.08em] px-2 py-0.5 rounded-[var(--radius-sm)] inline-block"
+      title={title}
+      style={{
+        background: "var(--muted)",
+        color: "var(--fg2)",
         fontFamily: "var(--font-mono)",
       }}
     >
@@ -104,6 +130,21 @@ function DocStatusCell({ doc }: { doc: BackendDocument }) {
     <div className="space-y-1.5 min-w-[140px]">
       <div className="flex flex-wrap gap-1">
         <StatusChip status={doc.status} />
+        {doc.content_status && (
+          <NeutralChip
+            label={
+              doc.content_status === "encrypted"
+                ? t("protectedBadge")
+                : t("noContentBadge")
+            }
+            title={
+              doc.content_note ||
+              (doc.content_status === "encrypted"
+                ? t("protectedNote")
+                : t("noContentNote"))
+            }
+          />
+        )}
         {degraded && <WarnChip label={t("degradedBadge")} title={degraded} />}
         {doc.injection_flagged && (
           <WarnChip

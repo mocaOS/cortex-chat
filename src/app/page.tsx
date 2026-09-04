@@ -11,6 +11,7 @@ import {
   fetchCollections,
   RateLimitError,
 } from "@/lib/api";
+import { isRefusalText } from "@/lib/answer-flags";
 import {
   listChats,
   getChat,
@@ -612,12 +613,21 @@ export default function Home() {
                 });
               }
             },
-            onDone: () => {
+            onDone: (flags) => {
               doneSeen = true;
               setMessages((prev) => {
-                const updated = prev.map((m) =>
-                  m.id === assistantId ? { ...m, isStreaming: false } : m
-                );
+                const updated = prev.map((m) => {
+                  if (m.id !== assistantId) return m;
+                  // Older backends send no flag — recognise the canned
+                  // refusal text so the notice shows there too.
+                  const refused = flags.refused || isRefusalText(m.content);
+                  return {
+                    ...m,
+                    isStreaming: false,
+                    ...(refused ? { refused: true } : {}),
+                    ...(flags.truncated ? { truncated: true } : {}),
+                  };
+                });
                 finalize(updated);
                 return updated;
               });
@@ -710,6 +720,12 @@ export default function Home() {
                     content: data.answer,
                     sources: data.sources,
                     graphContext: data.graph_context,
+                    // The non-streaming response carries the same flags
+                    // top-level (backend 2026-09-03+); text fallback otherwise.
+                    ...(data.refused || isRefusalText(data.answer)
+                      ? { refused: true }
+                      : {}),
+                    ...(data.truncated ? { truncated: true } : {}),
                     isStreaming: false,
                   }
                 : m

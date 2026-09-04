@@ -65,6 +65,11 @@ export interface ChatMessage {
   // Thumbs rating the user gave this answer. Persisted in message metadata
   // (so it survives reload); the analytics event is written separately.
   feedback?: "up" | "down";
+  // Backend answer-quality flags (2026-09-03+), read off the done frame: the
+  // answer was the prompt-injection safe refusal / the writer hit its
+  // output-token cap. Persisted in message metadata like feedback.
+  refused?: boolean;
+  truncated?: boolean;
   // Server-stamped author (multi-user project chats). Read-only on clients.
   authorId?: string;
   authorName?: string;

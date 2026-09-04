@@ -19,6 +19,7 @@ import {
   getPersonalityLlmConfig,
   streamChatCompletion,
 } from "@/lib/personality-llm";
+import { isRefusalText } from "@/lib/answer-flags";
 
 export const dynamic = "force-dynamic";
 
@@ -43,13 +44,17 @@ const SEARCH_TIMEOUT_MS = 20_000;
  * Deliberately not the non-stream POST /api/ask: that path buffers the whole
  * run (28s gateway deadline) and is the less-exercised code path — streaming
  * is what chat itself uses on every deployment. Returns at the `done` frame.
+ * No `conversation_memory` is sent: these are one-shot questions, and the blob
+ * would only buy a discarded post-answer compaction call per question.
+ * `refused` mirrors the backend's flag (2026-09-03+; canned-text fallback for
+ * older backends) so a safety-filter deflection never becomes a finding.
  */
 async function askViaStream(
   apiUrl: string,
   headers: Record<string, string>,
   body: Record<string, unknown>,
   signal: AbortSignal
-): Promise<string> {
+): Promise<{ answer: string; refused: boolean }> {
   const res = await fetch(`${apiUrl}/api/ask/stream`, {
     method: "POST",
     headers: { ...headers, "Accept-Encoding": "identity" },
@@ -57,7 +62,6 @@ async function askViaStream(
       ...body,
       use_agentic: false,
       conversation_history: [],
-      conversation_memory: {},
     }),
     signal,
   });
@@ -68,6 +72,7 @@ async function askViaStream(
   const decoder = new TextDecoder();
   let buffer = "";
   let answer = "";
+  let refused = false;
   try {
     while (true) {
       const { done, value } = await reader.read();
@@ -81,8 +86,11 @@ async function askViaStream(
         try {
           const data = JSON.parse(trimmed.slice(6));
           if (typeof data.content === "string") answer += data.content;
+          if (data.refused === true) refused = true;
           if (typeof data.error === "string") throw new Error(data.error);
-          if (data.done) return answer;
+          if (data.done) {
+            return { answer, refused: refused || isRefusalText(answer) };
+          }
         } catch (err) {
           if (err instanceof Error && !(err instanceof SyntaxError)) throw err;
         }
@@ -93,7 +101,7 @@ async function askViaStream(
       await reader.cancel();
     } catch {}
   }
-  return answer;
+  return { answer, refused: refused || isRefusalText(answer) };
 }
 
 export async function POST(request: Request) {
@@ -195,7 +203,7 @@ export async function POST(request: Request) {
             if (request.signal.aborted) return controller.close();
             think(`Asking Cortex: ${question}`);
             try {
-              const answer = await askViaStream(
+              const { answer, refused } = await askViaStream(
                 apiUrl,
                 headers,
                 {
@@ -209,16 +217,18 @@ export async function POST(request: Request) {
                   AbortSignal.timeout(ASK_TIMEOUT_MS),
                 ])
               );
-              if (isUsableAnswer(answer)) {
+              if (!refused && isUsableAnswer(answer)) {
                 findings.answers.push({ question, answer });
                 think(`Answer: ${answer.replace(/\s+/g, " ").slice(0, 140)}…`);
               } else {
                 // An empty/refused answer is a finding of its own — but say
                 // WHAT came back so the trail is never a mystery.
                 think(
-                  answer.trim()
-                    ? `Answer not usable ("${answer.replace(/\s+/g, " ").slice(0, 80)}…") — skipping`
-                    : "No answer for this question — skipping"
+                  refused
+                    ? "Cortex declined this question (safety filter) — skipping"
+                    : answer.trim()
+                      ? `Answer not usable ("${answer.replace(/\s+/g, " ").slice(0, 80)}…") — skipping`
+                      : "No answer for this question — skipping"
                 );
               }
             } catch (err) {

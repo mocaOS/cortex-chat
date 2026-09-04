@@ -35,6 +35,11 @@ const translations = {
     saveAndResend: "Save & send",
     goodResponse: "Good answer",
     badResponse: "Bad answer",
+    // Backend answer-quality flags (refused / truncated on the done frame)
+    answerTruncated:
+      "This answer was cut short at the length limit. Regenerate it or narrow the question.",
+    answerRefused:
+      "This question was declined by the safety filter. Rephrase it as a plain question about the content.",
     pinned: "Pinned",
     pinChat: "Pin chat",
     unpinChat: "Unpin chat",
@@ -541,6 +546,11 @@ const translations = {
     degradedNoEntities: "0 entities extracted",
     degradedUnembedded: "{count} chunks missing embeddings",
     injectionFlaggedBadge: "Injection flagged",
+    noContentBadge: "No content",
+    protectedBadge: "Protected",
+    noContentNote: "No content could be extracted from this file.",
+    protectedNote:
+      "The PDF is password-protected. Upload a decrypted copy to ingest it.",
 
     // Processing tab
     processingHeading: "Knowledge base processing",
@@ -665,6 +675,11 @@ const translations = {
     saveAndResend: "Speichern & senden",
     goodResponse: "Gute Antwort",
     badResponse: "Schlechte Antwort",
+    // Backend answer-quality flags (refused / truncated on the done frame)
+    answerTruncated:
+      "Diese Antwort wurde am Längenlimit abgeschnitten. Generiere sie neu oder grenze die Frage ein.",
+    answerRefused:
+      "Diese Frage wurde vom Sicherheitsfilter abgelehnt. Formuliere sie als einfache Frage zum Inhalt.",
     pinned: "Angepinnt",
     pinChat: "Chat anpinnen",
     unpinChat: "Chat lösen",
@@ -1176,6 +1191,11 @@ const translations = {
     degradedNoEntities: "0 Entitäten extrahiert",
     degradedUnembedded: "{count} Chunks ohne Embeddings",
     injectionFlaggedBadge: "Injection markiert",
+    noContentBadge: "Kein Inhalt",
+    protectedBadge: "Geschützt",
+    noContentNote: "Aus dieser Datei konnte kein Inhalt extrahiert werden.",
+    protectedNote:
+      "Das PDF ist passwortgeschützt. Lade eine entschlüsselte Kopie hoch, um es zu verarbeiten.",
     pendingQueued: "Ausstehende Verarbeitung gestartet.",
 
     // Processing tab

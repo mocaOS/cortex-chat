@@ -60,7 +60,7 @@ async function proxyRequest(request: Request, method: string) {
     "X-Request-ID": requestId,
   };
 
-  const bodyText =
+  let bodyText =
     method !== "GET" && method !== "HEAD" ? await request.text() : undefined;
 
   // Log /ask and /search as message usage events (fire-and-forget), and
@@ -71,6 +71,24 @@ async function proxyRequest(request: Request, method: string) {
     try {
       const parsed = bodyText ? JSON.parse(bodyText) : null;
       collectionId = parsed?.collection_id ?? null;
+      // Chat-app fields must never reach the backend. `session_id` is a real
+      // ask-request field since Cortex 1.2.0 (server-side sessions) — the
+      // chat's own session id there yields 403 (ENABLE_SESSIONS off) or 400
+      // session_conflict (with client-carried history/memory). `assistant_id`
+      // and `project_id` are resolved only by /api/ask/stream. That route
+      // strips the same three — keep both lists in sync.
+      if (
+        parsed &&
+        typeof parsed === "object" &&
+        ("session_id" in parsed ||
+          "assistant_id" in parsed ||
+          "project_id" in parsed)
+      ) {
+        delete parsed.session_id;
+        delete parsed.assistant_id;
+        delete parsed.project_id;
+        bodyText = JSON.stringify(parsed);
+      }
     } catch {}
     if (
       collectionId &&
