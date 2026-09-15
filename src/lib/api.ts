@@ -1,5 +1,5 @@
 import { AskRequest, Collection, Source, GraphContext, RetrievalStats, StreamStatus } from "@/types";
-import type { AnswerFlags } from "@/lib/answer-flags";
+import { parseRefusalSource, type AnswerFlags, type RefusalSource } from "@/lib/answer-flags";
 
 const PROXY_PREFIX = "/api/proxy";
 
@@ -221,6 +221,7 @@ export async function askQuestionStream(
     // the answer, so they reset with it.
     let refused = false;
     let truncated = false;
+    let refusalSource: RefusalSource | undefined;
 
     readLoop: while (true) {
       const { done, value } = await reader.read();
@@ -295,13 +296,16 @@ export async function askQuestionStream(
           // writer flags only done. Accumulate so onDone sees either.
           if (data.refused === true) refused = true;
           if (data.truncated === true) truncated = true;
+          if (data.refusal_source !== undefined) {
+            refusalSource = parseRefusalSource(data.refusal_source) ?? refusalSource;
+          }
           if (data.done) {
             // `done` is no longer necessarily the last frame: backend v2
             // (EMIT_DONE_BEFORE_MEMORY) sends `done` with `pending_memory:
             // true` first and `memory_update` 1-4s later (post-answer
             // compaction). Do NOT break/return here — keep reading until the
             // stream actually ends or memory continuity is silently lost.
-            callbacks.onDone({ refused, truncated });
+            callbacks.onDone({ refused, truncated, refusalSource });
           }
           if (data.error) {
             callbacks.onError(data.error);

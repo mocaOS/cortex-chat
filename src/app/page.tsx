@@ -11,7 +11,7 @@ import {
   fetchCollections,
   RateLimitError,
 } from "@/lib/api";
-import { isRefusalText } from "@/lib/answer-flags";
+import { isRefusalText, parseRefusalSource } from "@/lib/answer-flags";
 import {
   listChats,
   getChat,
@@ -625,6 +625,9 @@ export default function Home() {
                     ...m,
                     isStreaming: false,
                     ...(refused ? { refused: true } : {}),
+                    ...(refused && flags.refusalSource
+                      ? { refusalSource: flags.refusalSource }
+                      : {}),
                     ...(flags.truncated ? { truncated: true } : {}),
                   };
                 });
@@ -724,6 +727,9 @@ export default function Home() {
                     // top-level (backend 2026-09-03+); text fallback otherwise.
                     ...(data.refused || isRefusalText(data.answer)
                       ? { refused: true }
+                      : {}),
+                    ...(data.refused && parseRefusalSource(data.refusal_source)
+                      ? { refusalSource: parseRefusalSource(data.refusal_source) }
                       : {}),
                     ...(data.truncated ? { truncated: true } : {}),
                     isStreaming: false,

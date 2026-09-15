@@ -70,6 +70,8 @@ export interface ChatMessage {
   // output-token cap. Persisted in message metadata like feedback.
   refused?: boolean;
   truncated?: boolean;
+  // Which safeguard refused (backend 2026-09-15+; see answer-flags.ts).
+  refusalSource?: "heuristic" | "classifier" | "model";
   // Server-stamped author (multi-user project chats). Read-only on clients.
   authorId?: string;
   authorName?: string;

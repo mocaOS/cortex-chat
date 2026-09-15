@@ -97,6 +97,7 @@ const MessageSchema = z.object({
   // Backend answer-quality flags (safe refusal / token cap) — rendered as a
   // notice under the answer, kept so it survives reload like the thumb.
   refused: z.boolean().optional(),
+  refusalSource: z.enum(["heuristic", "classifier", "model"]).optional(),
   truncated: z.boolean().optional(),
   isStreaming: z.boolean().optional(),
 });

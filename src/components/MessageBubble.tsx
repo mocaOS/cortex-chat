@@ -569,7 +569,31 @@ export default function MessageBubble({
                 <path d="M12 8h.01" />
               </svg>
               <span>
-                {message.refused ? t("answerRefused") : t("answerTruncated")}
+                {message.refused ? (
+                  message.refusalSource === "heuristic" ||
+                  message.refusalSource === "classifier" ? (
+                    <>
+                      {/* Which safeguard fired — a bare deflection reads like
+                          "no data"; naming the guard tells the user the search
+                          never ran and a rephrase (or an admin) fixes it. */}
+                      <span
+                        className="font-mono uppercase text-[10.5px] tracking-[0.08em] mr-1.5"
+                        style={{ color: "var(--fg)" }}
+                      >
+                        {t("promptGuardLabel")}
+                      </span>
+                      {message.refusalSource === "classifier"
+                        ? t("answerRefusedClassifier")
+                        : t("answerRefusedHeuristic")}
+                    </>
+                  ) : message.refusalSource === "model" ? (
+                    t("answerRefusedModel")
+                  ) : (
+                    t("answerRefused")
+                  )
+                ) : (
+                  t("answerTruncated")
+                )}
               </span>
             </div>
           )}
