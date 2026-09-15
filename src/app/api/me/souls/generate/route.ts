@@ -38,6 +38,11 @@ const Body = z.object({
 
 const ASK_TIMEOUT_MS = 90_000;
 const SEARCH_TIMEOUT_MS = 20_000;
+// The writer is one long completion; the backend keeps ITS leg alive with
+// `: ping` comments, but nothing reaches the browser until the first token —
+// so the route emits its own keepalives (below) and bounds the wait.
+const WRITER_TIMEOUT_MS = 5 * 60_000;
+const KEEPALIVE_MS = 10_000;
 
 /**
  * Research ask via the STREAMING endpoint, assembled into a plain answer.
@@ -160,6 +165,18 @@ export async function POST(request: Request) {
       const think = (step: string) => emit({ thinking: step });
       const status = (message: string) =>
         emit({ status: { stage: "researching", message } });
+      // SSE comment lines during silent windows (the client parser only acts
+      // on `data:` lines) so reverse proxies don't idle-timeout the browser
+      // leg while a research ask or the writer completion is in flight.
+      let closed = false;
+      const keepalive = setInterval(() => {
+        if (closed) return;
+        try {
+          controller.enqueue(encoder.encode(": ping\n\n"));
+        } catch {
+          closed = true;
+        }
+      }, KEEPALIVE_MS);
 
       try {
         const isRevision = !!(previousDraft && refinement);
@@ -255,24 +272,64 @@ export async function POST(request: Request) {
           ? buildRevisionMessages(prompt, previousDraft!, refinement!)
           : buildWriterMessages(prompt, findings);
 
-        await streamChatCompletion(
+        // Hidden reasoning (if the backend's reasoning mode lets it through)
+        // is surfaced as a throttled status line — the user sees the model
+        // working instead of a frozen "Writing…" while the thought streams.
+        let reasoningChars = 0;
+        let lastReasoningStatus = 0;
+        const stats = await streamChatCompletion(
           llm,
           messages,
           (token) => emit({ content: token }),
-          request.signal
+          AbortSignal.any([
+            request.signal,
+            AbortSignal.timeout(WRITER_TIMEOUT_MS),
+          ]),
+          {
+            onReasoning: (delta) => {
+              reasoningChars += delta.length;
+              const now = Date.now();
+              if (now - lastReasoningStatus > 2_000) {
+                lastReasoningStatus = now;
+                emit({
+                  status: {
+                    stage: "generating",
+                    message: `Model is reasoning before writing… (${Math.round(reasoningChars / 4)} tokens so far)`,
+                  },
+                });
+              }
+            },
+          }
         );
+
+        if (stats.contentChars === 0) {
+          // Never end a run silently: a thinking-by-default model that spent
+          // the whole max_tokens budget on hidden reasoning, or a provider
+          // that returned an empty choice, would otherwise look "stuck".
+          const why =
+            stats.reasoningChars > 0
+              ? `the model spent its whole token budget on hidden reasoning (~${Math.round(stats.reasoningChars / 4)} tokens${stats.finishReason ? `, finish_reason=${stats.finishReason}` : ""}). Set DEFAULT_REASONING_MODE=off on the Cortex backend or pick a non-thinking model.`
+              : `the model returned no text${stats.finishReason ? ` (finish_reason=${stats.finishReason})` : ""}. Check the Cortex backend's LLM configuration and try again.`;
+          throw new Error(`empty answer — ${why}`);
+        }
 
         emit({ done: true });
       } catch (err) {
         if (!request.signal.aborted) {
+          const timedOut =
+            err instanceof Error &&
+            (err.name === "TimeoutError" || err.name === "AbortError");
           emit({
-            error:
-              err instanceof Error
+            error: timedOut
+              ? `Generation failed: the model did not finish writing within ${WRITER_TIMEOUT_MS / 60_000} minutes. Try again, or check the Cortex backend's LLM configuration.`
+              : err instanceof Error
                 ? `Generation failed: ${err.message}`
                 : "Generation failed",
           });
         }
       } finally {
+        closed = true;
+        clearInterval(keepalive);
         try {
           controller.close();
         } catch {}
