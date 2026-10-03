@@ -1,0 +1,6 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": { "incremental": false },
+  "include": ["chat-journey-checks.ts", "chat-ask-checks.ts", "chat-memory-checks.ts", "chat-page-callback-probe.ts"],
+  "exclude": ["../node_modules"]
+}

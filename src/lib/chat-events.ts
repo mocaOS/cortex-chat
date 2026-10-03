@@ -85,16 +85,21 @@ const liveTurns: Map<string, LiveTurn> = ((
 ).__liveTurns ??= new Map());
 
 export function startLiveTurn(sessionId: string, turn: Omit<LiveTurn, "content">) {
-  liveTurns.set(sessionId, { ...turn, content: "" });
+  const live = { ...turn, content: "" };
+  liveTurns.set(sessionId, live);
+  return live;
 }
 
-export function appendLiveTurn(sessionId: string, token: string) {
-  const turn = liveTurns.get(sessionId);
-  if (turn) turn.content += token;
+export function appendLiveTurn(sessionId: string, token: string, turn: LiveTurn) {
+  if (liveTurns.get(sessionId) !== turn) return false;
+  turn.content += token;
+  return true;
 }
 
-export function endLiveTurn(sessionId: string) {
+export function endLiveTurn(sessionId: string, turn: LiveTurn) {
+  if (liveTurns.get(sessionId) !== turn) return false;
   liveTurns.delete(sessionId);
+  return true;
 }
 
 export function getLiveTurn(sessionId: string): LiveTurn | null {

@@ -1,0 +1,6 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": { "incremental": false },
+  "include": ["chat-project-move-journey.ts", "chat-project-move-checks.ts", "chat-project-followup-checks.ts", "chat-browser-checks.ts"],
+  "exclude": ["../node_modules"]
+}

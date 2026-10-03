@@ -1,0 +1,6 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": { "incremental": false },
+  "include": ["chat-project-delete-rejection-journey.ts", "chat-project-delete-rejection-checks.ts", "chat-project-delete-checks.ts", "chat-project-followup-checks.ts", "chat-browser-checks.ts"],
+  "exclude": ["../node_modules"]
+}

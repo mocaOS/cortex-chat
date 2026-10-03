@@ -85,7 +85,11 @@ export function setChatProject(
   return http(`${BASE}/${id}`, {
     method: "PATCH",
     body: JSON.stringify({ projectId }),
-  }).then(() => undefined);
+  }).then((saved) => {
+    // GET uses null for404, but a rejected organizational write is not an
+    // acknowledgment. Let the caller retain its existing selected context.
+    if (saved === null) throw new Error("Chat API error: 404");
+  });
 }
 
 export function setChatPinned(id: string, pinned: boolean): Promise<void> {

@@ -100,6 +100,18 @@ import SourceModal from "@/components/SourceModal";
 import SettingsPanel from "@/components/SettingsPanel";
 import Sidebar from "@/components/Sidebar";
 
+interface LocalTurn {
+  sessionId: string;
+  view: number;
+  messages: ChatMessage[];
+  memory: unknown;
+  memoryAtSend: unknown;
+  controller?: AbortController;
+  hasMemoryUpdate: boolean;
+  superseded: boolean;
+  previous?: LocalTurn;
+}
+
 export default function Home() {
   useLocale();
   const router = useRouter();
@@ -175,22 +187,65 @@ export default function Home() {
   // replacing. After a session load the best available value is the stored
   // blob itself (slightly degraded, but honest).
   const memoryAtSendRef = useRef<unknown>(undefined);
+  const activeSessionRef = useRef<string | null>(null);
+  const viewRef = useRef(0);
+  const latestTurnRef = useRef(new Map<string, LocalTurn>());
+  const pendingWritesRef = useRef(new Map<string, Promise<void>>());
+  const latestSessionRefreshRef = useRef(0);
 
   const refreshSessions = useCallback(async () => {
+    const request = ++latestSessionRefreshRef.current;
+    const view = viewRef.current;
+    const sessionId = activeSessionRef.current;
     try {
       const list = await listChats();
+      if (request !== latestSessionRefreshRef.current) return;
       setSessions(list);
+      // The flat list contains only this author's detached/personal chats.
+      // Remote project deletion can leave the current chat selected: update its
+      // context from that positive association evidence, without reloading the
+      // history/recall or replacing its immutable local retry snapshot.
+      if (viewRef.current === view && activeSessionRef.current === sessionId &&
+          list.some((session) => session.id === sessionId)) {
+        setActiveProjectId(null);
+      }
     } catch {
       /* leave existing list; 401 handled via /me polling */
     }
     // Project chats render under their project — refresh those alongside so
     // titles/ordering stay in sync after a settled turn.
     try {
-      setProjects(await listProjects());
+      const fresh = await listProjects();
+      if (request !== latestSessionRefreshRef.current) return;
+      setProjects(fresh);
+      if (viewRef.current === view && activeSessionRef.current === sessionId) {
+        // An acknowledgment's target can be older than another accepted move.
+        // Positive current membership owns context; absence alone grants no
+        // detach/revocation rule. History and immutable retry state stay local.
+        const project = fresh.find((p) => p.chats.some((chat) => chat.id === sessionId));
+        if (project) setActiveProjectId(project.id);
+      }
     } catch {
       /* keep the existing project list */
     }
   }, []);
+
+  // Serialize this page's full-snapshot writes per session. This is local
+  // ordering only; other clients still use the server's documented LWW API.
+  const persistSession = useCallback(
+    (id: string, snapshot: ChatMessage[], memory: unknown) => {
+      const previous = pendingWritesRef.current.get(id) ?? Promise.resolve();
+      const write = previous.catch(() => {}).then(() =>
+        updateChatMessages(id, snapshot, memory)
+      ).then(refreshSessions).catch(() => {});
+      pendingWritesRef.current.set(id, write);
+      void write.finally(() => {
+        if (pendingWritesRef.current.get(id) === write) pendingWritesRef.current.delete(id);
+      });
+      return write;
+    },
+    [refreshSessions]
+  );
 
   const refreshAssistants = useCallback(async () => {
     try {
@@ -252,25 +307,12 @@ export default function Home() {
     router.replace("/login");
   }, [router]);
 
-  // Set when messages were just replaced by loading a session from the
-  // server. The persist-on-settle effect below must skip that change: writing
-  // the unchanged messages back would bump the session's updatedAt and
-  // reorder the sidebar by "last opened" instead of "last message sent".
-  const justLoadedRef = useRef(false);
-
-  // Persist messages to the server whenever they settle (not while streaming).
-  useEffect(() => {
-    if (justLoadedRef.current) {
-      justLoadedRef.current = false;
-      return;
-    }
-    if (!activeSessionId || messages.length === 0) return;
-    const hasStreaming = messages.some((m) => m.isStreaming);
-    if (hasStreaming) return;
-    updateChatMessages(activeSessionId, messages, memoryRef.current)
-      .then(refreshSessions)
-      .catch(() => {});
-  }, [messages, activeSessionId, refreshSessions]);
+  // Loading/remote adoption never writes history. Turn completion and feedback
+  // persist explicitly, outside React updaters (which React may replay).
+  useEffect(() => () => {
+    activeSessionRef.current = null;
+    viewRef.current += 1;
+  }, []);
 
   // URL <-> chat sync: the active chat rides as ?chat=<id> so a refresh
   // lands back in the same conversation and back/forward walk the history.
@@ -281,16 +323,35 @@ export default function Home() {
   }, []);
 
   const loadSession = useCallback(async (id: string): Promise<boolean> => {
+    const view = ++viewRef.current;
+    activeSessionRef.current = null;
     const session = await getChat(id).catch(() => null);
-    if (!session) return false;
-    justLoadedRef.current = true;
+    if (!session || viewRef.current !== view) return false;
+    activeSessionRef.current = id;
     setActiveSessionId(id);
-    setMessages(session.messages ?? []);
-    memoryRef.current = session.memory;
-    memoryAtSendRef.current = session.memory;
+    // Navigation detaches a valid local stream; returning reattaches its view
+    // and stop control rather than replacing it with older settled storage.
+    const turn = latestTurnRef.current.get(id);
+    const streaming = turn && !turn.superseded && turn.messages.some(m => m.isStreaming);
+    if (streaming) {
+      turn.view = view;
+      setMessages(turn.messages);
+      memoryRef.current = turn.memory;
+      memoryAtSendRef.current = turn.memoryAtSend;
+      abortRef.current = turn.controller ?? null;
+    } else {
+      setMessages(session.messages ?? []);
+      memoryRef.current = session.memory;
+      // Done-visible turns can still own compaction after navigation. Loading
+      // the same exchange must not replace its immutable pre-turn snapshot
+      // with adopted or post-turn recall; a different exchange uses storage.
+      memoryAtSendRef.current = turn && !turn.superseded &&
+        session.messages?.at(-1)?.id === turn.messages.at(-1)?.id
+        ? turn.memoryAtSend : session.memory;
+    }
     setActiveAssistantId(session.assistantId ?? null);
     setActiveProjectId(session.projectId ?? null);
-    setIsLoading(false);
+    setIsLoading(!!streaming);
     return true;
   }, []);
 
@@ -306,6 +367,8 @@ export default function Home() {
       await deleteChat(id);
       await refreshSessions();
       if (activeSessionId === id) {
+        activeSessionRef.current = null;
+        viewRef.current += 1;
         setActiveSessionId(null);
         setMessages([]);
         memoryRef.current = undefined;
@@ -322,6 +385,8 @@ export default function Home() {
   // navigation (popstate must not create new entries).
   const resetToNewChat = useCallback(
     (push: boolean) => {
+      activeSessionRef.current = null;
+      viewRef.current += 1;
       setActiveSessionId(null);
       setMessages([]);
       memoryRef.current = undefined;
@@ -400,7 +465,16 @@ export default function Home() {
     async (question: string, baseOverride?: ChatMessage[]) => {
       if (!question.trim() || isLoading) return;
 
+      const view = viewRef.current;
       let base = baseOverride ?? messages;
+
+      // A redo retires the replaced turn before any awaited work. Ordinary
+      // next-send keeps its predecessor eligible for late memory until the
+      // newer turn settles; navigation only detaches the visible view.
+      const previousTurn = activeSessionId ? latestTurnRef.current.get(activeSessionId) : undefined;
+      if (baseOverride) {
+        for (let old = previousTurn; old; old = old.previous) old.superseded = true;
+      }
 
       // Shared project chats are multi-writer: re-fetch right before sending
       // so a teammate's settled turns become the base instead of being
@@ -409,6 +483,7 @@ export default function Home() {
       // edit (baseOverride) deliberately operate on the local view.
       if (!baseOverride && activeProjectId && activeSessionId) {
         const fresh = await getChat(activeSessionId).catch(() => null);
+        if (viewRef.current !== view) return;
         if (fresh?.messages) {
           base = fresh.messages;
           setMessages(fresh.messages);
@@ -426,6 +501,8 @@ export default function Home() {
           activeProjectId
         );
         sessionId = created.id;
+        if (viewRef.current !== view) return;
+        activeSessionRef.current = sessionId;
         setActiveSessionId(sessionId);
         // The empty state's URL becomes this chat's URL (no extra history
         // entry mid-flow).
@@ -458,7 +535,24 @@ export default function Home() {
         updateChatTitle(sessionId, question).then(refreshSessions).catch(() => {});
       }
 
-      setMessages([...base, userMsg, assistantMsg]);
+      const turn: LocalTurn = {
+        sessionId, view, messages: [...base, userMsg, assistantMsg],
+        memory: memoryRef.current, memoryAtSend: memoryRef.current,
+        hasMemoryUpdate: false, superseded: false,
+        previous: previousTurn,
+      };
+      latestTurnRef.current.set(sessionId, turn);
+      const isTurnVisible = () => activeSessionRef.current === sessionId &&
+        viewRef.current === turn.view && latestTurnRef.current.get(sessionId) === turn;
+      const updateTurn = (update: (previous: ChatMessage[]) => ChatMessage[]) => {
+        if (turn.superseded) return;
+        turn.messages = update(turn.messages);
+        if (isTurnVisible()) setMessages(turn.messages);
+      };
+      const finishLoading = () => {
+        if (isTurnVisible()) setIsLoading(false);
+      };
+      setMessages(turn.messages);
       setIsLoading(true);
 
       const conversationHistory = base
@@ -497,11 +591,12 @@ export default function Home() {
       const useStreaming = settings.streaming || useAgentic;
 
       const finalize = (finalMessages: ChatMessage[]) => {
-        if (sessionId) {
-          updateChatMessages(sessionId, finalMessages, memoryRef.current)
-            .then(refreshSessions)
-            .catch(() => {});
-        }
+        if (turn.superseded || finalMessages.some((m) => m.isStreaming)) return;
+        // Never borrow the current UI list or another turn's memory. A newer
+        // settled snapshot supersedes its predecessors, including late blobs.
+        for (let old = turn.previous; old; old = old.previous) old.superseded = true;
+        turn.previous = undefined;
+        void persistSession(sessionId, finalMessages, turn.memory);
       };
 
       // Per-stage running source counts for the live status label and the
@@ -512,6 +607,7 @@ export default function Home() {
 
       if (useStreaming) {
         const controller = new AbortController();
+        turn.controller = controller;
         abortRef.current = controller;
 
         // Backend v2 (EMIT_DONE_BEFORE_MEMORY) emits `done` (with
@@ -526,7 +622,7 @@ export default function Home() {
           request,
           {
             onContent: (token) => {
-              setMessages((prev) =>
+              updateTurn((prev) =>
                 prev.map((m) =>
                   m.id === assistantId
                     ? { ...m, content: m.content + token }
@@ -535,21 +631,21 @@ export default function Home() {
               );
             },
             onSources: (sources: Source[]) => {
-              setMessages((prev) =>
+              updateTurn((prev) =>
                 prev.map((m) =>
                   m.id === assistantId ? { ...m, sources } : m
                 )
               );
             },
             onGraphContext: (graphContext: GraphContext) => {
-              setMessages((prev) =>
+              updateTurn((prev) =>
                 prev.map((m) =>
                   m.id === assistantId ? { ...m, graphContext } : m
                 )
               );
             },
             onThinking: (step: string) => {
-              setMessages((prev) =>
+              updateTurn((prev) =>
                 prev.map((m) =>
                   m.id === assistantId
                     ? { ...m, thinking: [...(m.thinking || []), step] }
@@ -558,7 +654,7 @@ export default function Home() {
               );
             },
             onSubQuestions: (questions: string[]) => {
-              setMessages((prev) =>
+              updateTurn((prev) =>
                 prev.map((m) =>
                   m.id === assistantId
                     ? { ...m, subQuestions: questions }
@@ -569,7 +665,7 @@ export default function Home() {
             onRetrieval: (info: string) => {
               const aggregated = aggregateRetrievalCount(info, retrievalCounts);
               if (aggregated === null) return; // zero-result line — keep the current one
-              setMessages((prev) =>
+              updateTurn((prev) =>
                 prev.map((m) =>
                   m.id === assistantId
                     ? { ...m, retrieval: [...(m.retrieval || []), aggregated] }
@@ -578,7 +674,7 @@ export default function Home() {
               );
             },
             onRetrievalStats: (stats: RetrievalStats) => {
-              setMessages((prev) =>
+              updateTurn((prev) =>
                 prev.map((m) =>
                   m.id === assistantId
                     ? { ...m, retrievalStats: stats }
@@ -593,29 +689,36 @@ export default function Home() {
               // (When the stage already has a running total, aggregation has
               // rewritten the 0 to that total and this never triggers.)
               if (/^Found 0\b/i.test(aggregated.message)) return;
-              setMessages((prev) =>
+              updateTurn((prev) =>
                 prev.map((m) =>
                   m.id === assistantId ? { ...m, status: aggregated } : m
                 )
               );
             },
             onMemoryUpdate: (memory) => {
-              // Store verbatim; replayed as conversation_memory next turn.
-              memoryRef.current = memory;
-              // New event order: when the blob lands after `done`, the turn was
-              // already persisted with the stale blob — persist again with the
-              // fresh one. (Old order — memory before done — leaves doneSeen
-              // false here and the finalize in onDone picks the blob up.)
-              if (doneSeen) {
-                setMessages((prev) => {
-                  finalize(prev);
-                  return prev;
-                });
+              if (turn.superseded) return;
+              turn.memory = memory;
+              turn.hasMemoryUpdate = true;
+              const latest = latestTurnRef.current.get(sessionId);
+              // An ordinary next turn can inherit late recall until it has its
+              // own blob. Its immutable at-send snapshot/request stays intact.
+              if (latest && !latest.superseded && (latest === turn || !latest.hasMemoryUpdate)) {
+                latest.memory = memory;
+                if (activeSessionRef.current === sessionId &&
+                    (latest === turn || viewRef.current === latest.view)) {
+                  memoryRef.current = memory;
+                  // A valid late local write may win over an adopted remote
+                  // snapshot. Select its matching history and immutable at-send
+                  // memory together, never a remote-history/local-blob hybrid.
+                  memoryAtSendRef.current = latest.memoryAtSend;
+                  setMessages(latest.messages);
+                }
               }
+              if (doneSeen) finalize(turn.messages);
             },
             onDone: (flags) => {
               doneSeen = true;
-              setMessages((prev) => {
+              updateTurn((prev) => {
                 const updated = prev.map((m) => {
                   if (m.id !== assistantId) return m;
                   // Older backends send no flag — recognise the canned
@@ -631,13 +734,14 @@ export default function Home() {
                     ...(flags.truncated ? { truncated: true } : {}),
                   };
                 });
-                finalize(updated);
                 return updated;
               });
-              setIsLoading(false);
+              finalize(turn.messages);
+              finishLoading();
             },
             onError: (error: string) => {
-              setMessages((prev) => {
+              if (doneSeen) return;
+              updateTurn((prev) => {
                 const updated = prev.map((m) =>
                   m.id === assistantId
                     ? {
@@ -647,13 +751,13 @@ export default function Home() {
                       }
                     : m
                 );
-                finalize(updated);
                 return updated;
               });
-              setIsLoading(false);
+              finalize(turn.messages);
+              finishLoading();
             },
             onRateLimited: (retryAfterSeconds) => {
-              setMessages((prev) => {
+              updateTurn((prev) => {
                 const updated = prev.map((m) =>
                   m.id === assistantId
                     ? {
@@ -663,10 +767,10 @@ export default function Home() {
                       }
                     : m
                 );
-                finalize(updated);
                 return updated;
               });
-              setIsLoading(false);
+              finalize(turn.messages);
+              finishLoading();
             },
             onReconnect: () => {
               // Server is restarting and the request is being resubmitted —
@@ -675,7 +779,7 @@ export default function Home() {
               // running totals must reset too or the replay double-counts.
               for (const k of Object.keys(statusCounts)) delete statusCounts[k];
               for (const k of Object.keys(retrievalCounts)) delete retrievalCounts[k];
-              setMessages((prev) =>
+              updateTurn((prev) =>
                 prev.map((m) =>
                   m.id === assistantId
                     ? {
@@ -697,7 +801,8 @@ export default function Home() {
           },
           controller.signal
         ).catch(() => {
-          setMessages((prev) => {
+          if (doneSeen) return;
+          updateTurn((prev) => {
             const updated = prev.map((m) =>
               m.id === assistantId
                 ? {
@@ -707,15 +812,15 @@ export default function Home() {
                   }
                 : m
             );
-            finalize(updated);
             return updated;
           });
-          setIsLoading(false);
+          finalize(turn.messages);
+          finishLoading();
         });
       } else {
         try {
           const data = await askQuestion(request);
-          setMessages((prev) => {
+          updateTurn((prev) => {
             const updated = prev.map((m) =>
               m.id === assistantId
                 ? {
@@ -736,15 +841,15 @@ export default function Home() {
                   }
                 : m
             );
-            finalize(updated);
             return updated;
           });
+          finalize(turn.messages);
         } catch (err) {
           const content =
             err instanceof RateLimitError
               ? rateLimitMessage(err.retryAfterSeconds)
               : `${t("errorPrefix")}: ${err instanceof Error ? err.message : t("unknownError")}`;
-          setMessages((prev) => {
+          updateTurn((prev) => {
             const updated = prev.map((m) =>
               m.id === assistantId
                 ? {
@@ -754,14 +859,14 @@ export default function Home() {
                   }
                 : m
             );
-            finalize(updated);
             return updated;
           });
+          finalize(turn.messages);
         }
-        setIsLoading(false);
+        finishLoading();
       }
     },
-    [isLoading, messages, mode, settings, activeSessionId, activeAssistantId, activeProjectId, refreshSessions, syncUrl]
+    [isLoading, messages, mode, settings, activeSessionId, activeAssistantId, activeProjectId, refreshSessions, syncUrl, persistSession]
   );
 
   const handleStop = useCallback(() => {
@@ -809,9 +914,17 @@ export default function Home() {
   const handleFeedback = useCallback(
     (messageId: string, rating: "up" | "down") => {
       if (!activeSessionId) return;
-      setMessages((prev) =>
-        prev.map((m) => (m.id === messageId ? { ...m, feedback: rating } : m))
-      );
+      const updated = messages.map((m) => m.id === messageId ? { ...m, feedback: rating } : m);
+      setMessages(updated);
+      const turn = latestTurnRef.current.get(activeSessionId);
+      // A pending origin turn can still finalize after switching away/back.
+      // Stamp only matching IDs in its own snapshot, never adopt the live list.
+      for (let pending = turn; pending; pending = pending.previous) {
+        if (!pending.superseded) pending.messages = pending.messages.map((m) =>
+          m.id === messageId ? { ...m, feedback: rating } : m
+        );
+      }
+      if (!updated.some((m) => m.isStreaming)) void persistSession(activeSessionId, updated, memoryRef.current);
       // Demo chats have no server-side session row, so the analytics event
       // could never pass the route's ownership check — skip the call.
       if (currentUser?.demo) return;
@@ -821,7 +934,7 @@ export default function Home() {
         body: JSON.stringify({ sessionId: activeSessionId, messageId, rating }),
       }).catch(() => {});
     },
-    [activeSessionId, currentUser]
+    [activeSessionId, currentUser, messages, persistSession]
   );
 
   const handleTogglePin = useCallback(
@@ -879,34 +992,55 @@ export default function Home() {
     if (!activeSessionId || !activeProjectId || isLoading || !currentUser) return;
     const sessionId = activeSessionId;
     const userId = currentUser.id;
+    const view = viewRef.current;
+    let active = true;
+    let adoption = 0;
+    const ownsView = () => active && activeSessionRef.current === sessionId &&
+      viewRef.current === view &&
+      !latestTurnRef.current.get(sessionId)?.messages.some(m => m.isStreaming);
 
     const adopt = async () => {
+      const request = ++adoption;
       const fresh = await getChat(sessionId).catch(() => null);
-      if (!fresh?.messages) return;
-      setMessages((prev) => {
-        // Never replace a live-turn view with (older) settled state — the
-        // initial adopt can resolve after a replayed turn_start landed.
-        if (liveAssistantId) return prev;
-        // Only adopt server state that actually advanced — last id + count
-        // comparison keeps this cheap and avoids pointless re-renders.
-        if (
-          fresh.messages!.length === prev.length &&
-          fresh.messages![fresh.messages!.length - 1]?.id === prev[prev.length - 1]?.id
-        ) {
-          return prev;
-        }
-        justLoadedRef.current = true;
-        memoryRef.current = fresh.memory ?? memoryRef.current;
-        return fresh.messages!;
-      });
+      // An older read cannot replace a newer read, local stream or navigation.
+      if (!fresh?.messages || !ownsView() || request !== adoption) return;
+      // Stable IDs/count do not imply identical content, feedback or memory.
+      // Apply outside a React updater; adoption is read-only, never persistence.
+      memoryRef.current = fresh.memory;
+      const local = latestTurnRef.current.get(sessionId);
+      if (fresh.messages.at(-1)?.id !== local?.messages.at(-1)?.id) {
+        memoryAtSendRef.current = fresh.memory;
+      }
+      // A still-live relay is an overlay, not a reason to discard fresh settled
+      // state missed during a drop. Compose with the latest relay snapshot so
+      // an in-flight GET never loses tokens that arrived while it was pending.
+      setMessages([...fresh.messages, ...liveMessages]);
     };
 
     // Live-turn view: a teammate's question + streaming answer render as
     // ephemeral messages; turn_done swaps them for the settled, attributed
     // state via adopt().
     let liveAssistantId: string | null = null;
+    let liveMessages: ChatMessage[] = [];
     const es = new EventSource(`/api/me/chats/${sessionId}/events`);
+    es.onopen = () => {
+      // A reopened feed cannot replay settled changes missed during the drop.
+      // Refresh at actual connection readiness, with the same view/read guards.
+      adopt();
+    };
+    es.onerror = () => {
+      if (!ownsView() || !liveAssistantId) return;
+      // The remote turn may finish while disconnected. Retire only its
+      // ephemeral pair so a missed turn_done cannot strand a ghost stream,
+      // and a still-live reconnect replay cannot append a duplicate pair.
+      const assistantId = liveAssistantId;
+      const userId = `${assistantId.slice(0, -1)}u`;
+      liveAssistantId = null;
+      liveMessages = [];
+      setMessages((prev) => prev.filter(m => m.id !== assistantId && m.id !== userId));
+    };
     es.onmessage = (e) => {
+      if (!ownsView()) return;
       try {
         const event = JSON.parse(e.data) as {
           kind?: string;
@@ -917,10 +1051,10 @@ export default function Home() {
         };
         if (event.by === userId) return;
         if (event.kind === "turn_start") {
+          const previousIds = new Set(liveMessages.map(m => m.id));
           const liveId = `live-${Date.now()}`;
           liveAssistantId = `${liveId}-a`;
-          setMessages((prev) => [
-            ...prev,
+          liveMessages = [
             {
               id: `${liveId}-u`,
               role: "user",
@@ -934,9 +1068,14 @@ export default function Home() {
               content: "",
               isStreaming: true,
             },
-          ]);
+          ];
+          const snapshot = liveMessages;
+          setMessages((prev) => [...prev.filter(m => !previousIds.has(m.id)), ...snapshot]);
         } else if (event.kind === "token" && liveAssistantId && event.token) {
           const id = liveAssistantId;
+          liveMessages = liveMessages.map(m =>
+            m.id === id ? { ...m, content: m.content + event.token } : m
+          );
           setMessages((prev) =>
             prev.map((m) =>
               m.id === id ? { ...m, content: m.content + event.token } : m
@@ -944,6 +1083,7 @@ export default function Home() {
           );
         } else if (event.kind === "turn_done") {
           liveAssistantId = null;
+          liveMessages = [];
           adopt();
         } else {
           // settled write ("changed" / untyped)
@@ -953,7 +1093,11 @@ export default function Home() {
     };
     // Catch anything missed while the tab was hidden or the stream was down.
     adopt();
-    return () => es.close();
+    return () => {
+      active = false;
+      adoption += 1;
+      es.close();
+    };
   }, [activeSessionId, activeProjectId, isLoading, currentUser]);
 
   // Drag & drop: move an own chat into a project (or null = flat list).
@@ -971,23 +1115,34 @@ export default function Home() {
           : false;
         if (isShared && !confirm(t("moveToSharedProjectConfirm"))) return;
       }
-      await setChatProject(chatId, projectId).catch(() => {});
-      if (chatId === activeSessionId) setActiveProjectId(projectId);
-      refreshSessions();
+      try {
+        await setChatProject(chatId, projectId);
+      } catch {
+        refreshSessions();
+        return;
+      }
+      // Responses can arrive out of commit order. Refresh derives the selected
+      // association from current lists with request/session/view ownership.
+      await refreshSessions();
     },
-    [projects, activeSessionId, refreshSessions]
+    [projects, refreshSessions]
   );
 
   const handleDeleteProject = useCallback(
     async (project: ProjectInfo) => {
       if (!confirm(t("projectDeleteConfirm"))) return;
-      await deleteProject(project.id).catch(() => {});
-      // Chats survive project deletion (project_id nulls out) — if one is
-      // open, just clear its project context.
-      if (activeProjectId === project.id) setActiveProjectId(null);
+      try {
+        await deleteProject(project.id);
+      } catch {
+        refreshSessions();
+        return;
+      }
+      // Chats survive deletion. The acknowledgment may arrive after navigation;
+      // clear only a currently selected context that belongs to this project.
+      setActiveProjectId((current) => current === project.id ? null : current);
       refreshSessions();
     },
-    [activeProjectId, refreshSessions]
+    [refreshSessions]
   );
 
   if (!configReady || !currentUser) {
