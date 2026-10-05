@@ -1,11 +1,150 @@
 # Cortex Chat — regeneration index
 
+Latest publication continuation — **portable2.21.0**, 2026-10-05:
+User authorized portable/changelog harvest then accumulated three-repo commits/
+pushes to main; App `output/publication-20261005/{PUBLICATION.md,PUBLICATION.json,
+READINESS.md}` owns actual Git status/revisions and bounded release claim. Chat
+runtime unchanged; production63/telemetry13 stay inherited by recorded closure,
+not fresh browser/deployment proof. New knowledge, delayed-positive-list fixture
+and record are publication inputs; portable harvest does not replay historical
+gates. Method lessons at App owners; exact next SSE-stats action and bothCI/
+production recovery prerequisites: AppqaNEXT_SESSION. Earlier uncommitted/no-push
+paragraphs are historical after confirmed receipts. No deployment/tag/install/
+paid/store/schema/migration/cleanup authority; qa/release/resources stay local.
+
+Latest companion checkpoint — nonstream optional projection, **v2.20.0**:
+App real-auth frozen22 baseline14pass/8rejects precedes independent ACCEPT and
+three-line handler-only projection into existing schema; candidate22/combined546
+pass. Focused outer judgment failure retained; successor REJUDGED uses sameJUnit,
+zero replay. Chat source/gates unchanged; Deep Research uses streaming. Owning App
+`output/legacy-agentic-optional-projection-20261005/{FINAL.md,FINAL.json,HARVEST.json,
+HANDOFF.md}` and qa/NEXT_SESSION carry limits, preserved controls and next SSE-stats
+prose trace. Historical client evidence is inherited, not fresh integration.
+Recovery bothCI/production still needs snapshot/upgrade/image bindings. Product
+lessons harvested at App owners; portable2.20 unchanged, older pointers historical.
+
+Latest companion checkpoint — fast flags, current **portable2.20.0**, execution2.19:
+App original26baseline20/6 retained; missing declared null-tail case caused read-only
+REJECT, additive27baseline20/7 and ACCEPT before fast-only repair. Candidate27 and
+combined524 pass; Chat13/SDK19 explicitly inherited, no fresh client integration.
+App `output/fast-stream-flags-20261005/{FINAL.md,FINAL.json}` owns evidence/limits;
+`output/playbook-harvest-2.20.0/{HARVEST.json,HANDOFF.md}` owns portable harvest and
+next optional nonstream projection gate before repair. Recovery bothCI/production
+prerequisites remain; AppqaNEXT_SESSION owns all constraints. Older statements retain
+historical scope. Chat runtime/gates unchanged; portable update adds no replay.
+
+Latest companion checkpoint — standard streaming flags, **v2.19.0**:
+App frozen real-auth standard gate20 baseline16pass/4lengthrejects precedes
+independent ACCEPT and standard-only metadata-before-filter repair. Candidate20/
+focused497 pass with retained evidence; Chat13/SDK19 are explicitly inherited by
+unchanged recorded closures, not fresh integration. Chat runtime/gates remain
+unchanged. Owning App `output/standard-stream-flags-20261005/{FINAL.md,FINAL.json}`
+and `{HARVEST.json,HANDOFF.md}` carry attempts/limits and next exact fast-writer
+gate before repair. Portable2.19 unchanged; recovery bothCI/production still needs
+snapshot/upgrade/image bindings. AppqaNEXT_SESSION owns full constraints; all older
+current/next-action statements below are historical where superseded.
+
+Latest companion checkpoint — legacy streaming flags, current **portable2.19.0**,
+execution2.18.0: App corrected baseline107/103pass/4lengthfails precedes one-function
+legacy streaming done.truncated repair. Candidate107 producer passes; original
+outer retention fails, separate finalizer rejudges same retained output with zero
+test replay. Focused389 and source-based Chat streaming13/13 pass; runtime/old
+browser journeys unchanged/unreplayed. App
+`output/legacy-agentic-stream-flags-20261005/{FINAL.md,FINAL.json}` owns evidence and
+limits; `output/playbook-harvest-2.19.0/HANDOFF.md`/AppqaNEXT_SESSION own the next
+standard-depth flag-off chat writer gate before repair. Recovery bothCI/production
+with prerequisites remains selected. All older continuation statements are historical.
+
+Latest companion checkpoint — nonstream completion flags, **v2.18.0**:
+App frozen v3 baseline75 (68pass/7missing-reason rejects), independent ACCEPT and
+two-line synthesis finish-reason propagation; candidate75/focused377pass. Original
+v2 characterization/scope/callback controls retained. App
+`output/legacy-agentic-nonstream-flags-20261004/{FINAL.md,FINAL.json,HANDOFF.md}`
+owns evidence/limits and next exact streaming stop/length→done.truncated gate.
+Chat runtime/gates and old journeys unchanged/unreplayed. Existing deep-research
+UI forces streaming, so the nonstream delta requires no Chat code change. Recovery
+remains both CI/production, pending snapshot/upgrade/image bindings. App
+`qa/NEXT_SESSION.md` owns the full continuation; older paragraphs are historical.
+
+Latest companion checkpoint — nonstream scope, current guidance **v2.18.0**:
+App's executedv2.17.0 frozen baseline69 (43pass/26scope failures) precedes one-file
+nonstream/no-key-recursion forwarding repair; candidate69/focused371pass. App
+`output/legacy-agentic-nonstream-scope-20261004/{FINAL.md,FINAL.json}` owns scoped
+assembly evidence/limits and independent review; separate portable harvest:
+`output/playbook-harvest-2.18.0/{HARVEST.json,HANDOFF.md}`. Chat runtime/gates unchanged,
+historical journeys unreplayed. Exact next App action is the positive provider
+stop/length nonstream completion-flag gate before repair, with an explicit delta
+from observed null flags. Recovery target both CI pair/production images remains
+selected; snapshot/upgrade prerequisites remain. `qa/NEXT_SESSION.md` owns replay;
+all older current-version/next-action paragraphs below retain historical scope.
+
+Latest companion continuation — legacy-agentic streaming scope, translate/v2.17.0:
+App real-auth/recording-assembly baseline95 (55pass/40scope rejections) precedes a
+two-file streaming-only repair; candidate95/95 and focused302/302pass. Shared full
+summaries/global graph metadata remain broader gaps. Source corrected the old
+unconditional nonstream400 claim: flag-off `/api/ask` reaches legacy nonstream;
+its frozen positive scope gate is the next exact App action. App
+`output/legacy-agentic-scope-20261004/{FINAL.md,FINAL.json}` owns evidence/corrections
+and independent review; `qa/NEXT_SESSION.md` owns replay. Chat source/gates remain
+unchanged and unreplayed. Recovery target choice is now **both CI Python3.11/Node20
+and production images**; snapshot/upgrade-pair prerequisites remain. Historical
+next-action/version/choice statements below retain their original scope.
+
+Current guidance **v2.17.0**, App-led portable harvest after the flag-off scope
+round (executedv2.16.0). Candidate26 assembly cases/207 focused backend tests
+and affected manifest/docs checks pass; broader graph metadata and legacy
+agentic scope remain open. Chat runtime/gates are unchanged and not replayed.
+Current receipts: App `output/flagoff-scope-20261004/FINAL.md`; separate portable
+snapshot/review/audit and fresh prompt:
+`output/playbook-harvest-2.17.0/{HARVEST.json,HANDOFF.md}`. App
+`qa/NEXT_SESSION.md` owns exact next legacy-agentic scope action and prerequisites.
+Earlier current-version/next-action statements below retain historical scope.
+
+Latest companion continuation — `search-prose-20261004`, translate/v2.16.0:
+App/Skills corrected the confirmed REST-search metadata/graph, collection-field
+and configuration prose. Separate source/generated writers; fresh manifest,
+Skills lint and App docs checks/build receipts live in App
+`output/search-prose-20261004/FINAL.md`. Read SOURCE with SOURCE-CORRECTIONS;
+original evaluator failures remain retained. Chat source/gates and prior
+journeys are unchanged and were not replayed. Exact next action is the static
+flag-off ask/context confinement trace plus a frozen positive scope gate;
+recovery target choice remains open. Current handoff: App `qa/NEXT_SESSION.md`.
+
+Current portable guidance **v2.16.0** is a documentation-only harvest of the
+claims/openapi session's scope propagation, error/identifier tracing, schema
+comparison, evidence/counting and cache-ownership lessons. App
+`output/playbook-harvest-2.16.0/{start,HARVEST}.json` owns snapshots/audit.
+Claims/openapi keeps its executedv2.15.0 basis; Chat's historical bases, runtime,
+gates and receipts are unchanged. Exact next steps remain App `qa/NEXT_SESSION.md`
+and `output/claims-openapi-20261004/{CLAIMS,FINAL}.md`; no new journey is claimed.
+
+Latest companion continuation (2026-10-04, translate/v2.15.0): App/Skills closed
+the three search404/readiness503/community-id prose claims; App locally repairs
+trace-discovered empty-filter and context-enrichment confinement after frozen
+baseline rejection. Candidate15 HTTP values/69 assembly cases and102 focused
+backend tests pass; fake/recording store evidence only. Complete runtime OpenAPI
+capture/comparison obtained, no schema alignment. App `qa/NEXT_SESSION.md` and
+`output/claims-openapi-20261004/CLAIMS.md` own exact results, additive corrections,
+cache incident and next slice. Chat runtime/gate/evidence bytes remain unchanged;
+positive-list26 and27 inherited journeys remain historical, not newly executed.
+Current recovery target choice, quality/provider and deployed-revision prerequisites
+remain open. Publication is complete; later work is local/uncommitted. Earlier
+continuation text below is superseded where it names the now-closed three claims.
+
+Current cross-repo continuation: Chat positive-list b26/26 is complete on unchanged
+runtime (details below); subsequent Skills-only CRLF/package-version repairs pass
+SDK30/MCP10. App `qa/NEXT_SESSION.md` owns the exact next source-backed skill-doc
+audit correction and recovery/quality choices. No Chat gate replay or product change
+follows from those independent consumer changes. Accepted Chat integration audit:
+`output/chat-project-move-positive-list-20261003/integrated-verification-v2.json`
+in App; the unnumbered failed audit remains retained.
+
 Local map for the regenerative-software campaign in this repo. Keep it small:
 commands, capability→path map, gates, and the current checkpoint. Detailed
 history lives in `records/`. Cross-repo campaign context (cortex-app backend,
 skills): `../cortex-app/.claude/regeneration.md` — read if present; **this
 repo must stand alone without it.** Portable playbook:
-`../cortex-app/REGENERATIVE-SOFTWARE.md` (v2.14.0; adoption baseline v2.3.0).
+`../cortex-app/REGENERATIVE-SOFTWARE.md` (v2.17.0; adoption baseline v2.3.0).
 
 ## Session instruction hierarchy (load map)
 
@@ -86,7 +225,7 @@ What the suite gates (boundary → file):
 | Auth/identity flows (OIDC, reset, registration, demo) | deferred-with-reason | route-level behavior needs Next request-context harness; OIDC needs a live IdP (see `docs/dev/keycloak/`); strongest next slice |
 | Chat UX journeys | improved (selected actual UI) | held SSE races, settled/legacy controls, reload/replay and dark EN/DE; browser fixture reuses the real HTTP runtime |
 | Souls UI, broader projects, voice | deferred-with-reason | broader provider/browser lifecycle remains; selected project share/move/delete gates are listed separately below |
-| Selected project-chat lifecycle | improved | Overlap/reverse Chromium21 each +25 established stages, explicitly inherited when inputs match; delayed positive project-list ordering, other uncertain outcomes/unavailable reconciliation and multi-replica remain open |
+| Selected project-chat lifecycle | improved | Overlap/reverse/positive-list Chromium21/21/26 each establish their executed schedule, explicitly inherited when inputs match; other uncertain outcomes/unavailable reconciliation and multi-replica remain open |
 | Upload / web import / documents UI | deferred-with-reason | same browser-harness gap; backend contract assumptions documented in `cortex-backend-integration.md` |
 
 ## Historical checkpoint (2026-10-01)
@@ -558,6 +697,58 @@ deliver older B last. New gate/IDs require direct immutable/no-chat-GET context 
 exact state/valid compaction/healthy controls before any fix. This list-delivery
 combination remains unexecuted; neither tested schedule establishes all list orders.
 
+## Current checkpoint — `chat-project-move-positive-list-20261003-b`
+
+Translate/v2.14.0; frozen **positive-list v1.1 Chromium26/26 PASS, exit0** on
+**unchanged published Chat runtime**. Frozen v1 run a 25/26 exit1 was an
+evaluator lifecycle false positive (sole failed check rejected two in-window
+selected-chat events `ERR_ABORTED` produced by the page's own
+`isLoading`-effect cleanup `es.close()`; no product value rejection; scratch
+`chat-journey-Ml4Ath` retained). v1.1 instruments actual EventSource close
+URL/time/seq, snapshots the live browser phase state before judgment, and
+permits an in-window selected-feed abort only when one-to-one matched
+(time-ordered, ≤2s) to an actual intentional close; projects-list expected
+failures stay request-object/sequence correlated; any other in-window failure
+rejects; pre-window navigation cancellations remain retained diagnostics.
+Schedule: native A held pre-forward (no dispatch/commit/ack), B commits/acks
+while A held; the page's own genuine B-positive project-list response is
+captured with real bytes and held; A released commits/acks last; a newer
+genuine A-positive list is captured and delivered; the older B-positive list is
+delivered LAST; then a scoped **unavailable-refresh window** captures further
+genuine project-list responses but fails their delivery with an actual abort —
+necessary because the persistSession→refreshSessions write queue would deadlock
+under an indefinite hold; the supported catch resolves it without furnishing
+repairing association evidence. Direct regenerate/edit consume A instructions,
+original immutable pre-turn memory/prefix/personality association with no chat
+GET from before the old delivery through the first held-redo dispatch; valid
+late compaction/exact move-only state/both accepted outcomes/LWW; dark EN/DE
+cancel, single-move, held-ack navigation and bounded-absence auxiliary
+messages+memory-trigger vs memory-only-no-trigger controls pass. No product
+defect claimed. Provenance: 1 fresh b journey; 27 inherited unchanged-input
+journeys (26 explicitly inherited reverse-era executions + 1 fresh reverse b)
+reconciled at campaign start (installed locks verified by inherited(), not just
+the repo lock) (preflight: 26 inherited reverse-era + 1 reverse
+b; installed lock/launcher/browser identities included); historical production
+63/63, telemetry 13/13 and the completed three-repo publication are cited
+history, not replayed. Playbook stays 2.14.0; scoped learnings live in the
+owning guides. Owning receipt:
+[`records/2026-10-03-project-move-positive-list.md`](records/2026-10-03-project-move-positive-list.md),
+App `output/chat-project-move-positive-list-20261003/` (frozen gates v1/v1.1,
+typecheck receipts, gate reviews, GATE-CORRECTION-v1.1, preflight, backlog
+prerequisites). **Final local checks passed: contract suite 147/147, repo
+typecheck, docs validate/controls 10/10 (`local-checks.json ok:true`), both
+gate typechecks exit0; independent execution review ACCEPT b (one-to-one
+EventSource close correlation, delays 8/7ms, no late errors); the lead's
+integrated closeout/verdict remains lead-owned.** Recovery prerequisite **P3 is
+now proven** (`recovery-dns-preflight/RECEIPT.md`: private named-network DNS,
+exact HTTP fetch, NXDOMAIN negative control, fresh owned engine; only a fresh
+prerequisite run remains; CORRECTIONS.md impending on the process-0 composite).
+Remaining recovery decisions: production/CI restore pair, live-WAL/online
+snapshot mechanism and backup coverage, supported upgrade pairs, deployment
+identity — no repeat of K/release. Exact next actionable safe backlog:
+**SDK/MCP protocol evolution** (frozen CRLF fragmented-frame positive gate
+before repair, version binding, persistence restart, no new deps).
+
 ## Release readiness — `release-readiness-20261003` (App-led, 2026-10-03)
 
 The uncommitted Chat delta (page turn-ownership/persist, chat-events, chatHistory,
@@ -617,3 +808,34 @@ bases and failed receipts remain unchanged; the harvest changes guidance only.
 New publication/docs-gate receipts are App
 `output/release-readiness-20261003/authorized-publication-20261003/` when present.
 The post-publication next slice remains delayed positive project-list ordering.
+
+## Portable harvest addendum — v2.15.0 (documentation-only, 2026-10-04)
+
+Current portable guidance is **v2.15.0** (`../cortex-app/REGENERATIVE-SOFTWARE.md`).
+Lead-edited harvest of the preceding session: no new journey executed and no
+historical execution basis changed (positive-list b keeps its executed v2.14.0
+basis; do not read this as a global version rewrite). Preserved verified facts:
+Chat positive-list **26/26 on unchanged runtime**; its integration combines one
+fresh b journey with 27 explicitly inherited journeys, reconciled by input
+identity; SDK30/MCP10 protocol fixes
+and skill-doc cortex2.5.1/upload1.1.1 accepted in their owning repos; no
+commit/push/deploy authority — publication HEADs remain Chat `d6d3ad6`, App
+`85e29fe`, Skills `63e37ec`. The v2.15.0 general rules live in the portable
+only (one home): evaluate the actual encoded bytes and classify faults by
+lifecycle phase; bound any hold that would deadlock an existing save→refresh
+queue; verify the compiled module actually consumed plus a real restart for
+restart continuity; derive documented precedence from source-branch behavior,
+not comments or string-only tests; keep private/shared resource ownership and
+receipt truth (disclosed attempts, corrections) explicit. Prior evidence
+preserved at App `output/playbook-harvest-2.15.0/start.json`; the harvest
+audit links here when completed:
+App [`output/playbook-harvest-2.15.0/HARVEST.json`](../../../cortex-app/output/playbook-harvest-2.15.0/HARVEST.json).
+
+Next exact local action (unchanged, no promise invented): trace the remaining
+unresolved search404/503 and ask community-id clauses from App
+`output/sdk-mcp-protocol-20261003/remaining-backlog/hightraffic-skills-audit-20261003.md`
+through producer/auth/search paths, with source-branch/auth fixtures, before
+altering those claims; derive a complete runtime OpenAPI comparison before any
+schema alignment. The restore runtime target, snapshot mechanism and supported
+upgrade pairs, plus quality corpus/provider choices, remain independent
+user/lead decisions that keep other work moving.

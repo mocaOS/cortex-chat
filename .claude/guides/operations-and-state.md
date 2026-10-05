@@ -183,6 +183,18 @@ no-ack predicates to chat and move body, not earlier history saves. Failed teard
 may release a held mutation: later scratch DB state cannot replace pre-abort samples.
 Retain both gate versions/failed diagnostics; mode-correct drain and errors still gate.
 
+Delayed positive-list moves (`chat-project-move-positive-list-journey.ts`, receipt
+`2026-10-03-project-move-positive-list.md`) hold the old genuine B-positive project-list
+response through the reverse schedule, deliver a newer A-positive list, then deliver the
+older B last. A scoped unavailable-refresh window then fails further genuine project-list
+deliveries with an actual abort instead of holding them: the persistSession→refreshSessions
+write queue would deadlock under an indefinite hold, and the page's supported refresh catch
+resolves it without furnishing repairing association evidence. Instrumented EventSource
+close records snapshot the page's phase state before judgment (never later retained
+SQLite); request-failure accounting is phase-local with exact request/entry correlation,
+selected-chat events cancellations need one-to-one actual close correlation, and pre-window
+navigation cancellations are retained diagnostics, never a whole-session health claim.
+
 Runtime state lives under `./data/`:
 
 - `data/cortex-chat.db` — SQLite DB (users, groups, api_keys, sessions, login_events, registrations, password_reset_tokens, chat_sessions [incl. opaque `memory` blob, `pinned`, `assistant_id`, `project_id`], chat_messages [incl. per-message `user_id` authorship], assistants, projects, project_shares, usage_events, app_settings) plus Drizzle's `__drizzle_migrations` ledger.

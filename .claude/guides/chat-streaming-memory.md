@@ -275,26 +275,26 @@ direct immutable consumers without repairing GET. Non-author admitted answer com
 still has actual late-PATCH404/no storage change; open-feed delivery differs from fresh404.
 Settled kind may be absent: correlate author/time with the acknowledged stored write.
 
-Association-list: `scripts/chat-project-association-list-journey.ts <fresh-output> <fresh-id>`,
-types `scripts/tsconfig.chat-project-association-list.json`; receipt
-`records/2026-10-03-project-association-list.md`. Genuine old personal lists across
-move/newer refresh and navigation/no newer list gate direct immutable/no-GET consumers,
-valid compaction/feedback and healthy controls. Trigger actual sidebar events with
-auxiliary messages+memory: memory-only publishes chat events, not project notifications.
+Association-list: `scripts/chat-project-association-list-journey.ts <fresh-output> <fresh-id>`, types
+`scripts/tsconfig.chat-project-association-list.json`; receipt `records/2026-10-03-project-association-list.md`.
+Old personal lists across move/newer refresh and navigation/no-newer-list gate direct immutable/no-GET
+consumers, valid compaction/feedback, healthy controls; sidebar triggers need auxiliary messages+memory —
+memory-only publishes chat events, not project notifications.
 
-Response loss: `scripts/chat-project-delete-response-loss-journey.ts <fresh-output> <fresh-id>`,
-types `scripts/tsconfig.chat-project-delete-response-loss.json`; receipt
-`records/2026-10-03-project-delete-response-loss.md`. Real DELETE200/committed detach
-precedes delivery abort: no browser ack does not imply rollback. List reconciliation,
-valid author compaction/direct immutable redo/no automatic replay have pre-dispatch
-no-commit and real acknowledged-success controls; other uncertain outcomes remain open.
+Response loss: `scripts/chat-project-delete-response-loss-journey.ts <fresh-output> <fresh-id>`, types
+`scripts/tsconfig.chat-project-delete-response-loss.json`; receipt
+`records/2026-10-03-project-delete-response-loss.md`. Real DELETE200/committed detach precedes delivery abort
+— no browser ack does not imply rollback; list reconciliation, valid author compaction/direct immutable
+redo/no automatic replay have pre-dispatch no-commit and acknowledged-success controls; others remain open.
 
-Overlapping/reverse moves: `scripts/chat-project-move-{overlap,reverse}-journey.ts <fresh-output> <fresh-id>`,
-types `scripts/tsconfig.chat-project-move-{overlap,reverse}.json`; receipts
-`records/2026-10-03-project-move-{overlap,reverse}.md`. Overlap commits A/B, acks B/A
-rejects last-ack context; reverse gestures A/B holds A before forwarding, observes B
-commit/browser200 then A commit/browser200 last, final direct context A. Both accepted
-writes/LWW/raw move-only state/valid compaction/immutable redo and healthy controls hold.
-Positive request/view-owned project membership binds context; absence is not detach.
-Close actual drawer before actions. No-ack checks bind chat AND move body, excluding
-earlier valid history saves; retained phase snapshots precede any teardown dispatch.
+Overlapping/reverse/delayed-list moves: `scripts/chat-project-move-{overlap,reverse,positive-list}-journey.ts <fresh-output> <fresh-id>`, types
+`scripts/tsconfig.chat-project-move-{overlap,reverse,positive-list}.json`; receipts `records/2026-10-03-project-move-{overlap,reverse,positive-list}.md`.
+Overlap commits A/B, acks B/A, rejects last-ack context; reverse holds A pre-forward, B commits/acks, then A commits/acks last, final direct context A;
+positive-list captures the page's own genuine B-positive project list with real bytes while A is unforwarded, delivers a newer A-positive list,
+then the older B response LAST under a bounded unavailable-refresh window failing further project-list deliveries with an actual abort —
+an indefinite hold would deadlock the persistSession→refreshSessions write queue, while the supported catch resolves it without repairing
+association evidence. In-window failures are phase-locally accounted: projects aborts stay request-object/sequence correlated,
+selected-chat events ERR_ABORTED need one-to-one actual instrumented `EventSource.close()` correlation (isLoading cleanup closes at redo
+teardown), pre-window navigation cancellations stay retained diagnostics. All three retain accepted writes/LWW, raw move-only state, valid
+compaction, immutable no-GET redo and healthy controls; positive request/view-owned membership binds context; absence is not detach; close the
+actual drawer before actions; no-ack checks bind chat AND move body, excluding earlier valid history saves; retained phase snapshots precede any teardown dispatch.
