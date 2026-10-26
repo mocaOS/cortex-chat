@@ -15,7 +15,7 @@ on copies, prove original input unchanged, use sanitized env/egress tripwires an
 must retain structured observations before cleanup. An exit/finalize failure is
 never `ok: true`. Freeze coordination inputs during runs; version wrong-gate
 corrections against actual supported routes. Heavy install scratch needs adequate
-filesystem capacity. Locked packages on Node 22 do not prove Node 20/Alpine parity;
+filesystem capacity. Locked packages on Node 22 do not prove Node 26/Alpine parity;
 HTTP login/read does not establish browser or active-WAL snapshot behavior.
 
 ## Storage & state ownership

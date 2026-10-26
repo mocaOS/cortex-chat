@@ -1,5 +1,5 @@
 # --- Stage 1: Install dependencies ---
-FROM node:20-alpine AS deps
+FROM node:26-alpine AS deps
 # better-sqlite3 needs build tools to compile native bindings.
 RUN apk add --no-cache python3 make g++
 WORKDIR /app
@@ -7,7 +7,7 @@ COPY package.json package-lock.json* ./
 RUN npm ci
 
 # --- Stage 2: Build the application ---
-FROM node:20-alpine AS builder
+FROM node:26-alpine AS builder
 RUN apk add --no-cache python3 make g++
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
@@ -40,7 +40,7 @@ ENV SENTRY_AUTH_TOKEN=$SENTRY_AUTH_TOKEN \
 RUN npm run build
 
 # --- Stage 3: Production runner ---
-FROM node:20-alpine AS runner
+FROM node:26-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production

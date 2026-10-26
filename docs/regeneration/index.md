@@ -1,5 +1,17 @@
 # Cortex Chat — regeneration index
 
+Latest runtime checkpoint — **Node 26**, 2026-10-26: production images, CI and the
+documented local prerequisite move from EOL Node 20 (2026-04-30) to Node 26
+(v26.12.1, ABI147; LTS from 2026-10-28). `better-sqlite3`^12.11.1 (node-v147
+glibc+linuxmusl prebuilds; 12.9.0 has none and 12.12.0 does not exist) and
+`@types/node`^26.6.5; the lockfile diff is exactly those two packages plus
+undici-types. Contract suite147/147 and typecheck pass on Node26.12.1; the
+Node26-Alpine image boots (11 migrations, `/login`200 and `/`307).
+One latent TS7022 in `scripts/chat-shutdown-checks.ts` needed an explicit `string`
+annotation under the new node types (no behavior change). Every Node20/Alpine
+statement further down is historical evidence, not replayed:
+[`records/2026-10-26-node26-runtime.md`](records/2026-10-26-node26-runtime.md).
+
 Latest publication continuation — **portable2.21.0**, 2026-10-05:
 User authorized portable/changelog harvest then accumulated three-repo commits/
 pushes to main; App `output/publication-20261005/{PUBLICATION.md,PUBLICATION.json,
@@ -166,8 +178,8 @@ scoped guide that owns them; never duplicate.
 
 Runner: `node scripts/run-tests.mjs` — builds the explicit test-file list with
 `fs.readdirSync` and invokes `process.execPath` (no shell-glob dependence;
-dependency-free). Runs on Node 20/22. No new dependencies — tsx and
-better-sqlite3 were already dev/runtime deps.
+dependency-free). Runs on Node 26 (also passes on local Node 22 dev setups). No new
+dependencies — tsx and better-sqlite3 were already dev/runtime deps.
 CI: `.github/workflows/ci.yml` runs typecheck + contract suite on PRs/main.
 
 What the suite gates (boundary → file):

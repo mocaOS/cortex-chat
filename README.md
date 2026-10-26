@@ -102,7 +102,7 @@ Cortex Chat connects to any Cortex instance via its REST API and mints scoped pe
 
 ### Prerequisites
 
-- Node.js 18+
+- Node.js 26+
 - A running Cortex instance
 - An **admin-tier** API key (`moca_admin_...`) from your Cortex instance — used server-side to mint per-group / per-user keys
 

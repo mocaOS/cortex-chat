@@ -36,7 +36,7 @@ async function main() {
   if (surface === "browser" && result.evidence) {
     result.evidence.claimsSupported.push("actual Chromium shared project adoption/rebase/overlap/navigation (see verdicts)");
     result.evidence.claimsNotSupported = result.evidence.claimsNotSupported.filter((s: string) => s !== "browser journeys");
-    result.evidence.claimsNotSupported.push("other browser journeys, production Node20/Alpine and model quality");
+    result.evidence.claimsNotSupported.push("other browser journeys, production Node26/Alpine and model quality");
   }
   if (!result.cleanup?.artifactsCopiedTo) throw new Error("required receipt not retained");
   writeFileSync(join(result.cleanup.artifactsCopiedTo, "results.json"), JSON.stringify(result, null, 2));

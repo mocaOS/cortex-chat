@@ -139,7 +139,7 @@ export async function runShutdownBrowser(ctx: any) {
               ctx.upstream.pending.get(held.id).response.write(`data: ${JSON.stringify({ content: text })}\n\n`);
               rec.obs("held-token", { seq: held.seq, text });
             }
-            const text = attempt === 2 && kind === "shutdown" ? answer : `${kind} discarded partial ${attempt}`;
+            const text: string = attempt === 2 && kind === "shutdown" ? answer : `${kind} discarded partial ${attempt}`;
             assert.ok(await f.visible(s, text)); await rec.screenshot(s.page, `${kind}-partial-${attempt}`);
             if (attempt < 2 || kind === "exhaustion") c.release(q, [shutdown]);
           }

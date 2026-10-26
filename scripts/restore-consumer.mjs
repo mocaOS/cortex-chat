@@ -23,7 +23,7 @@
 //
 // App runtime (--app-node): the local Node 22 build of the unchanged app
 // fails prerendering /_global-error (cause unknown — see the record); the
-// production builder stage is node:20. `--app-node <absolute node binary>`
+// production builder stage is node:26. `--app-node <absolute node binary>`
 // (default: the current process.execPath) selects the node binary used ONLY
 // for the child `next build`/`next start` processes; the parent script and
 // the fixture verifier keep the existing Node + native bindings. The app's
